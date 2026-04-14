@@ -11,6 +11,7 @@ A full-stack DeSci/marine conservation web app for MesoReef DAO. Pepo is an AI g
 - **Database**: PostgreSQL via Drizzle ORM
 - **Auth**: Privy.io (wallet/email/social login) — conditionally loaded when `VITE_PRIVY_APP_ID` is set
 - **Knowledge Graph**: Bonfires.ai (`https://pepo.app.bonfires.ai`) proxied server-side
+- **Multi-Source Knowledge**: Pepo Knowledge Graph + Wikipedia API + MesoReefDAO curated documentation fused into every chat response
 
 ### Key directories
 ```
