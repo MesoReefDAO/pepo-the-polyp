@@ -25,6 +25,8 @@ export default defineConfig({
       "@shared": path.resolve(import.meta.dirname, "shared"),
       "@assets": path.resolve(import.meta.dirname, "attached_assets"),
     },
+    // Prevent duplicate React instances (needed for wagmi/privy compatibility)
+    dedupe: ["react", "react-dom", "wagmi", "viem"],
   },
   root: path.resolve(import.meta.dirname, "client"),
   build: {
@@ -36,5 +38,8 @@ export default defineConfig({
       strict: true,
       deny: ["**/.*"],
     },
+  },
+  optimizeDeps: {
+    include: ["react", "react-dom"],
   },
 });
