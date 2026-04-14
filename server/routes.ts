@@ -149,13 +149,21 @@ export async function registerRoutes(
         return res.json({ response: reply, source: "bonfires" });
       }
 
-      // No Bonfires episodes — still enrich with Wikipedia + MesoReef
-      const [wikiCtx, mesoCtx] = await Promise.all([
+      // No Bonfires episodes — still enrich with all knowledge sources
+      const [wikiCtx, mesoCtx, journalCtx] = await Promise.all([
         fetchWikipediaContext(message),
         fetchMesoReefContext(message),
+        fetchJournalKnowledge(message),
       ]);
       let fallbackReply = generatePepoResponse(message);
-      if (wikiCtx) fallbackReply += `\n\n🌐 **Scientific Reference:**\n${wikiCtx.slice(0, 500)}...`;
+      if (journalCtx.length > 0) {
+        fallbackReply += `\n\n📚 **Peer-Reviewed Science:**\n`;
+        journalCtx.slice(0, 3).forEach(paper => {
+          const badge = paper.isOA ? " 🔓" : "";
+          fallbackReply += `• **${paper.title}**${badge}\n  _${paper.journal}${paper.year ? `, ${paper.year}` : ""}_\n  ${paper.abstract.slice(0, 200)}...\n\n`;
+        });
+      }
+      if (wikiCtx) fallbackReply += `\n🌐 **Wikipedia:**\n${wikiCtx.slice(0, 400)}...`;
       if (mesoCtx) {
         const relevantLines = mesoCtx.split("\n")
           .filter(line => line.toLowerCase().split(" ").some(w => w.length > 4 && message.toLowerCase().includes(w)))
@@ -292,9 +300,10 @@ function extractWikiSearchTerms(query: string): string {
     .filter(w => w.length > 3 && !stopWords.has(w));
   // Prefer reef-adjacent science terms if present
   const scienceTerms = terms.filter(w =>
-    ["coral", "reef", "bleach", "mesoamerican", "mesophotic", "marine", "ocean", "biodiversity",
-     "ecosystem", "algae", "symbiodinium", "dhw", "restoration", "conservation", "dao", "desci",
-     "thermal", "temperature", "climate", "species", "habitat"].some(k => w.includes(k))
+    ["coral", "reef", "bleach", "mesoamer", "mesophot", "marine", "ocean", "biodiver",
+     "ecosys", "algae", "symbiodinium", "dhw", "restor", "conserv", "dao", "desci",
+     "thermal", "temperat", "climate", "species", "habitat", "scleract", "spawning",
+     "acidif", "carbonate", "photosyn", "symbiont", "polyp", "zooxanth", "crispr"].some(k => w.includes(k))
   );
   const finalTerms = scienceTerms.length > 0 ? scienceTerms : terms.slice(0, 4);
   return finalTerms.join(" ").trim() || query.slice(0, 60);
@@ -366,12 +375,111 @@ async function fetchMesoReefContext(query: string): Promise<string> {
   return MESOREEFDAO_KNOWLEDGE;
 }
 
+// ─── Scientific Journal Aggregator ───────────────────────────────────────────
+
+interface JournalPaper {
+  title: string;
+  journal: string;
+  year: number | string;
+  abstract: string;
+  doi?: string;
+  isOA: boolean;
+}
+
+function reconstructAbstract(invertedIndex: Record<string, number[]>): string {
+  if (!invertedIndex || typeof invertedIndex !== "object") return "";
+  const words: string[] = [];
+  for (const [word, positions] of Object.entries(invertedIndex)) {
+    for (const pos of positions as number[]) {
+      words[pos] = word;
+    }
+  }
+  return words.filter(Boolean).join(" ");
+}
+
+async function fetchOpenAlexPapers(query: string, limit = 8): Promise<JournalPaper[]> {
+  const cacheKey = `openalex:${query.slice(0, 80)}`;
+  const cached = getCached(cacheKey);
+  if (cached) return JSON.parse(cached);
+
+  try {
+    const terms = extractWikiSearchTerms(query) || query.slice(0, 60);
+    const url = `https://api.openalex.org/works?search=${encodeURIComponent(terms)}&per-page=${limit}&select=title,abstract_inverted_index,doi,primary_location,authorships,publication_year,open_access`;
+    const res = await fetch(url, {
+      signal: AbortSignal.timeout(8000),
+      headers: { "User-Agent": "PepoThePolyp/1.0 (mesoreefdao.org; mailto:contact@mesoreefdao.org)" },
+    });
+    if (!res.ok) return [];
+    const data = await res.json() as any;
+    const papers: JournalPaper[] = (data.results || []).map((p: any) => ({
+      title: p.title || "",
+      journal: p.primary_location?.source?.display_name || "Academic Journal",
+      year: p.publication_year || "",
+      abstract: reconstructAbstract(p.abstract_inverted_index).slice(0, 350),
+      doi: p.doi || "",
+      isOA: p.open_access?.is_oa ?? false,
+    })).filter((p: JournalPaper) => p.title && p.abstract);
+    if (papers.length) setCached(cacheKey, JSON.stringify(papers), 15 * 60 * 1000);
+    return papers;
+  } catch {
+    return [];
+  }
+}
+
+async function fetchEuropePMCPapers(query: string, limit = 3): Promise<JournalPaper[]> {
+  const cacheKey = `europepmc:${query.slice(0, 80)}`;
+  const cached = getCached(cacheKey);
+  if (cached) return JSON.parse(cached);
+
+  try {
+    const terms = extractWikiSearchTerms(query) || query.slice(0, 60);
+    const url = `https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=${encodeURIComponent(terms)}&format=json&pageSize=${limit}&resultType=core&sort=CITED+desc`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(7000) });
+    if (!res.ok) return [];
+    const data = await res.json() as any;
+    const papers: JournalPaper[] = (data.resultList?.result || [])
+      .filter((p: any) => p.abstractText && p.title)
+      .map((p: any) => ({
+        title: p.title,
+        journal: p.journalTitle || p.source || "Academic Publication",
+        year: p.pubYear || "",
+        abstract: (p.abstractText || "").slice(0, 350),
+        doi: p.doi || "",
+        isOA: p.isOpenAccess === "Y",
+      }));
+    if (papers.length) setCached(cacheKey, JSON.stringify(papers), 15 * 60 * 1000);
+    return papers;
+  } catch {
+    return [];
+  }
+}
+
+async function fetchJournalKnowledge(query: string): Promise<JournalPaper[]> {
+  // Fetch from both sources in parallel, merge and deduplicate by title
+  const [oaPapers, pmcPapers] = await Promise.all([
+    fetchOpenAlexPapers(query, 4),
+    fetchEuropePMCPapers(query, 2),
+  ]);
+
+  const seen = new Set<string>();
+  const merged: JournalPaper[] = [];
+  for (const paper of [...oaPapers, ...pmcPapers]) {
+    const key = paper.title.toLowerCase().slice(0, 60);
+    if (!seen.has(key)) {
+      seen.add(key);
+      merged.push(paper);
+    }
+  }
+  return merged.slice(0, 5);
+}
+
 // ─── Reply builder ────────────────────────────────────────────────────────────
 async function buildPepoReply(query: string, episodes: any[]): Promise<string> {
-  // Fetch Wikipedia and MesoReefDAO context in parallel
-  const [wikiContext, mesoContext] = await Promise.all([
+  // Fetch all knowledge sources in parallel
+  const [wikiContext, mesoContext, journalPapers] = await Promise.all([
     fetchWikipediaContext(query),
     fetchMesoReefContext(query),
+    fetchJournalKnowledge(query),
   ]);
 
   const top = episodes.slice(0, 3);
@@ -386,12 +494,13 @@ async function buildPepoReply(query: string, episodes: any[]): Promise<string> {
   let reply = `I've searched the Reef Knowledge Network for **"${query}"** and found ${episodes.length} community knowledge nodes`;
   const sources: string[] = ["Pepo Knowledge Graph"];
   if (wikiContext) sources.push("Wikipedia");
+  if (journalPapers.length) sources.push("Scientific Journals");
   if (mesoContext) sources.push("MesoReefDAO Docs");
   reply += ` across ${sources.join(", ")}.\n\n`;
 
   // Community knowledge graph results
   if (names.length > 0) {
-    reply += `🔬 **From the Community Knowledge Graph:**\n`;
+    reply += `🔬 **Community Knowledge Graph:**\n`;
     names.forEach((name: string, i: number) => {
       reply += `• **${name}**`;
       if (summaries[i]) reply += `\n  ${summaries[i]}...`;
@@ -400,9 +509,22 @@ async function buildPepoReply(query: string, episodes: any[]): Promise<string> {
     reply += "\n";
   }
 
+  // Scientific journals section
+  if (journalPapers.length > 0) {
+    reply += `📚 **Peer-Reviewed Science:**\n`;
+    journalPapers.forEach((paper, i) => {
+      const oaBadge = paper.isOA ? " 🔓" : "";
+      reply += `• **${paper.title}**${oaBadge}\n`;
+      reply += `  _${paper.journal}${paper.year ? `, ${paper.year}` : ""}_\n`;
+      if (paper.abstract) reply += `  ${paper.abstract.slice(0, 220)}...\n`;
+      if (paper.doi) reply += `  DOI: ${paper.doi}\n`;
+      reply += "\n";
+    });
+  }
+
   // Wikipedia context
   if (wikiContext) {
-    reply += `🌐 **Scientific Reference (Wikipedia):**\n${wikiContext.slice(0, 600)}...\n\n`;
+    reply += `🌐 **Wikipedia Reference:**\n${wikiContext.slice(0, 500)}...\n\n`;
   }
 
   // MesoReefDAO context
@@ -420,7 +542,7 @@ async function buildPepoReply(query: string, episodes: any[]): Promise<string> {
     }
   }
 
-  reply += `Want me to expand on any of these knowledge nodes or explore a related cluster?`;
+  reply += `Want me to expand on any of these knowledge nodes, dive into a specific paper, or explore a related cluster?`;
   return reply;
 }
 
