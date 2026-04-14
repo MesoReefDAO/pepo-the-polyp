@@ -247,7 +247,7 @@ export const ReefInsightDashboardSection = (): JSX.Element => {
         {/* Right Panel: Graph + Footer */}
         <div className={`flex flex-col gap-4 md:gap-6 relative self-stretch w-full md:w-[400px] md:flex-none ${mobileTab === "chat" ? "hidden md:flex" : "flex flex-1"}`}>
           {/* Live Knowledge Graph */}
-          <div className="relative flex-1 self-stretch w-full grow rounded-[24px] md:rounded-[32px] overflow-hidden border border-solid border-[#83eef01a] bg-[#00080c]" style={{ minHeight: mobileTab === "graph" ? "calc(100vh - 16rem)" : undefined }}>
+          <div className="relative flex-1 self-stretch w-full grow rounded-[24px] md:rounded-[32px] overflow-hidden border border-solid border-[#83eef01a] bg-[#00080c]" style={{ minHeight: mobileTab === "graph" ? "calc(100vh - 16rem)" : undefined, boxShadow: "inset 0 2px 6px rgba(0,0,0,0.55), inset 0 1px 2px rgba(0,0,0,0.35)" }}>
             <iframe
               src="https://pepo.app.bonfires.ai/graph"
               title="Pepo Knowledge Graph"
