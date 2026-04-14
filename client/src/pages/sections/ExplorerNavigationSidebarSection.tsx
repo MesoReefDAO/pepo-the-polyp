@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link, useLocation } from "wouter";
 import { PRIVY_ENABLED } from "@/lib/privy";
 
 const TELEGRAM_BOT_URL = "https://t.me/PepothePolyp_bot";
@@ -41,8 +42,18 @@ function WalletIcon() {
   );
 }
 
+function UserIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M20 21V19C20 17.9 19.1 17 18 17H6C4.9 17 4 17.9 4 19V21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      <circle cx="12" cy="9" r="4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
 export const ExplorerNavigationSidebarSection = (): JSX.Element => {
   const [telegramOpen, setTelegramOpen] = useState(false);
+  const [location] = useLocation();
 
   return (
     <nav className="flex flex-col w-64 min-h-screen items-start justify-between p-6 bg-[#00080c99] border-r border-[#ffffff0d] backdrop-blur-md [-webkit-backdrop-filter:blur(12px)_brightness(100%)] relative z-10">
@@ -91,6 +102,29 @@ export const ExplorerNavigationSidebarSection = (): JSX.Element => {
             </span>
           </a>
         ))}
+
+        {/* My Profile internal link */}
+        <Link
+          href="/profile"
+          className={`flex items-center gap-3 px-4 py-3 w-full rounded-[48px] no-underline transition-colors ${
+            location === "/profile"
+              ? "bg-[#83eef01a] border border-solid border-[#83eef033]"
+              : "hover:bg-[#83eef00d]"
+          }`}
+        >
+          <div className={`flex-shrink-0 w-5 h-5 flex items-center justify-center ${location === "/profile" ? "text-[#83eef0]" : "text-[#d4e9f380]"}`}>
+            <UserIcon />
+          </div>
+          <span
+            className={`[font-family:'Plus_Jakarta_Sans',Helvetica] text-base tracking-[0] leading-6 whitespace-pre-line ${
+              location === "/profile"
+                ? "font-bold text-[#83eef0]"
+                : "font-medium text-[#d4e9f380]"
+            }`}
+          >
+            My Profile
+          </span>
+        </Link>
 
         {/* Telegram Bot link */}
         <div className="w-full mt-2">

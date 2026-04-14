@@ -6,12 +6,14 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { PrivyProvider } from "@privy-io/react-auth";
 import NotFound from "@/pages/not-found";
 import { Body } from "@/pages/Body";
+import { UserProfileDashboard } from "@/pages/UserProfileDashboard";
 import { PRIVY_ENABLED, PRIVY_APP_ID } from "@/lib/privy";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Body} />
+      <Route path="/profile" component={UserProfileDashboard} />
       <Route component={NotFound} />
     </Switch>
   );
