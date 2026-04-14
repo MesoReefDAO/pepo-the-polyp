@@ -126,7 +126,8 @@ export async function registerRoutes(
     if (!message) return res.status(400).json({ error: "message must be a non-empty string under 2000 characters" });
 
     try {
-      const response = await fetch(`${BONFIRES_BASE}/chat`, {
+      // Try: /api/bonfires/pepo/chat (service API with bearer key)
+      const response = await fetch(`${BONFIRES_BASE}/api/bonfires/pepo/chat`, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${PEPO_API_KEY}`,
@@ -136,16 +137,21 @@ export async function registerRoutes(
         body: JSON.stringify({ message }),
       });
 
+      const rawText = await response.text();
+      console.log("[Pepo API] status:", response.status, "content-type:", response.headers.get("content-type"), "body:", rawText.slice(0, 500));
+
       if (!response.ok) {
         return res.json({ response: generatePepoResponse(message), source: "local" });
       }
 
-      const data = await response.json();
+      let data: any = {};
+      try { data = JSON.parse(rawText); } catch { /* not JSON */ }
       return res.json({
-        response: data.response || data.message || data.answer || generatePepoResponse(message),
+        response: data.response || data.message || data.answer || data.text || data.content || data.reply || generatePepoResponse(message),
         source: "bonfires",
       });
-    } catch {
+    } catch (err) {
+      console.log("[Pepo API] error:", err);
       return res.json({ response: generatePepoResponse(message), source: "local" });
     }
   });
