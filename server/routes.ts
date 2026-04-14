@@ -536,28 +536,77 @@ function reconstructAbstract(invertedIndex: Record<string, number[]>): string {
   return words.filter(Boolean).join(" ");
 }
 
-async function fetchOpenAlexPapers(query: string, limit = 8): Promise<JournalPaper[]> {
+// Coral-reef relevance guard — paper must mention reef/coral science topics
+const REEF_RELEVANCE_TERMS = [
+  "coral", "reef", "bleach", "symbiodinium", "zooxanthellae", "scleractinian",
+  "cnidarian", "calcification", "polyp", "acropora", "porites", "symbiotic algae",
+  "marine ecology", "coral restoration", "coral holobiont", "mesophotic",
+];
+
+// Hard exclusion: papers clearly about unrelated medical/human biology domains
+const REEF_EXCLUSION_TERMS = [
+  "human gut", "gut microbiota", "gut microbiome", "intestine", "cancer treatment",
+  "human disease", "clinical trial", "patient", "dental", "tooth", "nanoparticle therapy",
+  "pharmaceutical drug", "vaccine", "hospital", "lung", "cardiovascular",
+];
+
+function isCoralReefRelevant(title: string, abstract: string): boolean {
+  const titleLc = title.toLowerCase();
+  const abstractLc = abstract.toLowerCase();
+  const combined = titleLc + " " + abstractLc;
+
+  // Hard exclusions first
+  if (REEF_EXCLUSION_TERMS.some(t => combined.includes(t))) return false;
+
+  // Title must mention a core reef term → strong positive signal
+  const titleMatch = REEF_RELEVANCE_TERMS.some(t => titleLc.includes(t));
+  if (titleMatch) return true;
+
+  // Abstract must mention reef terms prominently (3+ distinct term types)
+  const abstractHits = REEF_RELEVANCE_TERMS.reduce(
+    (count, t) => count + (abstractLc.includes(t) ? 1 : 0), 0
+  );
+  return abstractHits >= 3;
+}
+
+function buildCoralReefQuery(userQuery: string): string {
+  const terms = extractWikiSearchTerms(userQuery);
+  // Always anchor to coral reef context; add user-specific science keywords
+  const reefTerms = terms
+    .split(" ")
+    .filter(w => !["coral", "reef"].includes(w)) // avoid duplicate
+    .slice(0, 4)
+    .join(" ");
+  return reefTerms ? `coral reef ${reefTerms}` : "coral reef";
+}
+
+async function fetchOpenAlexPapers(query: string, limit = 12): Promise<JournalPaper[]> {
   const cacheKey = `openalex:${query.slice(0, 80)}`;
   const cached = getCached(cacheKey);
   if (cached) return JSON.parse(cached);
 
   try {
-    const terms = extractWikiSearchTerms(query) || query.slice(0, 60);
-    const url = `https://api.openalex.org/works?search=${encodeURIComponent(terms)}&per-page=${limit}&select=title,abstract_inverted_index,doi,primary_location,authorships,publication_year,open_access`;
+    const searchQuery = buildCoralReefQuery(query);
+    const url = `https://api.openalex.org/works?search=${encodeURIComponent(searchQuery)}&per-page=${limit}&select=title,abstract_inverted_index,doi,primary_location,publication_year,open_access&sort=cited_by_count:desc`;
     const res = await fetch(url, {
       signal: AbortSignal.timeout(8000),
       headers: { "User-Agent": "PepoThePolyp/1.0 (mesoreefdao.org; mailto:contact@mesoreefdao.org)" },
     });
     if (!res.ok) return [];
     const data = await res.json() as any;
-    const papers: JournalPaper[] = (data.results || []).map((p: any) => ({
-      title: p.title || "",
-      journal: p.primary_location?.source?.display_name || "Academic Journal",
-      year: p.publication_year || "",
-      abstract: reconstructAbstract(p.abstract_inverted_index).slice(0, 350),
-      doi: p.doi || "",
-      isOA: p.open_access?.is_oa ?? false,
-    })).filter((p: JournalPaper) => p.title && p.abstract);
+    const papers: JournalPaper[] = (data.results || [])
+      .map((p: any) => {
+        const abstract = reconstructAbstract(p.abstract_inverted_index).slice(0, 400);
+        return {
+          title: p.title || "",
+          journal: p.primary_location?.source?.display_name || "Academic Journal",
+          year: p.publication_year || "",
+          abstract,
+          doi: p.doi || "",
+          isOA: p.open_access?.is_oa ?? false,
+        };
+      })
+      .filter((p: JournalPaper) => p.title && p.abstract && isCoralReefRelevant(p.title, p.abstract));
     if (papers.length) setCached(cacheKey, JSON.stringify(papers), 15 * 60 * 1000);
     return papers;
   } catch {
@@ -565,24 +614,24 @@ async function fetchOpenAlexPapers(query: string, limit = 8): Promise<JournalPap
   }
 }
 
-async function fetchEuropePMCPapers(query: string, limit = 3): Promise<JournalPaper[]> {
+async function fetchEuropePMCPapers(query: string, limit = 5): Promise<JournalPaper[]> {
   const cacheKey = `europepmc:${query.slice(0, 80)}`;
   const cached = getCached(cacheKey);
   if (cached) return JSON.parse(cached);
 
   try {
-    const terms = extractWikiSearchTerms(query) || query.slice(0, 60);
-    const url = `https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=${encodeURIComponent(terms)}&format=json&pageSize=${limit}&resultType=core&sort=CITED+desc`;
+    const searchQuery = buildCoralReefQuery(query);
+    const url = `https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=${encodeURIComponent(searchQuery)}&format=json&pageSize=${limit}&resultType=core&sort=CITED+desc`;
     const res = await fetch(url, { signal: AbortSignal.timeout(7000) });
     if (!res.ok) return [];
     const data = await res.json() as any;
     const papers: JournalPaper[] = (data.resultList?.result || [])
-      .filter((p: any) => p.abstractText && p.title)
+      .filter((p: any) => p.abstractText && p.title && isCoralReefRelevant(p.title, p.abstractText))
       .map((p: any) => ({
         title: p.title,
         journal: p.journalTitle || p.source || "Academic Publication",
         year: p.pubYear || "",
-        abstract: (p.abstractText || "").slice(0, 350),
+        abstract: (p.abstractText || "").slice(0, 400),
         doi: p.doi || "",
         isOA: p.isOpenAccess === "Y",
       }));
