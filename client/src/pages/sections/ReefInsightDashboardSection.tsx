@@ -2,7 +2,6 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { useState, useRef, useEffect } from "react";
 import { Send, Loader2 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
 
 const footerLinks = [
   { label: "PRIVACY", href: "https://mesoreefdao.gitbook.io/privacy-policy" },
@@ -37,46 +36,6 @@ export const ReefInsightDashboardSection = (): JSX.Element => {
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-
-  // Fetch live stats
-  const { data: stats } = useQuery({
-    queryKey: ["stats"],
-    queryFn: async () => {
-      const res = await fetch("/api/stats");
-      if (!res.ok) throw new Error("Failed to fetch stats");
-      return res.json();
-    },
-    refetchInterval: 30000,
-  });
-
-  const statsData = [
-    {
-      label: "KNOWLEDGE DENSITY",
-      renderValue: () => (
-        <div className="relative self-stretch w-full h-8">
-          <div className="absolute top-0 left-0 h-8 flex items-center [font-family:'Plus_Jakarta_Sans',Helvetica] font-bold text-[#83eef0] text-2xl tracking-[0] leading-8 whitespace-nowrap">
-            {stats?.knowledgeDensity?.split(" ")[0] || "8.4"}
-          </div>
-          <div className="absolute top-3.5 left-11 h-4 flex items-center opacity-50 [font-family:'Plus_Jakarta_Sans',Helvetica] font-bold text-[#657881] text-xs tracking-[0] leading-4 whitespace-nowrap">
-            {stats?.knowledgeDensity?.split(" ")[1] || "TB"}
-          </div>
-        </div>
-      ),
-    },
-    {
-      label: "NETWORK HEALTH",
-      renderValue: () => (
-        <div className="flex items-center gap-2 relative self-stretch w-full flex-[0_0_auto]">
-          <div className="relative w-2 h-2 bg-[#f9a414] rounded-full shadow-[0px_0px_8px_#f9a414]" />
-          <div className="inline-flex flex-col items-start relative flex-[0_0_auto]">
-            <div className="relative flex items-center w-fit mt-[-1.00px] [font-family:'Plus_Jakarta_Sans',Helvetica] font-bold text-[#d4e9f3] text-2xl tracking-[0] leading-8 whitespace-nowrap">
-              {stats?.networkHealth || "99.2%"}
-            </div>
-          </div>
-        </div>
-      ),
-    },
-  ];
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -295,25 +254,6 @@ export const ReefInsightDashboardSection = (): JSX.Element => {
               Open Full Graph →
             </span>
           </a>
-        </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 grid-rows-[93px] h-fit gap-4 w-full">
-          {statsData.map((stat, index) => (
-            <Card
-              key={index}
-              className="w-full h-fit flex gap-1 bg-[#00000066] rounded-[48px] border border-solid border-[#ffffff1a] backdrop-blur-md backdrop-brightness-[100%] [-webkit-backdrop-filter:blur(12px)_brightness(100%)] shadow-none"
-            >
-              <CardContent className="flex flex-col items-start p-5 gap-1 w-full">
-                <div className="flex flex-col items-start relative self-stretch w-full flex-[0_0_auto] opacity-70">
-                  <span className="flex items-center self-stretch [font-family:'Inter',Helvetica] font-normal text-[#657881] text-[10px] tracking-[1.00px] leading-[15px] relative mt-[-1.00px]">
-                    {stat.label}
-                  </span>
-                </div>
-                {stat.renderValue()}
-              </CardContent>
-            </Card>
-          ))}
         </div>
 
         {/* Footer Card */}
