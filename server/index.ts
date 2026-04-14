@@ -52,6 +52,12 @@ app.use(
           "https://orcid.org",
           "https://pub.orcid.org",
           "https://mesoreefdao.org",
+          // WalletConnect (used by Privy wallet connector)
+          "https://*.walletconnect.com",
+          "https://*.walletconnect.org",
+          "https://explorer-api.walletconnect.com",
+          "wss://*.walletconnect.com",
+          "wss://*.walletconnect.org",
         ],
         objectSrc: ["'none'"],
         baseUri: ["'self'"],
