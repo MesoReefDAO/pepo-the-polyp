@@ -3,6 +3,8 @@ import react from "@vitejs/plugin-react";
 import path from "path";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 
+const root = path.resolve(import.meta.dirname, "client");
+
 export default defineConfig({
   plugins: [
     react(),
@@ -24,11 +26,13 @@ export default defineConfig({
       "@": path.resolve(import.meta.dirname, "client", "src"),
       "@shared": path.resolve(import.meta.dirname, "shared"),
       "@assets": path.resolve(import.meta.dirname, "attached_assets"),
+      // Force all packages to use the same React instance
+      "react": path.resolve(import.meta.dirname, "node_modules/react"),
+      "react-dom": path.resolve(import.meta.dirname, "node_modules/react-dom"),
     },
-    // Prevent duplicate React instances (needed for wagmi/privy compatibility)
-    dedupe: ["react", "react-dom", "wagmi", "viem"],
+    dedupe: ["react", "react-dom", "wagmi", "viem", "@privy-io/react-auth"],
   },
-  root: path.resolve(import.meta.dirname, "client"),
+  root,
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
@@ -40,6 +44,13 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    include: ["react", "react-dom"],
+    include: [
+      "react",
+      "react-dom",
+      "react/jsx-runtime",
+      "@privy-io/react-auth",
+      "wagmi",
+      "viem",
+    ],
   },
 });

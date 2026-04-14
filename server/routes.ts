@@ -1,8 +1,26 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 
 const PEPO_API_KEY = process.env.PEPO_API_KEY || "";
+const PRIVY_APP_SECRET = process.env.PRIVY_APP_SECRET || "";
+const PRIVY_APP_ID = process.env.PRIVY_APP_ID || "";
 const BONFIRES_BASE = "https://pepo.app.bonfires.ai";
+
+// Verify Privy JWT token server-side (optional auth check)
+async function verifyPrivyToken(token: string): Promise<boolean> {
+  if (!PRIVY_APP_SECRET || !PRIVY_APP_ID || !token) return false;
+  try {
+    const res = await fetch(`https://auth.privy.io/api/v1/users/me`, {
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "privy-app-id": PRIVY_APP_ID,
+      },
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
 
 export async function registerRoutes(
   httpServer: Server,
@@ -10,7 +28,7 @@ export async function registerRoutes(
 ): Promise<Server> {
 
   // Proxy: fetch knowledge graph data
-  app.get("/api/graph", async (req, res) => {
+  app.get("/api/graph", async (_req: Request, res: Response) => {
     try {
       const response = await fetch(`${BONFIRES_BASE}/graph`, {
         headers: {
@@ -31,7 +49,7 @@ export async function registerRoutes(
   });
 
   // Proxy: search knowledge graph
-  app.post("/api/graph/search", async (req, res) => {
+  app.post("/api/graph/search", async (req: Request, res: Response) => {
     try {
       const { query } = req.body;
       if (!query) return res.status(400).json({ error: "query is required" });
@@ -57,8 +75,8 @@ export async function registerRoutes(
     }
   });
 
-  // Chat endpoint: query Pepo AI
-  app.post("/api/chat", async (req, res) => {
+  // Chat endpoint: query Pepo AI via Bonfires
+  app.post("/api/chat", async (req: Request, res: Response) => {
     try {
       const { message } = req.body;
       if (!message) return res.status(400).json({ error: "message is required" });
@@ -74,21 +92,21 @@ export async function registerRoutes(
       });
 
       if (!response.ok) {
-        // Fallback: simulate Pepo's response for demo
-        const fallbackResponse = generatePepoResponse(message);
-        return res.json({ response: fallbackResponse, source: "local" });
+        return res.json({ response: generatePepoResponse(message), source: "local" });
       }
 
       const data = await response.json();
-      return res.json({ response: data.response || data.message || data.answer || JSON.stringify(data), source: "bonfires" });
-    } catch (err: any) {
-      const fallbackResponse = generatePepoResponse(req.body?.message || "");
-      return res.json({ response: fallbackResponse, source: "local" });
+      return res.json({
+        response: data.response || data.message || data.answer || JSON.stringify(data),
+        source: "bonfires",
+      });
+    } catch {
+      return res.json({ response: generatePepoResponse(req.body?.message || ""), source: "local" });
     }
   });
 
-  // Graph stats endpoint
-  app.get("/api/stats", async (req, res) => {
+  // Graph stats
+  app.get("/api/stats", async (_req: Request, res: Response) => {
     try {
       const response = await fetch(`${BONFIRES_BASE}/stats`, {
         headers: {
@@ -103,6 +121,18 @@ export async function registerRoutes(
       return res.json(data);
     } catch {
       return res.json({ knowledgeDensity: "8.4 TB", networkHealth: "99.2%", nodeConnections: 3420 });
+    }
+  });
+
+  // Privy token verification endpoint (used by frontend to validate session)
+  app.post("/api/auth/verify", async (req: Request, res: Response) => {
+    try {
+      const token = req.headers.authorization?.replace("Bearer ", "") || req.body?.token;
+      if (!token) return res.status(401).json({ valid: false, error: "No token provided" });
+      const valid = await verifyPrivyToken(token);
+      return res.json({ valid });
+    } catch {
+      return res.status(500).json({ valid: false });
     }
   });
 
@@ -126,7 +156,10 @@ function generatePepoResponse(userMessage: string): string {
   if (lc.includes("sector")) {
     const match = lc.match(/sector\s*(\d+)/);
     const sector = match ? match[1] : "7";
-    return `Sector ${sector} data loaded. I'm detecting ${Math.floor(Math.random() * 500 + 200)} active monitoring nodes in this quadrant. Coral coverage is at 43%, down 8% from last quarter. Notable: high-density connection cluster between thermal anomaly data and recent DAO governance proposals for emergency reef protection.`;
+    return `Sector ${sector} data loaded. I'm detecting ${Math.floor(Math.random() * 500 + 200)} active monitoring nodes in this quadrant. Coral coverage is at 43%, down 8% from last quarter. High-density connections detected between thermal anomaly data and recent DAO governance proposals for emergency reef protection.`;
   }
-  return "Greetings, Explorer. I am Pepo, your guide to the MesoAmerican Reef knowledge network. I've mapped 3,420 new node connections today. I can help you analyze coral bleaching patterns, DAO governance data, thermal stress events, and species distribution across the reef system. What would you like to explore?";
+  if (lc.includes("telegram")) {
+    return "You can reach me on Telegram at @PepothePolyp_bot! Click the Telegram Bot link in the sidebar to open our chat directly. I'll send you real-time reef alerts and knowledge graph insights there too.";
+  }
+  return "Greetings, Explorer. I am Pepo, your guide to the MesoAmerican Reef knowledge network. I've mapped 3,420 new node connections today. I can help you analyze coral bleaching patterns, DAO governance data, thermal stress events, and species distribution. What would you like to explore?";
 }
