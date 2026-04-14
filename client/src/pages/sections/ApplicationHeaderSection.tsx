@@ -27,7 +27,11 @@ export const ApplicationHeaderSection = (): JSX.Element => {
   return (
     <header className="flex w-full items-center justify-between px-8 py-4 border-b border-[#ffffff0d] backdrop-blur-[20px] backdrop-brightness-[100%] [-webkit-backdrop-filter:blur(20px)_brightness(100%)] bg-[linear-gradient(180deg,rgba(0,22,30,1)_0%,rgba(0,16,23,0.4)_100%),linear-gradient(0deg,rgba(0,8,12,0.8)_0%,rgba(0,8,12,0.8)_100%)] relative z-10">
       {/* Logo */}
-      <div className="w-[137.28px] h-12 bg-[url(/figmaAssets/mesoreef-dao.png)] bg-cover bg-[50%_50%] flex-shrink-0" />
+      <img
+        src="/figmaAssets/mesoreef-dao-logo-new.png"
+        alt="MesoReef DAO"
+        className="h-10 w-auto flex-shrink-0 object-contain"
+      />
       {/* Navigation links */}
       <nav className="inline-flex items-center gap-8">
         {navLinks.map((link) => (
