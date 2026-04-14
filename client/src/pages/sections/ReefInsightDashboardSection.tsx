@@ -25,7 +25,7 @@ const initialMessages: Message[] = [
   {
     id: "1",
     role: "pepo",
-    text: "Greetings, Explorer. I am Pepo. I've mapped 3,420 new node connections in the MesoAmerican reef today. Which quadrant shall we analyze?",
+    text: "Ask me anything...",
     time: formatTime(new Date(Date.now() - 60000 * 5)),
   },
 ];
