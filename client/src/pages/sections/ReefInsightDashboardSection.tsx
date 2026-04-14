@@ -287,7 +287,7 @@ export const ReefInsightDashboardSection = (): JSX.Element => {
                     <span className="underline">Bonfires.ai</span>
                   </a>
                 </span>
-                <div className="relative w-[43px] h-2.5 bg-[url(/figmaAssets/bonfires-ai-logo.png)] bg-cover bg-[50%_50%]" />
+                <img src="/figmaAssets/bonfires-ai-logo-new.png" alt="Bonfires.ai" className="h-3.5 w-auto object-contain" />
               </div>
               <span className="relative flex items-center justify-center w-fit [font-family:'Inter',Helvetica] font-normal text-[#d4e9f3] text-[8px] text-center tracking-[0] leading-3 whitespace-nowrap">
                 All Rights Reserved.

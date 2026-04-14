@@ -162,7 +162,7 @@ export const ExplorerNavigationSidebarSection = (): JSX.Element => {
           rel="noopener noreferrer"
           className="flex items-center gap-2 no-underline w-full justify-center"
         >
-          <div className="relative w-[43px] h-2.5 bg-[url(/figmaAssets/bonfires-ai-logo.png)] bg-cover bg-[50%_50%]" />
+          <img src="/figmaAssets/bonfires-ai-logo-new.png" alt="Bonfires.ai" className="h-3.5 w-auto object-contain" />
           <span className="[font-family:'Inter',Helvetica] font-normal text-[#d4e9f366] text-[10px] tracking-[0] leading-3 whitespace-nowrap">
             Powered by Bonfires.ai
           </span>
