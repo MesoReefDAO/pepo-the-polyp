@@ -1,6 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { useState } from "react";
 import { Network, ExternalLink } from "lucide-react";
+import pepoPng from "@assets/MesoReefDAO_Pepo_The_Polyp_1776218616437.png";
 
 const TELEGRAM_BOT_URL = "https://web.telegram.org/k/#@PepothePolyp_bot";
 const TELEGRAM_BOT_NAME = "@PepothePolyp_bot";
@@ -93,7 +94,7 @@ export const ReefInsightDashboardSection = (): JSX.Element => {
             <div className="flex items-center justify-between px-4 py-3 border-b border-[#83eef01a] bg-[#001017bf] shrink-0">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-full overflow-hidden border border-[#83eef066] shrink-0">
-                  <div className="bg-[url(/figmaAssets/pepo.png)] w-full h-full bg-cover bg-center" />
+                  <img src={pepoPng} alt="Pepo the Polyp" className="w-full h-full object-cover object-center" />
                 </div>
                 <div className="flex flex-col">
                   <span className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-bold text-[#83eef0] text-sm leading-5">
