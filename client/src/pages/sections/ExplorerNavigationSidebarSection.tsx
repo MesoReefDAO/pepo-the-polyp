@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
+import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { PRIVY_ENABLED } from "@/lib/privy";
 import pepoPng from "@assets/MesoReefDAO_Pepo_The_Polyp_1776218766670.png";
 
 const TELEGRAM_BOT_URL = "https://t.me/PepothePolyp_bot";
-const TELEGRAM_WEB_URL = "https://web.telegram.org/k/#@PepothePolyp_bot";
 
 // ─── Shared style tokens ───────────────────────────────────────────────────────
 const PILL_BASE =
@@ -39,14 +39,184 @@ function TelegramIcon({ muted }: { muted?: boolean }) {
   );
 }
 
-function WalletIcon() {
+function WalletIcon({ active }: { active?: boolean }) {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-      <path d="M21 18V19C21 20.1 20.1 21 19 21H5C3.89 21 3 20.1 3 19V5C3 3.9 3.89 3 5 3H19C20.1 3 21 3.9 21 5V6H12C10.89 6 10 6.9 10 8V16C10 17.1 10.89 18 12 18H21ZM12 16H22V8H12V16ZM16 13.5C15.17 13.5 14.5 12.83 14.5 12C14.5 11.17 15.17 10.5 16 10.5C16.83 10.5 17.5 11.17 17.5 12C17.5 12.83 16.83 13.5 16 13.5Z" fill="#d4e9f380"/>
+      <path d="M21 18V19C21 20.1 20.1 21 19 21H5C3.89 21 3 20.1 3 19V5C3 3.9 3.89 3 5 3H19C20.1 3 21 3.9 21 5V6H12C10.89 6 10 6.9 10 8V16C10 17.1 10.89 18 12 18H21ZM12 16H22V8H12V16ZM16 13.5C15.17 13.5 14.5 12.83 14.5 12C14.5 11.17 15.17 10.5 16 10.5C16.83 10.5 17.5 11.17 17.5 12C17.5 12.83 16.83 13.5 16 13.5Z" fill={active ? "#83eef0" : "#d4e9f380"}/>
     </svg>
   );
 }
 
+function CopyIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+      <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" strokeWidth="2"/>
+      <path d="M5 15H4C2.9 15 2 14.1 2 13V4C2 2.9 2.9 2 4 2H13C14.1 2 15 2.9 15 4V5" stroke="currentColor" strokeWidth="2"/>
+    </svg>
+  );
+}
+
+function PlusIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+      <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
+// ─── Wallet Panel ─────────────────────────────────────────────────────────────
+function WalletPanel() {
+  const { authenticated, linkWallet } = usePrivy();
+  const { wallets } = useWallets();
+  const [copied, setCopied] = useState<string | null>(null);
+
+  if (!authenticated) return null;
+
+  function copyAddr(addr: string) {
+    navigator.clipboard.writeText(addr);
+    setCopied(addr);
+    setTimeout(() => setCopied(null), 2000);
+  }
+
+  const embeddedWallets = wallets.filter((w) => w.walletClientType === "privy");
+  const externalWallets = wallets.filter((w) => w.walletClientType !== "privy");
+
+  return (
+    <div className="w-full px-2">
+      <div className="p-4 bg-[#0a293366] rounded-[24px] border border-solid border-[#83eef01a] flex flex-col gap-3">
+
+        {wallets.length === 0 ? (
+          <p className="[font-family:'Inter',Helvetica] font-normal text-[#9aaeb8] text-xs leading-4">
+            No wallet connected yet. Add one to participate in DAO governance.
+          </p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {embeddedWallets.length > 0 && (
+              <div className="flex flex-col gap-1.5">
+                <span className="[font-family:'Inter',Helvetica] text-[#d4e9f350] text-[9px] uppercase tracking-widest">Embedded</span>
+                {embeddedWallets.map((w) => (
+                  <button
+                    key={w.address}
+                    onClick={() => copyAddr(w.address)}
+                    data-testid={`wallet-copy-${w.address.slice(-4)}`}
+                    className="flex items-center justify-between gap-2 px-3 py-1.5 rounded-full bg-[#83eef008] border border-[#83eef020] hover:bg-[#83eef015] transition-colors text-left"
+                  >
+                    <span className="[font-family:'Inter',Helvetica] text-[#83eef0] text-[11px] font-mono">
+                      {w.address.slice(0, 6)}…{w.address.slice(-4)}
+                    </span>
+                    <span className="text-[#83eef0b2]">
+                      {copied === w.address ? (
+                        <span className="text-[#83eef0] text-[9px]">Copied!</span>
+                      ) : (
+                        <CopyIcon />
+                      )}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+            {externalWallets.length > 0 && (
+              <div className="flex flex-col gap-1.5">
+                <span className="[font-family:'Inter',Helvetica] text-[#d4e9f350] text-[9px] uppercase tracking-widest">External</span>
+                {externalWallets.map((w) => (
+                  <button
+                    key={w.address}
+                    onClick={() => copyAddr(w.address)}
+                    data-testid={`wallet-external-${w.address.slice(-4)}`}
+                    className="flex items-center justify-between gap-2 px-3 py-1.5 rounded-full bg-[#ffffff08] border border-[#ffffff12] hover:bg-[#ffffff10] transition-colors text-left"
+                  >
+                    <span className="[font-family:'Inter',Helvetica] text-[#d4e9f3b2] text-[11px] font-mono">
+                      {w.address.slice(0, 6)}…{w.address.slice(-4)}
+                    </span>
+                    <span className="text-[#d4e9f380]">
+                      {copied === w.address ? (
+                        <span className="text-[#83eef0] text-[9px]">Copied!</span>
+                      ) : (
+                        <CopyIcon />
+                      )}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        <button
+          onClick={() => linkWallet()}
+          data-testid="button-link-wallet"
+          className="flex items-center justify-center gap-1.5 px-4 py-2 bg-[#83eef01a] rounded-full border border-solid border-[#83eef033] hover:bg-[#83eef033] transition-colors"
+        >
+          <span className="text-[#83eef0]"><PlusIcon /></span>
+          <span className="[font-family:'Inter',Helvetica] font-medium text-[#83eef0] text-xs">Connect Wallet</span>
+        </button>
+
+        <a
+          href={TELEGRAM_BOT_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center gap-2 px-4 py-2 bg-[#ffffff08] rounded-full border border-solid border-[#ffffff12] hover:bg-[#ffffff10] transition-colors no-underline"
+        >
+          <TelegramIcon />
+          <span className="[font-family:'Inter',Helvetica] font-medium text-[#83eef0] text-xs">@PepothePolyp_bot</span>
+        </a>
+      </div>
+    </div>
+  );
+}
+
+// ─── Auth-aware wallet nav item ───────────────────────────────────────────────
+function WalletNavItem() {
+  const { authenticated, login } = usePrivy();
+  const { wallets } = useWallets();
+  const [open, setOpen] = useState(false);
+
+  if (!authenticated) {
+    return (
+      <button
+        onClick={login}
+        data-testid="button-connect-wallet-login"
+        className={`${PILL_BASE} ${PILL_INACTIVE}`}
+      >
+        <div className="w-5 h-5 flex-shrink-0 flex items-center justify-center">
+          <WalletIcon />
+        </div>
+        <span className={`${TEXT_BASE} font-medium text-[#d4e9f380]`}>Connect Wallet</span>
+      </button>
+    );
+  }
+
+  const primaryWallet = wallets[0];
+  const label = primaryWallet
+    ? `${primaryWallet.address.slice(0, 5)}…${primaryWallet.address.slice(-3)}`
+    : "Wallets";
+
+  return (
+    <>
+      <button
+        onClick={() => setOpen(!open)}
+        data-testid="button-wallet-nav"
+        className={`${PILL_BASE} ${open ? PILL_ACTIVE : PILL_INACTIVE}`}
+        style={open ? EMBOSS : {}}
+      >
+        <div className="w-5 h-5 flex-shrink-0 flex items-center justify-center">
+          <WalletIcon active={open} />
+        </div>
+        <span className={`${TEXT_BASE} ${open ? "font-bold text-[#83eef0]" : "font-medium text-[#d4e9f380]"}`}>
+          {label}
+        </span>
+        {wallets.length > 0 && (
+          <span className="ml-auto text-[9px] [font-family:'Inter',Helvetica] px-1.5 py-0.5 rounded-full bg-[#83eef020] text-[#83eef0]">
+            {wallets.length}
+          </span>
+        )}
+      </button>
+      {open && <WalletPanel />}
+    </>
+  );
+}
+
+// ─── Main sidebar ─────────────────────────────────────────────────────────────
 export const ExplorerNavigationSidebarSection = (): JSX.Element => {
   const [telegramOpen, setTelegramOpen] = useState(false);
   const [location] = useLocation();
@@ -68,7 +238,7 @@ export const ExplorerNavigationSidebarSection = (): JSX.Element => {
         </div>
       </div>
 
-      {/* Navigation items — all in unified pill format */}
+      {/* Navigation items */}
       <div className="flex flex-col items-start gap-2 flex-1 w-full">
 
         {/* Knowledge Graph */}
@@ -76,6 +246,7 @@ export const ExplorerNavigationSidebarSection = (): JSX.Element => {
           href="https://pepo.app.bonfires.ai/graph"
           rel="noopener noreferrer"
           target="_blank"
+          data-testid="link-knowledge-graph"
           className={`${PILL_BASE} ${PILL_ACTIVE}`}
           style={EMBOSS}
         >
@@ -88,6 +259,7 @@ export const ExplorerNavigationSidebarSection = (): JSX.Element => {
           href="https://linktr.ee/mesoreefdao"
           rel="noopener noreferrer"
           target="_blank"
+          data-testid="link-community"
           className={`${PILL_BASE} ${PILL_INACTIVE}`}
         >
           <img className="w-5 h-5 flex-shrink-0" alt="Community" src="/figmaAssets/container-2.svg" />
@@ -97,6 +269,7 @@ export const ExplorerNavigationSidebarSection = (): JSX.Element => {
         {/* My Profile */}
         <Link
           href="/profile"
+          data-testid="link-my-profile"
           className={`${PILL_BASE} ${isProfile ? PILL_ACTIVE : PILL_INACTIVE}`}
           style={isProfile ? EMBOSS : {}}
         >
@@ -111,6 +284,7 @@ export const ExplorerNavigationSidebarSection = (): JSX.Element => {
         {/* Telegram Bot */}
         <button
           onClick={() => setTelegramOpen(!telegramOpen)}
+          data-testid="button-telegram-bot"
           className={`${PILL_BASE} ${telegramOpen ? PILL_ACTIVE : PILL_INACTIVE}`}
           style={telegramOpen ? EMBOSS : {}}
         >
@@ -122,7 +296,6 @@ export const ExplorerNavigationSidebarSection = (): JSX.Element => {
           </span>
         </button>
 
-        {/* Telegram dropdown */}
         {telegramOpen && (
           <div className="w-full px-2">
             <div className="p-4 bg-[#0a293366] rounded-[24px] border border-solid border-[#83eef01a] flex flex-col gap-3">
@@ -133,37 +306,18 @@ export const ExplorerNavigationSidebarSection = (): JSX.Element => {
                 href={TELEGRAM_BOT_URL}
                 target="_blank"
                 rel="noopener noreferrer"
+                data-testid="link-telegram-bot-open"
                 className="flex items-center justify-center gap-2 px-4 py-2 bg-[#83eef01a] rounded-full border border-solid border-[#83eef033] hover:bg-[#83eef033] transition-colors no-underline"
               >
                 <TelegramIcon />
                 <span className="[font-family:'Inter',Helvetica] font-medium text-[#83eef0] text-sm">@PepothePolyp_bot</span>
               </a>
-              <a
-                href={TELEGRAM_WEB_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="[font-family:'Inter',Helvetica] font-normal text-[#d4e9f366] text-[10px] text-center hover:text-[#d4e9f3] transition-colors"
-              >
-                Open in Telegram Web
-              </a>
             </div>
           </div>
         )}
 
-        {/* Wallet connect shortcut (when Privy not configured) */}
-        {!PRIVY_ENABLED && (
-          <a
-            href="https://dashboard.privy.io"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={`${PILL_BASE} ${PILL_INACTIVE}`}
-          >
-            <div className="w-5 h-5 flex-shrink-0 flex items-center justify-center">
-              <WalletIcon />
-            </div>
-            <span className={`${TEXT_BASE} font-medium text-[#d4e9f380]`}>Connect Wallet</span>
-          </a>
-        )}
+        {/* Wallet section — smart auth-aware */}
+        {PRIVY_ENABLED && <WalletNavItem />}
       </div>
 
       {/* Bottom: Bonfires AI attribution */}
@@ -171,6 +325,7 @@ export const ExplorerNavigationSidebarSection = (): JSX.Element => {
         href="https://bonfires.ai"
         target="_blank"
         rel="noopener noreferrer"
+        data-testid="link-bonfires-ai"
         className="flex items-center justify-center gap-2 px-4 py-3 w-full rounded-[48px] border border-solid border-[#83eef033] hover:bg-[#83eef00d] transition-colors no-underline"
       >
         <img src="/figmaAssets/bonfires-ai-logo-new.png" alt="Bonfires.ai" className="h-3.5 w-auto object-contain" />
