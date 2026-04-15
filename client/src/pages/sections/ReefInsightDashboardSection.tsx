@@ -16,7 +16,7 @@ export const ReefInsightDashboardSection = (): JSX.Element => {
   const [mobileTab, setMobileTab] = useState<"chat" | "graph">("chat");
 
   return (
-    <div className="flex flex-col flex-1 self-stretch overflow-hidden pb-16 md:pb-0">
+    <div className="flex flex-col flex-1 self-stretch overflow-hidden pb-24 md:pb-0">
       {/* Mobile tab switcher */}
       <div className="flex md:hidden items-center gap-2 px-4 pt-3 pb-0 shrink-0">
         <button
