@@ -805,30 +805,32 @@ async function buildPepoReply(query: string, episodes: any[]): Promise<string> {
     reply += `🎮 **Memento Mori (DeSci Game):**\n${mementoContext.slice(0, 800)}...\n\n`;
   }
 
-  reply += `Want me to expand on any of these knowledge nodes, dive into a specific paper, or explore a related cluster?`;
+  reply += `Want me to expand on any of these knowledge nodes, dive into a specific paper, or explore a related cluster?\n\n🛠️ [github.com/robioreefeco/memento-mori](https://github.com/robioreefeco/memento-mori)`;
   return reply;
 }
 
 // ─── Fallback response ────────────────────────────────────────────────────────
+const REPO_FOOTER = `\n\n🛠️ [github.com/robioreefeco/memento-mori](https://github.com/robioreefeco/memento-mori)`;
+
 function generatePepoResponse(userMessage: string): string {
   const lc = userMessage.toLowerCase();
   if (lc.includes("coral") || lc.includes("bleach")) {
-    return "I'm analyzing the reef knowledge network for coral bleaching data. The MesoAmerican Reef has experienced severe thermal stress events — DHW levels above 8 trigger widespread coral mortality. I track thermally resilient genotypes and mesophotic refugia as key adaptation strategies. Ask me anything specific about bleaching events, DHW metrics, or reef restoration!";
+    return "I'm analyzing the reef knowledge network for coral bleaching data. The MesoAmerican Reef has experienced severe thermal stress events — DHW levels above 8 trigger widespread coral mortality. I track thermally resilient genotypes and mesophotic refugia as key adaptation strategies. Ask me anything specific about bleaching events, DHW metrics, or reef restoration!" + REPO_FOOTER;
   }
   if (lc.includes("dao") || lc.includes("governance") || lc.includes("proposal")) {
-    return "MesoReefDAO governs reef conservation through on-chain proposals — transparent funding of Regen Reef projects, wetlab research, IoT monitoring, and biodiversity offsetting. Which governance area would you like to explore?";
+    return "MesoReefDAO governs reef conservation through on-chain proposals — transparent funding of Regen Reef projects, wetlab research, IoT monitoring, and biodiversity offsetting. Which governance area would you like to explore?" + REPO_FOOTER;
   }
   if (lc.includes("graph") || lc.includes("node") || lc.includes("knowledge")) {
-    return "The Pepo Knowledge Graph holds hundreds of community episodes covering coral ecology, DeSci governance, marine biotechnology, IoT monitoring, and conservation economics. Which quadrant shall we explore?";
+    return "The Pepo Knowledge Graph holds hundreds of community episodes covering coral ecology, DeSci governance, marine biotechnology, IoT monitoring, and conservation economics. Which quadrant shall we explore?" + REPO_FOOTER;
   }
   if (lc.includes("temperature") || lc.includes("heat") || lc.includes("thermal") || lc.includes("dhw")) {
-    return "Sea surface temperatures across the MesoAmerican Reef corridor are monitored in real-time using Marine Degree Heating Weeks (DHW). At 4 DHW bleaching begins; at 8+ DHW widespread mortality occurs. MesoReefDAO integrates IoT sensors and AI to track these thresholds and activate restoration protocols.";
+    return "Sea surface temperatures across the MesoAmerican Reef corridor are monitored in real-time using Marine Degree Heating Weeks (DHW). At 4 DHW bleaching begins; at 8+ DHW widespread mortality occurs. MesoReefDAO integrates IoT sensors and AI to track these thresholds and activate restoration protocols." + REPO_FOOTER;
   }
   if (lc.includes("mesophotic") || lc.includes("deep") || lc.includes("refugia")) {
-    return "Mesophotic reefs (40–150m depth) are among MesoReefDAO's key research priorities. These deep reefs remain cooler and may act as thermal refugia — seed banks for thermally resilient coral genotypes. Less studied but critically important for climate adaptation strategies.";
+    return "Mesophotic reefs (40–150m depth) are among MesoReefDAO's key research priorities. These deep reefs remain cooler and may act as thermal refugia — seed banks for thermally resilient coral genotypes. Less studied but critically important for climate adaptation strategies." + REPO_FOOTER;
   }
   if (lc.includes("telegram")) {
-    return "You can reach me on Telegram at @PepothePolyp_bot! Click the Telegram Bot link in the sidebar to open our chat directly. I'll send you real-time reef alerts and knowledge graph insights there too.";
+    return "You can reach me on Telegram at @PepothePolyp_bot! Click the Telegram Bot link in the sidebar to open our chat directly. I'll send you real-time reef alerts and knowledge graph insights there too." + REPO_FOOTER;
   }
-  return "Greetings, Explorer. I am Pepo, your guide to the MesoAmerican Reef knowledge network — powered by the Pepo Knowledge Graph, Wikipedia science, and MesoReefDAO documentation. I can help you explore coral bleaching data, DAO governance, thermal stress events, mesophotic reefs, marine biotechnology, and species distribution. What would you like to explore?";
+  return "Greetings, Explorer. I am Pepo, your guide to the MesoAmerican Reef knowledge network — powered by the Pepo Knowledge Graph, Wikipedia science, and MesoReefDAO documentation. I can help you explore coral bleaching data, DAO governance, thermal stress events, mesophotic reefs, marine biotechnology, and species distribution. What would you like to explore?" + REPO_FOOTER;
 }
