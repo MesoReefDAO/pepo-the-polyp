@@ -221,6 +221,7 @@ export const ExplorerNavigationSidebarSection = (): JSX.Element => {
   const [telegramOpen, setTelegramOpen] = useState(false);
   const [location] = useLocation();
   const isProfile = location === "/profile";
+  const isCommunity = location === "/community";
 
   return (
     <nav className="flex flex-col w-64 min-h-screen items-start justify-between p-6 bg-[#00080c99] border-r border-[#ffffff0d] backdrop-blur-md [-webkit-backdrop-filter:blur(12px)_brightness(100%)] relative z-10">
@@ -255,16 +256,17 @@ export const ExplorerNavigationSidebarSection = (): JSX.Element => {
         </a>
 
         {/* Community */}
-        <a
-          href="https://linktr.ee/mesoreefdao"
-          rel="noopener noreferrer"
-          target="_blank"
+        <Link
+          href="/community"
           data-testid="link-community"
-          className={`${PILL_BASE} ${PILL_INACTIVE}`}
+          className={`${PILL_BASE} ${isCommunity ? PILL_ACTIVE : PILL_INACTIVE}`}
+          style={isCommunity ? EMBOSS : {}}
         >
           <img className="w-5 h-5 flex-shrink-0" alt="Community" src="/figmaAssets/container-2.svg" />
-          <span className={`${TEXT_BASE} font-medium text-[#d4e9f380]`}>Community</span>
-        </a>
+          <span className={`${TEXT_BASE} ${isCommunity ? "font-bold text-[#83eef0]" : "font-medium text-[#d4e9f380]"}`}>
+            Community
+          </span>
+        </Link>
 
         {/* My Profile */}
         <Link

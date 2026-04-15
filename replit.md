@@ -24,21 +24,34 @@ A full-stack DeSci/marine conservation web app for MesoReef DAO. Pepo is an AI g
 client/src/
   pages/
     Body.tsx                          — Main layout (header + sidebar + dashboard)
+    CommunityLeaderboard.tsx          — Community page: Leaderboard (left) + Profile cards (right)
+    UserProfileDashboard.tsx          — My Profile edit page
     sections/
       ApplicationHeaderSection.tsx    — Top nav with Privy auth button
       ExplorerNavigationSidebarSection.tsx — Sidebar with nav, Telegram bot link
-      ReefInsightDashboardSection.tsx  — Chat interface + graph + stats
+      ReefInsightDashboardSection.tsx  — Bonfires Knowledge Graph iframe + Telegram Bot panel
   components/
-    PrivyLoginButton.tsx              — Auth button (only rendered when Privy is active)
+    PrivyLoginButton.tsx              — Calls login() for Privy's native modal (Email/Google/X/LinkedIn/Wallet)
+  hooks/
+    use-profile-sync.ts               — Auto-syncs Privy user to DB on login; awards first-login bonus points
   lib/
     privy.ts                          — PRIVY_ENABLED / PRIVY_APP_ID constants
 server/
-  routes.ts                           — /api/chat, /api/graph, /api/stats endpoints
+  routes.ts                           — /api/chat, /api/graph, /api/leaderboard, /api/profiles, /api/contributions
+  storage.ts                          — DbStorage: profiles, contributions, leaderboard CRUD via Drizzle
+  db.ts                               — Drizzle + pg Pool connection
   index.ts                            — Express server entry
 shared/
-  schema.ts                           — Drizzle DB schema
+  schema.ts                           — Drizzle DB schema: users, profiles, contributions, LeaderboardEntry
 client/public/figmaAssets/            — Exported Figma assets (SVGs, PNGs)
 ```
+
+## Contribution Points System
+
+- **First login**: +50 points (awarded once via `/api/profiles/sync`)
+- **Asking a question**: +10 points per day per user (via `POST /api/contributions`)
+- Leaderboard auto-refreshes every 30 seconds on the Community page
+- Points stored persistently in PostgreSQL `profiles.points` column (updated atomically with each contribution)
 
 ## Environment Variables / Secrets
 

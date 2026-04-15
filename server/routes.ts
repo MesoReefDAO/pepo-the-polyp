@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import crypto from "crypto";
 import { rateLimit } from "express-rate-limit";
 import { createRemoteJWKSet, jwtVerify } from "jose";
+import { storage } from "./storage";
 
 const PEPO_API_KEY = process.env.PEPO_API_KEY || "";
 const PRIVY_APP_SECRET = process.env.PRIVY_APP_SECRET || "";
@@ -200,6 +201,145 @@ export async function registerRoutes(
     } catch (err) {
       console.log("[Pepo API] error:", err);
       return res.json({ response: generatePepoResponse(message), source: "local" });
+    }
+  });
+
+  // ── Profiles & Leaderboard ────────────────────────────────────────────────
+
+  // GET /api/leaderboard — public ranked list
+  app.get("/api/leaderboard", async (_req: Request, res: Response) => {
+    try {
+      const board = await storage.getLeaderboard();
+      return res.json(board);
+    } catch (err) {
+      console.error("[leaderboard]", err);
+      return res.status(500).json({ error: "Failed to fetch leaderboard" });
+    }
+  });
+
+  // GET /api/profiles — all public profiles
+  app.get("/api/profiles", async (_req: Request, res: Response) => {
+    try {
+      const all = await storage.getAllProfiles();
+      return res.json(all);
+    } catch (err) {
+      console.error("[profiles]", err);
+      return res.status(500).json({ error: "Failed to fetch profiles" });
+    }
+  });
+
+  // GET /api/profiles/:id — single profile with contributions
+  app.get("/api/profiles/:id", async (req: Request, res: Response) => {
+    try {
+      const pid = String(req.params.id);
+      const profile = await storage.getProfile(pid);
+      if (!profile) return res.status(404).json({ error: "Profile not found" });
+      const contribs = await storage.getContributions(pid);
+      return res.json({ profile, contributions: contribs });
+    } catch (err) {
+      console.error("[profile]", err);
+      return res.status(500).json({ error: "Failed to fetch profile" });
+    }
+  });
+
+  // POST /api/profiles — upsert own profile (requires Privy auth)
+  app.post("/api/profiles", async (req: Request, res: Response) => {
+    const token = (req.headers["x-privy-token"] as string) || "";
+    const verify = await verifyPrivyToken(token);
+    if (!verify.valid) return res.status(401).json({ error: "Unauthorized" });
+
+    const { displayName, bio, location, website, avatarUrl, tags, isPublic } = req.body;
+    try {
+      const profile = await storage.upsertProfile({
+        id: verify.userId!,
+        displayName: sanitizeString(displayName) || "Explorer",
+        bio: sanitizeString(bio, 500) || "",
+        location: sanitizeString(location, 100) || "",
+        website: sanitizeString(website, 200) || "",
+        avatarUrl: sanitizeString(avatarUrl, 500) || "",
+        tags: Array.isArray(tags) ? tags.slice(0, 10).map(String) : [],
+        points: undefined as any, // preserved by DB
+        isPublic: isPublic !== false,
+      });
+      return res.json(profile);
+    } catch (err) {
+      console.error("[upsertProfile]", err);
+      return res.status(500).json({ error: "Failed to save profile" });
+    }
+  });
+
+  // POST /api/profiles/sync — auto-sync from Privy after login (lightweight)
+  app.post("/api/profiles/sync", async (req: Request, res: Response) => {
+    const token = (req.headers["x-privy-token"] as string) || "";
+    const verify = await verifyPrivyToken(token);
+    if (!verify.valid) return res.status(401).json({ error: "Unauthorized" });
+
+    try {
+      const existing = await storage.getProfile(verify.userId!);
+      if (!existing) {
+        // First login — create profile + award bonus points
+        const profile = await storage.upsertProfile({
+          id: verify.userId!,
+          displayName: req.body?.displayName || "Explorer",
+          bio: "",
+          location: "",
+          website: "",
+          avatarUrl: req.body?.avatarUrl || "",
+          tags: [],
+          points: 0,
+          isPublic: true,
+        });
+        // Award first-login bonus
+        await storage.addContribution({
+          profileId: verify.userId!,
+          type: "login",
+          description: "First time joining the Reef network",
+          points: 50,
+        });
+        return res.json({ profile, newUser: true });
+      }
+      return res.json({ profile: existing, newUser: false });
+    } catch (err) {
+      console.error("[syncProfile]", err);
+      return res.status(500).json({ error: "Failed to sync profile" });
+    }
+  });
+
+  // GET /api/contributions/:id
+  app.get("/api/contributions/:id", async (req: Request, res: Response) => {
+    try {
+      const contribs = await storage.getContributions(String(req.params.id));
+      return res.json(contribs);
+    } catch (err) {
+      console.error("[contributions]", err);
+      return res.status(500).json({ error: "Failed to fetch contributions" });
+    }
+  });
+
+  // POST /api/contributions — award points for asking questions
+  app.post("/api/contributions", async (req: Request, res: Response) => {
+    const token = (req.headers["x-privy-token"] as string) || "";
+    const verify = await verifyPrivyToken(token);
+    if (!verify.valid) return res.status(401).json({ error: "Unauthorized" });
+
+    const { type = "question", description = "" } = req.body;
+    const allowed = ["question", "resource", "answer"];
+    if (!allowed.includes(type)) return res.status(400).json({ error: "Invalid contribution type" });
+
+    try {
+      // 1 question per day per user earns 10 pts (cap abuse)
+      const alreadyToday = await storage.hasContributionToday(verify.userId!, type);
+      const pts = alreadyToday ? 0 : 10;
+      const contrib = await storage.addContribution({
+        profileId: verify.userId!,
+        type,
+        description: sanitizeString(description, 300) || "",
+        points: pts,
+      });
+      return res.json({ contribution: contrib, pointsAwarded: pts });
+    } catch (err) {
+      console.error("[addContribution]", err);
+      return res.status(500).json({ error: "Failed to add contribution" });
     }
   });
 

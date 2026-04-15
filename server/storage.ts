@@ -1,38 +1,150 @@
-import { type User, type InsertUser } from "@shared/schema";
+import { eq, desc, sql } from "drizzle-orm";
+import { db } from "./db";
+import {
+  users, profiles, contributions,
+  type User, type InsertUser,
+  type Profile, type InsertProfile,
+  type Contribution, type InsertContribution,
+  type LeaderboardEntry,
+} from "@shared/schema";
 import { randomUUID } from "crypto";
 
-// modify the interface with any CRUD methods
-// you might need
-
+// ─── Interface ─────────────────────────────────────────────────────────────────
 export interface IStorage {
+  // legacy
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+
+  // profiles
+  getProfile(id: string): Promise<Profile | undefined>;
+  upsertProfile(profile: InsertProfile): Promise<Profile>;
+  getAllProfiles(): Promise<Profile[]>;
+
+  // contributions
+  getContributions(profileId: string): Promise<Contribution[]>;
+  addContribution(contribution: InsertContribution): Promise<Contribution>;
+  hasContributionToday(profileId: string, type: string): Promise<boolean>;
+
+  // leaderboard
+  getLeaderboard(): Promise<LeaderboardEntry[]>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<string, User>;
+// ─── Database-backed storage ───────────────────────────────────────────────────
+export class DbStorage implements IStorage {
 
-  constructor() {
-    this.users = new Map();
-  }
-
+  // ── Legacy users ──────────────────────────────────────────────────────────
   async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
+    const [row] = await db.select().from(users).where(eq(users.id, id));
+    return row;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    const [row] = await db.select().from(users).where(eq(users.username, username));
+    return row;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = randomUUID();
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
-    return user;
+    const [row] = await db.insert(users).values({ ...insertUser, id: randomUUID() }).returning();
+    return row;
+  }
+
+  // ── Profiles ──────────────────────────────────────────────────────────────
+  async getProfile(id: string): Promise<Profile | undefined> {
+    const [row] = await db.select().from(profiles).where(eq(profiles.id, id));
+    return row;
+  }
+
+  async upsertProfile(profile: InsertProfile): Promise<Profile> {
+    const now = Math.floor(Date.now() / 1000);
+    const [row] = await db
+      .insert(profiles)
+      .values({ ...profile, createdAt: now, updatedAt: now })
+      .onConflictDoUpdate({
+        target: profiles.id,
+        set: {
+          displayName: profile.displayName,
+          bio: profile.bio,
+          location: profile.location,
+          website: profile.website,
+          avatarUrl: profile.avatarUrl,
+          tags: profile.tags,
+          isPublic: profile.isPublic,
+          updatedAt: now,
+        },
+      })
+      .returning();
+    return row;
+  }
+
+  async getAllProfiles(): Promise<Profile[]> {
+    return db.select().from(profiles).where(eq(profiles.isPublic, true)).orderBy(desc(profiles.points));
+  }
+
+  // ── Contributions ─────────────────────────────────────────────────────────
+  async getContributions(profileId: string): Promise<Contribution[]> {
+    return db
+      .select()
+      .from(contributions)
+      .where(eq(contributions.profileId, profileId))
+      .orderBy(desc(contributions.createdAt));
+  }
+
+  async addContribution(contribution: InsertContribution): Promise<Contribution> {
+    const now = Math.floor(Date.now() / 1000);
+    const [row] = await db
+      .insert(contributions)
+      .values({ ...contribution, id: randomUUID(), createdAt: now })
+      .returning();
+    // Increment the profile's cached points total
+    await db
+      .update(profiles)
+      .set({ points: sql`${profiles.points} + ${contribution.points}`, updatedAt: now })
+      .where(eq(profiles.id, contribution.profileId));
+    return row;
+  }
+
+  async hasContributionToday(profileId: string, type: string): Promise<boolean> {
+    const startOfDay = Math.floor(new Date().setHours(0, 0, 0, 0) / 1000);
+    const rows = await db
+      .select()
+      .from(contributions)
+      .where(
+        sql`${contributions.profileId} = ${profileId}
+          AND ${contributions.type} = ${type}
+          AND ${contributions.createdAt} >= ${startOfDay}`
+      );
+    return rows.length > 0;
+  }
+
+  // ── Leaderboard ───────────────────────────────────────────────────────────
+  async getLeaderboard(): Promise<LeaderboardEntry[]> {
+    const rows = await db
+      .select({
+        id: profiles.id,
+        displayName: profiles.displayName,
+        avatarUrl: profiles.avatarUrl,
+        tags: profiles.tags,
+        points: profiles.points,
+        createdAt: profiles.createdAt,
+        questionCount: sql<number>`count(${contributions.id}) filter (where ${contributions.type} = 'question')`,
+      })
+      .from(profiles)
+      .leftJoin(contributions, eq(contributions.profileId, profiles.id))
+      .where(eq(profiles.isPublic, true))
+      .groupBy(profiles.id)
+      .orderBy(desc(profiles.points));
+
+    return rows.map((r) => ({
+      id: r.id,
+      displayName: r.displayName,
+      avatarUrl: r.avatarUrl,
+      tags: r.tags,
+      points: r.points,
+      questionCount: Number(r.questionCount),
+      createdAt: r.createdAt,
+    }));
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DbStorage();
