@@ -8,6 +8,7 @@ import NotFound from "@/pages/not-found";
 import { Body } from "@/pages/Body";
 import { UserProfileDashboard } from "@/pages/UserProfileDashboard";
 import { PRIVY_ENABLED, PRIVY_APP_ID } from "@/lib/privy";
+import pepoPng from "@assets/MesoReefDAO_Pepo_The_Polyp_1776218766670.png";
 
 function Router() {
   return (
@@ -36,11 +37,11 @@ function App() {
       <PrivyProvider
         appId={PRIVY_APP_ID}
         config={{
-          loginMethods: ["email", "wallet", "google", "twitter", "telegram", "linkedin"],
+          loginMethods: ["email", "google", "twitter", "telegram", "linkedin", "wallet"],
           appearance: {
             theme: "dark",
             accentColor: "#83eef0",
-            logo: "/figmaAssets/pepo-the-polyp-mascot.png",
+            logo: pepoPng,
           },
           embeddedWallets: {
             createOnLogin: "users-without-wallets",
