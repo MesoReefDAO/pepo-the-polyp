@@ -7,6 +7,9 @@ import { createServer } from "http";
 const app = express();
 const httpServer = createServer(app);
 
+// Trust Replit's reverse proxy so express-rate-limit reads X-Forwarded-For correctly
+app.set("trust proxy", 1);
+
 declare module "http" {
   interface IncomingMessage {
     rawBody: unknown;
@@ -35,11 +38,15 @@ app.use(
         fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
         imgSrc: ["'self'", "data:", "blob:", "https:"],
         mediaSrc: ["'self'"],
-        // Allow iframes from the knowledge graph and Privy auth widget
+        // Allow iframes from the knowledge graph, Privy auth widget, and social OAuth
         frameSrc: [
           "https://pepo.app.bonfires.ai",
           "https://*.privy.io",
           "https://privy.io",
+          "https://accounts.google.com",
+          "https://*.google.com",
+          "https://telegram.org",
+          "https://oauth.telegram.org",
         ],
         // Allow outbound fetch/XHR to known services
         connectSrc: [
@@ -52,6 +59,15 @@ app.use(
           "https://orcid.org",
           "https://pub.orcid.org",
           "https://mesoreefdao.org",
+          // Google OAuth
+          "https://accounts.google.com",
+          "https://*.googleapis.com",
+          // Twitter/X
+          "https://api.twitter.com",
+          "https://api.x.com",
+          // LinkedIn
+          "https://www.linkedin.com",
+          "https://api.linkedin.com",
           // WalletConnect (used by Privy wallet connector)
           "https://*.walletconnect.com",
           "https://*.walletconnect.org",
