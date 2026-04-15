@@ -49,7 +49,7 @@ function App() {
       <PrivyProvider
         appId={PRIVY_APP_ID}
         config={{
-          loginMethods: ["email", "google", "twitter", "linkedin"],
+          loginMethods: ["email", "google", "twitter", "linkedin", "wallet"],
           appearance: {
             theme: "dark",
             accentColor: "#83eef0",
