@@ -141,11 +141,19 @@ export const ReefInsightDashboardSection = (): JSX.Element => {
             <div className="flex items-center justify-between relative self-stretch w-full flex-[0_0_auto]">
               <div className="inline-flex items-center gap-3 relative flex-[0_0_auto]">
                 <img className="relative flex-[0_0_auto]" alt="Container" src="/figmaAssets/container.svg" />
-                <div className="inline-flex flex-col items-start relative flex-[0_0_auto]">
-                  <div className="relative flex items-center w-fit mt-[-1.00px] [font-family:'Plus_Jakarta_Sans',Helvetica] font-bold text-[#d4e9f3] text-base md:text-xl tracking-[0] leading-7 whitespace-nowrap">
-                    Coral Reef Knowledge
+                <a
+                  href="https://web.telegram.org/k/#@PepothePolyp_bot"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex flex-col items-start relative flex-[0_0_auto] no-underline hover:opacity-80 transition-opacity"
+                >
+                  <div className="relative flex items-center w-fit mt-[-1.00px] [font-family:'Plus_Jakarta_Sans',Helvetica] font-bold text-[#83eef0] text-base md:text-xl tracking-[0] leading-7 whitespace-nowrap">
+                    @PepothePolyp_bot
                   </div>
-                </div>
+                  <span className="[font-family:'Inter',Helvetica] font-normal text-[#d4e9f366] text-[10px] leading-4">
+                    web.telegram.org
+                  </span>
+                </a>
               </div>
               <Badge className="px-2 md:px-3 py-1 bg-[#83eef01a] rounded-full border border-solid border-[#83eef033] [font-family:'Inter',Helvetica] font-medium text-[#83eef0] text-[10px] md:text-xs tracking-[1.20px] leading-4 whitespace-nowrap hover:bg-[#83eef01a]">
                 ACTIVE LINK
