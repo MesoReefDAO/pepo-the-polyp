@@ -230,7 +230,7 @@ export async function registerRoutes(
     const state = crypto.randomBytes(32).toString("hex"); // upgraded from 16 to 32 bytes
     orcidStateStore.set(state, { createdAt: Date.now() });
     // Clean up stale states (older than 10 minutes)
-    for (const [k, v] of orcidStateStore.entries()) {
+    for (const [k, v] of Array.from(orcidStateStore.entries())) {
       if (Date.now() - v.createdAt > 10 * 60 * 1000) orcidStateStore.delete(k);
     }
     const host = req.headers.host || "";

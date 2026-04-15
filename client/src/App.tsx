@@ -44,7 +44,7 @@ function App() {
             logo: pepoPng,
           },
           embeddedWallets: {
-            createOnLogin: "users-without-wallets",
+            ethereum: { createOnLogin: "users-without-wallets" },
           },
         }}
       >
