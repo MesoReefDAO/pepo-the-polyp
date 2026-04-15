@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { PRIVY_ENABLED } from "@/lib/privy";
+import pepoPng from "@assets/MesoReefDAO_Pepo_The_Polyp_1776218766670.png";
 
 const TELEGRAM_BOT_URL = "https://t.me/PepothePolyp_bot";
 const TELEGRAM_WEB_URL = "https://web.telegram.org/k/#@PepothePolyp_bot";
@@ -58,7 +59,7 @@ export const ExplorerNavigationSidebarSection = (): JSX.Element => {
       <div className="pb-8 flex flex-col items-start w-full">
         <div className="flex items-center gap-3 w-full">
           <div className="flex flex-col w-12 h-12 items-start justify-center bg-[#06232c] rounded-[48px] overflow-hidden border border-solid border-[#83eef04c] flex-shrink-0">
-            <div className="flex-1 self-stretch w-full bg-[url(/figmaAssets/pepo-the-polyp-mascot.png)] bg-cover bg-[50%_50%]" />
+            <img src={pepoPng} alt="Pepo the Polyp" className="w-full h-full object-cover object-center" />
           </div>
           <div className="inline-flex flex-col items-start">
             <span className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-bold text-[#83eef0] text-xl tracking-[0] leading-7 whitespace-nowrap">Pepo</span>
