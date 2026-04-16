@@ -57,7 +57,6 @@ function App() {
             landingHeader: "Sign in to MesoReef DAO",
             loginMessage: "Access the Coral Reef Knowledge Network",
             walletList: [
-              "metamask",
               "coinbase_wallet",
               "rainbow",
               "zerion",
