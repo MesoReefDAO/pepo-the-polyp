@@ -49,16 +49,25 @@ function App() {
       <PrivyProvider
         appId={PRIVY_APP_ID}
         config={{
-          loginMethods: ["email", "google", "twitter", "linkedin", "wallet"],
+          loginMethods: ["wallet", "email", "google", "twitter", "linkedin"],
           appearance: {
             theme: "dark",
             accentColor: "#83eef0",
             logo: pepoPng,
             landingHeader: "Sign in to MesoReef DAO",
             loginMessage: "Access the Coral Reef Knowledge Network",
+            walletList: [
+              "metamask",
+              "coinbase_wallet",
+              "rainbow",
+              "zerion",
+              "uniswap",
+              "okx_wallet",
+            ],
           },
           embeddedWallets: {
             ethereum: { createOnLogin: "users-without-wallets" },
+            showWalletUIs: true,
           },
         }}
       >

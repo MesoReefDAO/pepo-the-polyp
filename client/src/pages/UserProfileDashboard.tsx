@@ -341,9 +341,20 @@ function WalletClientIcon({ clientType }: { clientType: string }) {
 }
 
 // ─── Wallet row ───────────────────────────────────────────────────────────────
+function ExportKeyIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      <polyline points="7 10 12 15 17 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      <line x1="12" y1="15" x2="12" y2="3" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
 function WalletsRow({ wallets }: { wallets: any[] }) {
-  const { linkWallet } = usePrivy();
+  const { linkWallet, exportWallet } = usePrivy();
   const [copied, setCopied] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   function copy(addr: string) {
     navigator.clipboard.writeText(addr);
@@ -410,20 +421,35 @@ function WalletsRow({ wallets }: { wallets: any[] }) {
           {embeddedWallets.length > 0 && (
             <div className="flex flex-col gap-1.5">
               {embeddedWallets.map((w) => (
-                <div key={w.address} className="flex items-center justify-between px-3 py-2 rounded-xl bg-[#ffffff06] border border-[#ffffff0a]">
-                  <div className="flex items-center gap-2 text-[#d4e9f380]">
-                    <WalletIcon />
-                    <span className="[font-family:'Inter',Helvetica] text-xs font-mono text-[#d4e9f3b2]">
-                      {w.address.slice(0, 8)}…{w.address.slice(-6)}
-                    </span>
-                    <span className="[font-family:'Inter',Helvetica] text-[9px] text-[#d4e9f340]">embedded</span>
+                <div key={w.address} className="flex flex-col gap-1">
+                  <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-[#ffffff06] border border-[#ffffff0a]">
+                    <div className="flex items-center gap-2 text-[#d4e9f380]">
+                      <WalletIcon />
+                      <span className="[font-family:'Inter',Helvetica] text-xs font-mono text-[#d4e9f3b2]">
+                        {w.address.slice(0, 8)}…{w.address.slice(-6)}
+                      </span>
+                      <span className="[font-family:'Inter',Helvetica] text-[9px] text-[#d4e9f340]">embedded</span>
+                    </div>
+                    <button
+                      onClick={() => copy(w.address)}
+                      data-testid={`button-copy-wallet-${w.address.slice(-4)}`}
+                      className="p-1.5 rounded-lg text-[#83eef066] hover:text-[#83eef0] transition-colors"
+                    >
+                      {copied === w.address ? <CheckIcon /> : <CopyIcon />}
+                    </button>
                   </div>
                   <button
-                    onClick={() => copy(w.address)}
-                    data-testid={`button-copy-wallet-${w.address.slice(-4)}`}
-                    className="p-1.5 rounded-lg text-[#83eef066] hover:text-[#83eef0] transition-colors"
+                    onClick={async () => {
+                      setExporting(true);
+                      try { await exportWallet({ address: w.address }); } catch { /* user dismissed */ }
+                      setExporting(false);
+                    }}
+                    disabled={exporting}
+                    data-testid={`button-export-key-${w.address.slice(-4)}`}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#a78bfa0d] border border-[#a78bfa25] text-[#a78bfaaa] hover:bg-[#a78bfa18] hover:text-[#a78bfa] transition-colors text-[10px] [font-family:'Inter',Helvetica] font-medium disabled:opacity-50"
                   >
-                    {copied === w.address ? <CheckIcon /> : <CopyIcon />}
+                    <ExportKeyIcon />
+                    {exporting ? "Opening export…" : "Export private key"}
                   </button>
                 </div>
               ))}
