@@ -181,7 +181,7 @@ function CleanCoralPanel() {
           ) : (
             <>
               <p className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-semibold text-[#d4e9f3] text-base">
-                Help restore the reef
+                Help regenerate a reef
               </p>
               <p className="[font-family:'Inter',Helvetica] text-[#d4e9f366] text-xs leading-relaxed">
                 Sign in to clean a coral every day and earn <span className="text-[#83eef0] font-semibold">+10 reef points</span>.
