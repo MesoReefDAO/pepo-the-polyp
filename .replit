@@ -42,9 +42,9 @@ waitForPort = 5000
 
 [userenv.shared]
 VITE_PRIVY_APP_ID = "cmnysfvqe00ff0cjmh15ba116"
+ORCID_REDIRECT_BASE_URL = "https://thepolyp.xyz"
 
 [userenv.production]
-ORCID_REDIRECT_BASE_URL = "https://thepolyp.xyz"
 
 [agent]
 integrations = ["github:1.0.0"]
