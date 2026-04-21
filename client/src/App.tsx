@@ -9,6 +9,7 @@ import NotFound from "@/pages/not-found";
 import { Body } from "@/pages/Body";
 import { UserProfileDashboard } from "@/pages/UserProfileDashboard";
 import { CommunityLeaderboard } from "@/pages/CommunityLeaderboard";
+import { PublicProfile } from "@/pages/PublicProfile";
 import { PRIVY_ENABLED, PRIVY_APP_ID } from "@/lib/privy";
 import { useProfileSync } from "@/hooks/use-profile-sync";
 import pepoPng from "@assets/MesoReefDAO_Pepo_The_Polyp_1776218766670.png";
@@ -21,6 +22,7 @@ function Router() {
       <Route path="/" component={Body} />
       <Route path="/profile" component={UserProfileDashboard} />
       <Route path="/community" component={CommunityLeaderboard} />
+      <Route path="/members/:id" component={PublicProfile} />
       <Route component={NotFound} />
     </Switch>
   );

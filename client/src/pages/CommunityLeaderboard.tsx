@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { usePrivy } from "@privy-io/react-auth";
 import { PRIVY_ENABLED } from "@/lib/privy";
-import { Trophy, MessageCircle, Star, Users, ArrowLeft, Globe } from "lucide-react";
+import { Trophy, MessageCircle, Star, Users, ArrowLeft, Globe, ChevronRight } from "lucide-react";
 import type { LeaderboardEntry } from "@shared/schema";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 
@@ -27,6 +27,16 @@ function OrcidBadge({ orcidId }: { orcidId: string }) {
       </span>
     </a>
   );
+}
+
+// ─── Navigate hook wrapper ────────────────────────────────────────────────────
+function useMemberNav() {
+  const [, setLocation] = useLocation();
+  return (id: string, e?: React.MouseEvent) => {
+    // Let ORCID badge handle its own click without triggering nav
+    if ((e?.target as HTMLElement)?.closest("a")) return;
+    setLocation(`/members/${encodeURIComponent(id)}`);
+  };
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -63,6 +73,7 @@ function Avatar({ url, name, size = 40 }: { url?: string; name: string; size?: n
 
 // ─── Leaderboard panel ────────────────────────────────────────────────────────
 function LeaderboardPanel({ entries, currentUserId }: { entries: LeaderboardEntry[]; currentUserId?: string }) {
+  const navigate = useMemberNav();
   return (
     <aside className="w-full md:w-[280px] md:flex-none flex flex-col gap-3">
       <div className="flex items-center gap-2.5 px-1">
@@ -84,10 +95,11 @@ function LeaderboardPanel({ entries, currentUserId }: { entries: LeaderboardEntr
             <div
               key={entry.id}
               data-testid={`leaderboard-row-${entry.id}`}
-              className={`flex items-center gap-3 px-4 py-3 rounded-2xl border transition-colors ${
+              onClick={(e) => navigate(entry.id, e)}
+              className={`flex items-center gap-3 px-4 py-3 rounded-2xl border transition-colors cursor-pointer ${
                 isMe
-                  ? "bg-[#83eef010] border-[#83eef033]"
-                  : "bg-[#00080c80] border-[#ffffff08] hover:border-[#83eef01a]"
+                  ? "bg-[#83eef010] border-[#83eef033] hover:border-[#83eef055]"
+                  : "bg-[#00080c80] border-[#ffffff08] hover:border-[#83eef025] hover:bg-[#83eef008]"
               }`}
               style={isMe ? { boxShadow: "inset 0 2px 6px rgba(0,0,0,0.4)" } : {}}
             >
@@ -125,6 +137,8 @@ function LeaderboardPanel({ entries, currentUserId }: { entries: LeaderboardEntr
                   </span>
                 </div>
               </div>
+
+              <ChevronRight size={14} className="text-[#d4e9f333] flex-shrink-0" />
             </div>
           );
         })}
@@ -147,11 +161,13 @@ function LeaderboardPanel({ entries, currentUserId }: { entries: LeaderboardEntr
 
 // ─── Profile card ─────────────────────────────────────────────────────────────
 function ProfileCard({ entry, rank }: { entry: LeaderboardEntry; rank: number }) {
+  const navigate = useMemberNav();
   const badge = rankBadge(rank);
   return (
     <div
       data-testid={`profile-card-${entry.id}`}
-      className="flex flex-col gap-4 p-5 rounded-3xl border border-[#ffffff08] bg-[#00080c80] hover:border-[#83eef01a] transition-colors"
+      onClick={(e) => navigate(entry.id, e)}
+      className="flex flex-col gap-4 p-5 rounded-3xl border border-[#ffffff08] bg-[#00080c80] hover:border-[#83eef025] hover:bg-[#83eef005] transition-colors cursor-pointer group"
     >
       {/* Header */}
       <div className="flex items-start gap-3">
@@ -167,7 +183,7 @@ function ProfileCard({ entry, rank }: { entry: LeaderboardEntry; rank: number })
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-bold text-[#d4e9f3] text-base truncate">
+            <span className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-bold text-[#d4e9f3] text-base truncate group-hover:text-white transition-colors">
               {entry.displayName}
             </span>
             <OrcidBadge orcidId={entry.orcidId} />
@@ -182,6 +198,8 @@ function ProfileCard({ entry, rank }: { entry: LeaderboardEntry; rank: number })
             </span>
           </div>
         </div>
+
+        <ChevronRight size={16} className="text-[#d4e9f322] group-hover:text-[#83eef066] transition-colors flex-shrink-0 mt-1" />
       </div>
 
       {/* Tags */}
@@ -214,6 +232,14 @@ function ProfileCard({ entry, rank }: { entry: LeaderboardEntry; rank: number })
           </span>
           <span className="[font-family:'Inter',Helvetica] text-[#d4e9f366] text-[9px]">Points</span>
         </div>
+      </div>
+
+      {/* CTA */}
+      <div className="flex items-center justify-center gap-1.5 pt-1 border-t border-[#ffffff06]">
+        <span className="[font-family:'Inter',Helvetica] text-[11px] text-[#d4e9f344] group-hover:text-[#83eef080] transition-colors">
+          View full profile
+        </span>
+        <ChevronRight size={11} className="text-[#d4e9f333] group-hover:text-[#83eef066] transition-colors" />
       </div>
     </div>
   );
