@@ -108,6 +108,20 @@ export function MobileBottomNav() {
         <span className={`text-[9px] ${active("/community") ? "text-[#83eef0] font-medium" : "text-[#d4e9f380]"}`}>Community</span>
       </Link>
 
+      {/* Reef Map */}
+      <Link
+        href="/map"
+        data-testid="nav-mobile-map"
+        className={`flex flex-col items-center justify-center gap-1 flex-1 py-3 min-h-[56px] no-underline transition-opacity ${active("/map") ? "opacity-100" : "opacity-50"}`}
+      >
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="9" stroke={active("/map") ? "#83eef0" : "#d4e9f380"} strokeWidth="2"/>
+          <path d="M2 12h20M12 3a15 15 0 010 18M12 3a15 15 0 000 18"
+            stroke={active("/map") ? "#83eef0" : "#d4e9f380"} strokeWidth="1.5" strokeLinecap="round"/>
+        </svg>
+        <span className={`text-[9px] ${active("/map") ? "text-[#83eef0] font-medium" : "text-[#d4e9f380]"}`}>Reef Map</span>
+      </Link>
+
       {/* Login (unauthenticated) or Telegram (authenticated) */}
       {PRIVY_ENABLED ? <PrivyAwareLoginNavItem /> : <TelegramNavItem />}
     </nav>
