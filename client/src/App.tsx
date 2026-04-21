@@ -12,6 +12,9 @@ import { CommunityLeaderboard } from "@/pages/CommunityLeaderboard";
 import { PublicProfile } from "@/pages/PublicProfile";
 import { PRIVY_ENABLED, PRIVY_APP_ID } from "@/lib/privy";
 import { useProfileSync } from "@/hooks/use-profile-sync";
+import { useGeolocation } from "@/hooks/use-geolocation";
+import { useOrcidAuth } from "@/hooks/use-orcid-auth";
+import { usePrivy } from "@privy-io/react-auth";
 import pepoPng from "@assets/MesoReefDAO_Pepo_The_Polyp_1776218766670.png";
 
 const EVM_CHAINS = [mainnet, polygon, base, arbitrum, optimism, avalanche];
@@ -28,11 +31,26 @@ function Router() {
   );
 }
 
+function GeoSyncPrivy() {
+  const { authenticated, getAccessToken } = usePrivy();
+  const { orcidAuthenticated } = useOrcidAuth();
+  const isAuthed = authenticated || orcidAuthenticated;
+  useGeolocation(isAuthed, getAccessToken, orcidAuthenticated && !authenticated);
+  return null;
+}
+
+function GeoSyncOrcidOnly() {
+  const { orcidAuthenticated } = useOrcidAuth();
+  useGeolocation(orcidAuthenticated, null, true);
+  return null;
+}
+
 function AppInner() {
   useProfileSync();
   return (
     <>
       <Toaster />
+      {PRIVY_ENABLED ? <GeoSyncPrivy /> : <GeoSyncOrcidOnly />}
       <Router />
     </>
   );

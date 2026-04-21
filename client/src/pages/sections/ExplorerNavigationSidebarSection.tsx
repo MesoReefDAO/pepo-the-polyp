@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useState, Suspense, lazy } from "react";
 import { Link, useLocation } from "wouter";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { PRIVY_ENABLED } from "@/lib/privy";
 import pepoPng from "@assets/MesoReefDAO_Pepo_The_Polyp_1776218766670.png";
+
+const ReefMap = lazy(() => import("@/components/ReefMap").then((m) => ({ default: m.ReefMap })));
 
 const TELEGRAM_BOT_URL = "https://t.me/PepothePolyp_bot";
 
@@ -353,6 +355,34 @@ export const ExplorerNavigationSidebarSection = (): JSX.Element => {
           </div>
         )}
 
+      </div>
+
+      {/* Reef Map */}
+      <div className="w-full px-2 pb-2">
+        <div className="flex items-center gap-2 mb-2 px-1">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="10" stroke="#83eef0" strokeWidth="1.8"/>
+            <path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20" stroke="#83eef0" strokeWidth="1.8" strokeLinecap="round"/>
+          </svg>
+          <span className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-semibold text-[#83eef0cc] text-[10px] uppercase tracking-widest">
+            Reef Network Map
+          </span>
+        </div>
+        <Suspense
+          fallback={
+            <div
+              style={{ height: 180, borderRadius: 16, background: "#00131c", border: "1px solid rgba(131,238,240,0.1)" }}
+              className="w-full flex items-center justify-center"
+            >
+              <div className="w-5 h-5 rounded-full border-2 border-[#83eef0] border-t-transparent animate-spin" />
+            </div>
+          }
+        >
+          <ReefMap compact />
+        </Suspense>
+        <p className="[font-family:'Inter',Helvetica] text-[#d4e9f344] text-[9px] leading-3 mt-1.5 px-1 text-center">
+          Allen Coral Atlas · members with location sharing
+        </p>
       </div>
 
       {/* Bottom: Bonfires AI attribution */}
