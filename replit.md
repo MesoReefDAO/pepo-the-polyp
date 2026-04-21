@@ -130,6 +130,32 @@ Registered redirect URIs:
 | `/api/auth/orcid/session` | GET | Returns current ORCID session |
 | `/api/auth/orcid/logout` | POST | Destroys ORCID session |
 
+## IPFS / Helia Image Storage
+
+Helia (the official js-IPFS successor) runs in offline mode on the server, backed by local FsBlockstore and FsDatastore stored in `ipfs-data/`. No libp2p networking is required.
+
+### Server module
+- `server/ipfs.ts` — exports `uploadToIPFS(buffer, mimeType)` and `getIPFSBytes(cid)` helpers; lazy-initialised Helia node.
+
+### API routes
+| Route | Method | Description |
+|-------|--------|-------------|
+| `/api/ipfs/upload` | POST (multipart) | Accepts an image (≤10 MB), stores via Helia, returns `{ cid, size, mimeType }` |
+| `/api/ipfs/cat/:cid` | GET | Streams the raw bytes for a CID from the local Helia node |
+| `/api/ipfs/info` | GET | Returns `{ online: true }` status |
+
+### Frontend helpers
+- `client/src/lib/ipfs.ts` — `uploadImageToIPFS(file)`, `ipfsImageUrl(cid)` (local cat URL), `ipfsPublicUrl(cid)` (ipfs.io gateway)
+- `client/src/components/IPFSImageUpload.tsx` — drag-and-drop upload widget (full and compact modes); shows CID + gateway links after upload
+
+### Schema fields (profiles table)
+- `avatarCid text` — CID of the user's avatar image stored on IPFS
+- `ipfsImages text[]` — array of CIDs for additional reef images
+
+### UI integration
+- **Profile page** (`/profile`) — Compact IPFS upload strip below the circular avatar preview; CID saved to `avatarCid` on Save Profile
+- **Workspace page** (`/workspace`) — "Coral Reef Image Archive" section (full drag-and-drop uploader + session image grid)
+
 ## External Integrations
 
 ### Bonfires.ai Knowledge Graph

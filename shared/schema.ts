@@ -33,6 +33,9 @@ export const profiles = pgTable("profiles", {
   // Ceramic + IDX decentralized storage
   ceramicStreamId: text("ceramic_stream_id").default(""),
   ceramicDid: text("ceramic_did").default(""),
+  // IPFS
+  avatarCid: text("avatar_cid").default(""),
+  ipfsImages: text("ipfs_images").array().notNull().default(sql`'{}'::text[]`),
   latitude: real("latitude"),
   longitude: real("longitude"),
   createdAt: integer("created_at").notNull().default(sql`extract(epoch from now())::int`),

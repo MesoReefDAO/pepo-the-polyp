@@ -9,6 +9,8 @@ import { ceramicStreamUrl } from "@/lib/ceramic";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { useOrcidAuth } from "@/hooks/use-orcid-auth";
 import { OrcidLoginButton } from "@/components/OrcidLoginButton";
+import { IPFSImageUpload } from "@/components/IPFSImageUpload";
+import { ipfsImageUrl } from "@/lib/ipfs";
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 function MetaMaskIcon({ size = 14 }: { size?: number }) {
@@ -497,6 +499,7 @@ export function UserProfileDashboard() {
   // ── Local state ──
   const [saved, setSaved] = useState(false);
   const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [avatarCid, setAvatarCid] = useState<string>("");
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState(DEFAULT_BIO);
   const [location, setLocation] = useState("");
@@ -531,6 +534,10 @@ export function UserProfileDashboard() {
     }
     if (savedProfile?.profile?.ceramicStreamId) {
       setCeramicStreamId(savedProfile.profile.ceramicStreamId);
+    }
+    if (savedProfile?.profile?.avatarCid) {
+      setAvatarCid(savedProfile.profile.avatarCid);
+      setProfileImage(ipfsImageUrl(savedProfile.profile.avatarCid));
     }
   }, [savedProfile]);
 
@@ -619,6 +626,12 @@ export function UserProfileDashboard() {
     localStorage.setItem("pepo_profile_image", url);
   }
 
+  function handleIPFSAvatarUpload(result: { cid: string; localUrl: string }) {
+    setAvatarCid(result.cid);
+    setProfileImage(result.localUrl);
+    localStorage.setItem("pepo_avatar_cid", result.cid);
+  }
+
   async function handleSave() {
     localStorage.setItem("pepo_display_name", displayName);
     localStorage.setItem("pepo_profile_bio", bio);
@@ -638,11 +651,36 @@ export function UserProfileDashboard() {
             website,
             tags: selectedTags,
             avatarUrl: profileImage || "",
+            avatarCid: avatarCid || "",
             isPublic: true,
           }),
         });
         queryClient.invalidateQueries({ queryKey: ["/api/profiles", activeProfileId] });
         queryClient.invalidateQueries({ queryKey: ["/api/leaderboard"] });
+      } catch {
+        // non-blocking — local save succeeded
+      }
+    } else if (privyAuthenticated) {
+      try {
+        const token = await getAccessToken();
+        if (token) {
+          await fetch("/api/profiles", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "x-privy-token": token },
+            body: JSON.stringify({
+              displayName,
+              bio,
+              location,
+              website,
+              tags: selectedTags,
+              avatarUrl: profileImage || "",
+              avatarCid: avatarCid || "",
+              isPublic: true,
+            }),
+          });
+          queryClient.invalidateQueries({ queryKey: ["/api/profiles", activeProfileId] });
+          queryClient.invalidateQueries({ queryKey: ["/api/leaderboard"] });
+        }
       } catch {
         // non-blocking — local save succeeded
       }
@@ -831,7 +869,33 @@ export function UserProfileDashboard() {
                   {/* Photo + Name section */}
                   <div className="flex flex-col gap-5 p-5 md:p-6 rounded-3xl bg-[#ffffff08] border border-[#83eef01a] backdrop-blur-sm">
                     <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center">
-                      <PhotoUpload image={profileImage} onChange={handlePhotoChange} />
+                      {/* Avatar — IPFS upload (compact) */}
+                      <div className="flex flex-col items-center gap-3 shrink-0">
+                        {/* Circular avatar preview */}
+                        <div className="relative group">
+                          <div className="w-28 h-28 rounded-full overflow-hidden border-2 border-[#83eef04c] bg-[#06232c] shadow-[0_0_24px_rgba(131,238,240,0.15)]">
+                            {profileImage ? (
+                              <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex flex-col items-center justify-center gap-1.5 text-[#83eef060]">
+                                <UploadIcon />
+                                <span className="[font-family:'Inter',Helvetica] text-[9px] text-center px-2 leading-3">
+                                  Upload avatar
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        {/* IPFS upload strip */}
+                        <div className="w-full min-w-[156px]">
+                          <IPFSImageUpload
+                            compact
+                            currentCid={avatarCid}
+                            label="Avatar · IPFS"
+                            onUpload={handleIPFSAvatarUpload}
+                          />
+                        </div>
+                      </div>
                       <div className="flex flex-col gap-4 flex-1 w-full">
                         <Field label="Display Name" hint="How others see you">
                           <input
