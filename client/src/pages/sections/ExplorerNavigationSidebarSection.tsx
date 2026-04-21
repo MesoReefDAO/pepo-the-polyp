@@ -385,6 +385,132 @@ export const ExplorerNavigationSidebarSection = (): JSX.Element => {
         </p>
       </div>
 
+      {/* Reef Heat Stress Monitor */}
+      <div className="w-full px-2 pb-1">
+        <div className="flex items-center gap-2 mb-2 px-1">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+            <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z" stroke="#e05555" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          <span className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-semibold text-[#e05555cc] text-[10px] uppercase tracking-widest">
+            Reef Heat Stress
+          </span>
+        </div>
+
+        <a
+          href="https://coralreefwatch.noaa.gov/product/5km/index_5km_dhw.php"
+          target="_blank"
+          rel="noopener noreferrer"
+          data-testid="link-noaa-dhw"
+          style={{
+            display: "block",
+            background: "rgba(220,50,50,0.06)",
+            border: "1px solid rgba(220,85,85,0.22)",
+            borderRadius: 12,
+            padding: "10px 12px",
+            textDecoration: "none",
+            transition: "border-color 0.2s",
+          }}
+          onMouseEnter={e => (e.currentTarget.style.borderColor = "rgba(220,85,85,0.5)")}
+          onMouseLeave={e => (e.currentTarget.style.borderColor = "rgba(220,85,85,0.22)")}
+        >
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+            <span style={{ fontSize: 10.5, fontWeight: 700, color: "#e08888", fontFamily: "Inter,sans-serif" }}>
+              NOAA Coral Reef Watch
+            </span>
+            <span style={{ fontSize: 8.5, color: "#e05555aa", fontFamily: "Inter,sans-serif" }}>5 km · Weekly ↗</span>
+          </div>
+          <p style={{ fontSize: 9.5, color: "#d4e9f388", fontFamily: "Inter,sans-serif", lineHeight: 1.5, margin: 0, marginBottom: 8 }}>
+            Degree Heating Weeks (DHW) track accumulated thermal stress on coral reefs.
+            DHW &gt; 4°C-weeks risks bleaching; DHW &gt; 8°C-weeks risks severe bleaching and mortality.
+          </p>
+          {/* Alert level scale */}
+          <div style={{ display: "flex", gap: 3, alignItems: "center" }}>
+            {[
+              { label: "Watch", color: "#feca57" },
+              { label: "Warning", color: "#ff9f43" },
+              { label: "Alert 1", color: "#ff6348" },
+              { label: "Alert 2", color: "#c0392b" },
+            ].map(({ label, color }) => (
+              <div key={label} style={{
+                flex: 1,
+                background: `${color}22`,
+                border: `1px solid ${color}66`,
+                borderRadius: 4,
+                padding: "2px 0",
+                textAlign: "center",
+                fontSize: 7.5,
+                color,
+                fontFamily: "Inter,sans-serif",
+                fontWeight: 600,
+              }}>
+                {label}
+              </div>
+            ))}
+          </div>
+        </a>
+      </div>
+
+      {/* Conservation Network */}
+      <div className="w-full px-2 pb-2">
+        <div className="flex items-center gap-2 mb-2 px-1">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" fill="#83eef066"/>
+          </svg>
+          <span className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-semibold text-[#83eef0cc] text-[10px] uppercase tracking-widest">
+            Conservation Network
+          </span>
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+          {[
+            { label: "GCRMN", desc: "Global Coral Reef Monitoring Network", href: "https://gcrmn.net/", color: "#1dd1a1" },
+            { label: "Coral Reef Alliance", desc: "Science-based reef conservation", href: "https://coralreefs.org/", color: "#48dbfb" },
+            { label: "KAUST KCRI", desc: "Red Sea coral research", href: "https://www.kaust.edu.sa/en/innovate/kcri", color: "#c56cf0" },
+            { label: "GBRMPA", desc: "Great Barrier Reef Marine Park Authority", href: "https://www2.gbrmpa.gov.au/", color: "#feca57" },
+            { label: "Healthy Reefs Initiative", desc: "Mesoamerican Reef report card", href: "https://www.healthyreefs.org/en", color: "#54a0ff" },
+          ].map(({ label, desc, href, color }) => (
+            <a
+              key={href}
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-testid={`link-conservation-${label.toLowerCase().replace(/\s+/g, "-")}`}
+              style={{
+                display: "flex", alignItems: "center", gap: 9,
+                background: `${color}0d`,
+                border: `1px solid ${color}22`,
+                borderRadius: 8,
+                padding: "6px 10px",
+                textDecoration: "none",
+                transition: "border-color 0.2s, background 0.2s",
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.borderColor = `${color}55`;
+                e.currentTarget.style.background = `${color}18`;
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.borderColor = `${color}22`;
+                e.currentTarget.style.background = `${color}0d`;
+              }}
+            >
+              <span style={{
+                width: 7, height: 7, borderRadius: "50%",
+                background: color, flexShrink: 0,
+              }}/>
+              <div style={{ overflow: "hidden" }}>
+                <div style={{ fontSize: 10.5, fontWeight: 700, color: "#d4e9f3cc", fontFamily: "Inter,sans-serif", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  {label}
+                </div>
+                <div style={{ fontSize: 8.5, color: "#d4e9f355", fontFamily: "Inter,sans-serif", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  {desc}
+                </div>
+              </div>
+              <span style={{ marginLeft: "auto", fontSize: 9, color: `${color}88`, flexShrink: 0 }}>↗</span>
+            </a>
+          ))}
+        </div>
+      </div>
+
       {/* Bottom: Bonfires AI attribution */}
       <a
         href="https://bonfires.ai"
