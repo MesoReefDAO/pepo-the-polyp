@@ -175,6 +175,14 @@ Helia (the official js-IPFS successor) runs in offline mode on the server, backe
 ## Running the App
 ```bash
 npm run dev        # Start dev server (port 5000)
-npm run build      # Production build
+npm run build      # Production build (Vite frontend → dist/public/ + esbuild server → dist/index.mjs)
 npm run db:push    # Sync database schema
 ```
+
+## Deployment (Autoscale)
+
+- **Build**: `npm run build` (script/build.ts) — Vite builds frontend to `dist/public/`, esbuild bundles server to `dist/index.mjs` (1.3 MB)
+- **Run**: `node dist/index.mjs`
+- **ESM strategy**: server bundle uses ESM format. CJS packages (express, pg, etc.) are bundled inline by esbuild (with a `createRequire` banner for any dynamic `require()` calls). ESM-only packages (helia, blockstore-fs, datastore-fs, @helia/unixfs) are **externalized** — they stay in node_modules and load via native ESM import, keeping `import.meta.url` correct in each module.
+- **Static files**: `server/static.ts` serves `dist/public/` relative to `process.cwd()` (project root), so it works whether invoked from the bundle or directly via tsx.
+- **IPFS on autoscale**: FsBlockstore state is not shared across instances; uploaded content should be pinned to a public IPFS gateway for persistence across deployments.

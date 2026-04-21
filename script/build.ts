@@ -1,10 +1,12 @@
 import { build as esbuild } from "esbuild";
 import { build as viteBuild } from "vite";
 import { rm, readFile } from "fs/promises";
+import { builtinModules } from "module";
 
-// server deps to bundle to reduce openat(2) syscalls
-// which helps cold start times
-const allowlist = [
+// These CJS packages are bundled inline.
+// ESM-only packages are intentionally absent — they stay external so
+// their import.meta.url is correct when loaded from node_modules.
+const bundleList = [
   "@google/generative-ai",
   "axios",
   "connect-pg-simple",
@@ -39,26 +41,52 @@ async function buildAll() {
   await viteBuild();
 
   console.log("building server...");
+
   const pkg = JSON.parse(await readFile("package.json", "utf-8"));
   const allDeps = [
     ...Object.keys(pkg.dependencies || {}),
     ...Object.keys(pkg.devDependencies || {}),
   ];
-  const externals = allDeps.filter((dep) => !allowlist.includes(dep));
+
+  const nodeBuiltins = [
+    ...builtinModules,
+    ...builtinModules.map((m) => `node:${m}`),
+  ];
+
+  // Everything not in the bundleList stays external:
+  //   - Node built-ins (absolute imports, work fine with createRequire)
+  //   - ESM-only packages like helia, blockstore-fs, datastore-fs,
+  //     @helia/unixfs, and all their transitive ESM dependencies.
+  //     They stay in node_modules so their own import.meta.url is correct.
+  const externals = [
+    ...nodeBuiltins,
+    ...allDeps.filter((dep) => !bundleList.includes(dep)),
+  ];
 
   await esbuild({
     entryPoints: ["server/index.ts"],
     platform: "node",
     bundle: true,
-    format: "cjs",
-    outfile: "dist/index.cjs",
+    // ESM output so external ESM packages can be statically imported.
+    // Bundled CJS packages (express etc.) are converted to ESM by esbuild.
+    // Dynamic require() calls in bundled CJS code are covered by the banner.
+    format: "esm",
+    outfile: "dist/index.mjs",
     define: {
       "process.env.NODE_ENV": '"production"',
+    },
+    // Provide require() for bundled CJS packages that call it at runtime.
+    // Since helia is external, its own createRequire(import.meta.url) uses
+    // the correct node_modules path — not this banner.
+    banner: {
+      js: `import { createRequire } from "module"; const require = createRequire(import.meta.url);`,
     },
     minify: true,
     external: externals,
     logLevel: "info",
   });
+
+  console.log("done.");
 }
 
 buildAll().catch((err) => {
