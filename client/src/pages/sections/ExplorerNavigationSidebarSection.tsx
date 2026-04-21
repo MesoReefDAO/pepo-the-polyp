@@ -358,6 +358,82 @@ export const ExplorerNavigationSidebarSection = (): JSX.Element => {
 
       </div>
 
+      {/* Reef Workspace */}
+      <div className="w-full px-2 pb-2">
+        <div className="flex items-center gap-2 mb-2 px-1">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+            <rect x="3" y="3" width="7" height="9" rx="1.5" stroke="#48dbfb" strokeWidth="1.7"/>
+            <rect x="14" y="3" width="7" height="5" rx="1.5" stroke="#1dd1a1" strokeWidth="1.7"/>
+            <rect x="14" y="12" width="7" height="9" rx="1.5" stroke="#1dd1a1" strokeWidth="1.7"/>
+            <rect x="3" y="16" width="7" height="5" rx="1.5" stroke="#48dbfb" strokeWidth="1.7"/>
+          </svg>
+          <Link
+            href="/workspace"
+            data-testid="link-reef-workspace-title"
+            className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-semibold text-[#83eef0cc] text-[10px] uppercase tracking-widest hover:text-[#83eef0] transition-colors no-underline flex-1"
+          >
+            Reef Workspace
+          </Link>
+        </div>
+        <div style={{ display: "flex", gap: 6 }}>
+          <a
+            href="https://ddocs.new"
+            target="_blank"
+            rel="noopener noreferrer"
+            data-testid="link-ddocs-sidebar"
+            style={{
+              flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
+              background: "rgba(72,219,251,0.06)", border: "1px solid rgba(72,219,251,0.2)",
+              borderRadius: 10, padding: "8px 4px", textDecoration: "none", transition: "border-color 0.2s",
+            }}
+            onMouseEnter={e => (e.currentTarget.style.borderColor = "rgba(72,219,251,0.45)")}
+            onMouseLeave={e => (e.currentTarget.style.borderColor = "rgba(72,219,251,0.2)")}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8L14 2z" stroke="#48dbfb" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke="#48dbfb" strokeWidth="1.8" strokeLinecap="round"/>
+            </svg>
+            <span style={{ fontSize: 9, fontWeight: 700, color: "#48dbfbbb", fontFamily: "Inter,sans-serif", letterSpacing: "0.04em" }}>dDocs</span>
+          </a>
+          <a
+            href="https://dsheets.new"
+            target="_blank"
+            rel="noopener noreferrer"
+            data-testid="link-dsheets-sidebar"
+            style={{
+              flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
+              background: "rgba(29,209,161,0.06)", border: "1px solid rgba(29,209,161,0.2)",
+              borderRadius: 10, padding: "8px 4px", textDecoration: "none", transition: "border-color 0.2s",
+            }}
+            onMouseEnter={e => (e.currentTarget.style.borderColor = "rgba(29,209,161,0.45)")}
+            onMouseLeave={e => (e.currentTarget.style.borderColor = "rgba(29,209,161,0.2)")}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+              <rect x="3" y="3" width="18" height="18" rx="2" stroke="#1dd1a1" strokeWidth="1.8"/>
+              <path d="M3 9h18M3 15h18M9 3v18M15 3v18" stroke="#1dd1a1" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+            <span style={{ fontSize: 9, fontWeight: 700, color: "#1dd1a1bb", fontFamily: "Inter,sans-serif", letterSpacing: "0.04em" }}>dSheets</span>
+          </a>
+          <Link
+            href="/workspace"
+            data-testid="link-workspace-more"
+            style={{
+              flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
+              background: "rgba(131,238,240,0.04)", border: "1px solid rgba(131,238,240,0.12)",
+              borderRadius: 10, padding: "8px 4px", textDecoration: "none", transition: "border-color 0.2s",
+            }}
+            onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.borderColor = "rgba(131,238,240,0.3)")}
+            onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.borderColor = "rgba(131,238,240,0.12)")}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="9" stroke="#83eef066" strokeWidth="1.8"/>
+              <path d="M12 8v4l3 3" stroke="#83eef066" strokeWidth="1.8" strokeLinecap="round"/>
+            </svg>
+            <span style={{ fontSize: 9, fontWeight: 700, color: "#83eef055", fontFamily: "Inter,sans-serif", letterSpacing: "0.04em" }}>More</span>
+          </Link>
+        </div>
+      </div>
+
       {/* Reef Map */}
       <div className="w-full px-2 pb-2">
         <button

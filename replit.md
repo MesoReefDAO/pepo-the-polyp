@@ -30,9 +30,10 @@ client/src/
     CommunityLeaderboard.tsx              — Community page: Leaderboard (left) + Profile cards (right); rows/cards are clickable divs navigating to /members/:id
     PublicProfile.tsx                     — Public member profile at /members/:id; shows avatar, bio, ORCID badge, stats, activity feed
     UserProfileDashboard.tsx              — My Profile edit page (bio, tags, links, ORCID linking)
+    WorkspacePage.tsx                     — /workspace page: Fileverse dDocs + dSheets integration cards with launch buttons, About Fileverse section
     sections/
-      ApplicationHeaderSection.tsx        — Top nav with Privy auth button
-      ExplorerNavigationSidebarSection.tsx — Sidebar with nav, Telegram bot link, Reef Network Map
+      ApplicationHeaderSection.tsx        — Top nav with Privy auth button + Workspace link
+      ExplorerNavigationSidebarSection.tsx — Sidebar with nav, Telegram bot link, Reef Workspace (dDocs/dSheets), Reef Network Map
       ReefInsightDashboardSection.tsx      — Bonfires Knowledge Graph iframe + Telegram Bot panel
   components/
     PrivyLoginButton.tsx                  — Calls login() for Privy's native modal
