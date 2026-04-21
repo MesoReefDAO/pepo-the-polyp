@@ -82,7 +82,7 @@ function LeaderboardPanel({ entries, currentUserId }: { entries: LeaderboardEntr
           Leaderboard
         </span>
         <span className="ml-auto [font-family:'Inter',Helvetica] text-[#d4e9f366] text-xs">
-          {entries.length} contributors
+          {entries.length} Regen Reef contributors
         </span>
       </div>
 
@@ -147,7 +147,7 @@ function LeaderboardPanel({ entries, currentUserId }: { entries: LeaderboardEntr
           <div className="flex flex-col items-center gap-2 py-10 text-center">
             <Users size={28} className="text-[#d4e9f333]" />
             <span className="[font-family:'Inter',Helvetica] text-[#d4e9f366] text-sm">
-              No contributors yet
+              No Regen Reef contributors yet
             </span>
             <span className="[font-family:'Inter',Helvetica] text-[#d4e9f344] text-xs">
               Log in and ask Pepo a question to earn points!
@@ -291,7 +291,7 @@ export function CommunityLeaderboard() {
         <div className="flex items-center gap-2.5">
           <Trophy size={22} className="text-[#FFD700]" />
           <h1 className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-extrabold text-[#d4e9f3] text-2xl">
-            Reef Contributors
+            Regen Reef Contributors
           </h1>
         </div>
         <p className="[font-family:'Inter',Helvetica] text-[#9aaeb8] text-sm max-w-md">
