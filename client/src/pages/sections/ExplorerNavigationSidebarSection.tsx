@@ -477,6 +477,7 @@ export const ExplorerNavigationSidebarSection = (): JSX.Element => {
             { label: "KAUST KCRI", desc: "Red Sea coral research", href: "https://www.kaust.edu.sa/en/innovate/kcri", color: "#c56cf0" },
             { label: "GBRMPA", desc: "Great Barrier Reef Marine Park Authority", href: "https://www2.gbrmpa.gov.au/", color: "#feca57" },
             { label: "Healthy Reefs Initiative", desc: "Mesoamerican Reef report card", href: "https://www.healthyreefs.org/en", color: "#54a0ff" },
+            { label: "Corals of the World", desc: "Species database & reef imagery", href: "https://www.coralsoftheworld.org/page/home/", color: "#ff9f43" },
           ].map(({ label, desc, href, color }) => (
             <a
               key={href}
