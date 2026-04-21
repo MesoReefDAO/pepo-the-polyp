@@ -1,9 +1,11 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import crypto from "crypto";
+import multer from "multer";
 import { rateLimit } from "express-rate-limit";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { storage } from "./storage";
+import { uploadToIPFS, getIPFSBytes, gatewayUrls, primaryGatewayUrl } from "./ipfs";
 
 // ─── GCRMN regions GeoJSON cache (fetched once from GitHub, valid 24h) ─────────
 let _gcrmnCache: { geojson: object; expiresAt: number } | null = null;
@@ -138,6 +140,74 @@ export async function registerRoutes(
 
   // Apply general rate limiting to all /api routes
   app.use("/api", generalLimiter);
+
+  // ─── IPFS routes (Helia — https://github.com/ipfs/helia) ──────────────────
+  const ipfsUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB max
+    fileFilter: (_req, file, cb) => {
+      if (file.mimetype.startsWith("image/")) cb(null, true);
+      else cb(new Error("Only image files are allowed"));
+    },
+  });
+
+  // POST /api/ipfs/upload — upload an image; returns CID + gateway URLs
+  app.post(
+    "/api/ipfs/upload",
+    ipfsUpload.single("file"),
+    async (req: Request, res: Response) => {
+      try {
+        if (!req.file) return res.status(400).json({ error: "No file provided" });
+        const cid = await uploadToIPFS(req.file.buffer, req.file.originalname);
+        return res.json({
+          cid,
+          mimeType: req.file.mimetype,
+          size: req.file.size,
+          filename: req.file.originalname,
+          gateways: gatewayUrls(cid),
+          url: primaryGatewayUrl(cid),
+          localUrl: `/api/ipfs/cat/${cid}`,
+        });
+      } catch (err: any) {
+        console.error("[IPFS] upload error:", err);
+        return res.status(500).json({ error: err.message || "IPFS upload failed" });
+      }
+    }
+  );
+
+  // GET /api/ipfs/cat/:cid — serve a file from the local Helia blockstore
+  app.get("/api/ipfs/cat/:cid", async (req: Request, res: Response) => {
+    try {
+      const bytes = await getIPFSBytes(req.params.cid);
+      if (!bytes) return res.status(404).json({ error: "CID not found in local store" });
+      // Detect content type from magic bytes
+      let contentType = "application/octet-stream";
+      if (bytes[0] === 0xff && bytes[1] === 0xd8) contentType = "image/jpeg";
+      else if (bytes[0] === 0x89 && bytes[1] === 0x50) contentType = "image/png";
+      else if (bytes[0] === 0x47 && bytes[1] === 0x49) contentType = "image/gif";
+      else if (bytes[0] === 0x52 && bytes[4] === 0x57) contentType = "image/webp";
+      res.setHeader("Content-Type", contentType);
+      res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+      return res.send(bytes);
+    } catch (err: any) {
+      return res.status(500).json({ error: "Failed to retrieve from IPFS" });
+    }
+  });
+
+  // GET /api/ipfs/info — node status
+  app.get("/api/ipfs/info", async (_req: Request, res: Response) => {
+    try {
+      const { helia } = await (await import("./ipfs")).getHelia();
+      return res.json({
+        status: helia.libp2p?.status ?? "offline",
+        mode: "local-blockstore",
+        library: "helia",
+        repo: "https://github.com/ipfs/helia",
+      });
+    } catch (err: any) {
+      return res.json({ status: "starting", mode: "local-blockstore" });
+    }
+  });
 
   // Proxy: fetch knowledge graph data
   app.get("/api/graph", async (_req: Request, res: Response) => {
@@ -324,7 +394,7 @@ export async function registerRoutes(
     const verify = await verifyPrivyToken(token);
     if (!verify.valid) return res.status(401).json({ error: "Unauthorized" });
 
-    const { displayName, bio, location, website, avatarUrl, tags, isPublic } = req.body;
+    const { displayName, bio, location, website, avatarUrl, avatarCid, ipfsImages, tags, isPublic } = req.body;
     try {
       const profile = await storage.upsertProfile({
         id: verify.userId!,
@@ -333,6 +403,8 @@ export async function registerRoutes(
         location: sanitizeString(location, 100) || "",
         website: sanitizeString(website, 200) || "",
         avatarUrl: sanitizeString(avatarUrl, 500) || "",
+        avatarCid: sanitizeString(avatarCid, 200) || "",
+        ipfsImages: Array.isArray(ipfsImages) ? ipfsImages.slice(0, 50).map(String) : [],
         tags: Array.isArray(tags) ? tags.slice(0, 10).map(String) : [],
         points: undefined as any, // preserved by DB
         isPublic: isPublic !== false,
@@ -756,7 +828,7 @@ export async function registerRoutes(
       return res.status(401).json({ error: "No active ORCID session" });
     }
     const { profileId } = req.session.orcid;
-    const { displayName, bio, location, website, avatarUrl, tags, isPublic } = req.body;
+    const { displayName, bio, location, website, avatarUrl, avatarCid, ipfsImages, tags, isPublic } = req.body;
     try {
       const existing = await storage.getProfile(profileId);
       const profile = await storage.upsertProfile({
@@ -766,6 +838,8 @@ export async function registerRoutes(
         location: sanitizeString(location, 100) || existing?.location || "",
         website: sanitizeString(website, 200) || existing?.website || "",
         avatarUrl: sanitizeString(avatarUrl, 500) || existing?.avatarUrl || "",
+        avatarCid: sanitizeString(avatarCid, 200) || existing?.avatarCid || "",
+        ipfsImages: Array.isArray(ipfsImages) ? ipfsImages.slice(0, 50).map(String) : (existing?.ipfsImages || []),
         tags: Array.isArray(tags) ? tags.slice(0, 10).map(String) : (existing?.tags || []),
         points: existing?.points || 0,
         isPublic: isPublic !== false,

@@ -78,6 +78,8 @@ export class DbStorage implements IStorage {
           location: profile.location,
           website: profile.website,
           avatarUrl: profile.avatarUrl,
+          avatarCid: profile.avatarCid,
+          ipfsImages: profile.ipfsImages,
           tags: profile.tags,
           isPublic: profile.isPublic,
           orcidId: profile.orcidId,

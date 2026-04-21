@@ -1,5 +1,8 @@
 import { Link } from "wouter";
-import { ArrowLeft, ExternalLink, FileText, Table2, Lock, Globe, Zap, Users } from "lucide-react";
+import { useState } from "react";
+import { ArrowLeft, ExternalLink, FileText, Table2, Lock, Globe, Zap, Users, ImageIcon } from "lucide-react";
+import { IPFSImageUpload } from "@/components/IPFSImageUpload";
+import { ipfsPublicUrl } from "@/lib/ipfs";
 
 const TOOLS = [
   {
@@ -34,6 +37,15 @@ const PRINCIPLES = [
 ];
 
 export function WorkspacePage() {
+  const [archivedImages, setArchivedImages] = useState<{ cid: string; localUrl: string; mimeType: string }[]>([]);
+
+  function handleArchiveUpload(result: { cid: string; localUrl: string; mimeType: string }) {
+    setArchivedImages(prev => {
+      if (prev.some(img => img.cid === result.cid)) return prev;
+      return [result, ...prev];
+    });
+  }
+
   return (
     <div
       style={{
@@ -194,6 +206,88 @@ export function WorkspacePage() {
               </a>
             </div>
           ))}
+        </div>
+
+        {/* ── Coral Reef Image Archive ── */}
+        <div
+          data-testid="workspace-image-archive"
+          style={{
+            background: "rgba(131,238,240,0.03)", border: "1px solid rgba(131,238,240,0.12)",
+            borderRadius: 20, padding: "24px", marginBottom: 24,
+          }}
+        >
+          {/* Section header */}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+            <div style={{
+              width: 40, height: 40, borderRadius: 12, flexShrink: 0,
+              background: "rgba(255,190,105,0.1)", border: "1px solid rgba(255,190,105,0.25)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              color: "#ffbe69",
+            }}>
+              <ImageIcon size={20} strokeWidth={1.5} />
+            </div>
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <h2 style={{ fontSize: 18, fontWeight: 800, color: "#d4e9f3", margin: 0 }}>
+                  Coral Reef Image Archive
+                </h2>
+                <span style={{
+                  fontSize: 9, fontWeight: 700, color: "#ffbe69",
+                  background: "rgba(255,190,105,0.12)", border: "1px solid rgba(255,190,105,0.25)",
+                  borderRadius: 20, padding: "2px 8px", letterSpacing: "0.04em",
+                }}>
+                  IPFS · Helia
+                </span>
+              </div>
+              <p style={{ fontSize: 12, color: "#9aaeb8", margin: "2px 0 0" }}>
+                Pin field photos and reef imagery to IPFS — permanently addressable, censorship-resistant.
+              </p>
+            </div>
+          </div>
+
+          {/* Upload zone */}
+          <IPFSImageUpload
+            label="Add reef image to IPFS"
+            onUpload={handleArchiveUpload}
+          />
+
+          {/* Uploaded images grid */}
+          {archivedImages.length > 0 && (
+            <div style={{ marginTop: 20 }}>
+              <div style={{
+                fontSize: 9, fontWeight: 700, color: "#ffbe6955", letterSpacing: "0.1em",
+                textTransform: "uppercase", marginBottom: 10,
+              }}>
+                Session archive — {archivedImages.length} image{archivedImages.length !== 1 ? "s" : ""}
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))", gap: 10 }}>
+                {archivedImages.map((img) => (
+                  <a
+                    key={img.cid}
+                    href={ipfsPublicUrl(img.cid)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    data-testid={`archive-img-${img.cid.slice(-6)}`}
+                    style={{ display: "block", textDecoration: "none", borderRadius: 10, overflow: "hidden", border: "1px solid rgba(255,190,105,0.15)" }}
+                    title={img.cid}
+                  >
+                    <img
+                      src={img.localUrl}
+                      alt="Archived reef image"
+                      style={{ width: "100%", aspectRatio: "1", objectFit: "cover", display: "block" }}
+                    />
+                    <div style={{
+                      padding: "5px 7px", background: "rgba(0,8,12,0.6)",
+                      fontSize: 8, color: "#ffbe6977", fontFamily: "monospace",
+                      overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                    }}>
+                      {img.cid.slice(0, 16)}…
+                    </div>
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ── About Fileverse ── */}
