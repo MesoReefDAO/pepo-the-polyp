@@ -17,7 +17,6 @@ import { useProfileSync } from "@/hooks/use-profile-sync";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { useOrcidAuth } from "@/hooks/use-orcid-auth";
 import { usePrivy } from "@privy-io/react-auth";
-import pepoPng from "@assets/MesoReefDAO_Pepo_The_Polyp_1776218766670.png";
 
 const EVM_CHAINS = [mainnet, polygon, base, arbitrum, optimism, avalanche];
 
@@ -82,7 +81,6 @@ function App() {
           appearance: {
             theme: "dark",
             accentColor: "#83eef0",
-            logo: pepoPng,
             landingHeader: "Sign in to MesoReef DAO",
             loginMessage: "Access the Coral Reef Knowledge Network",
             walletChainType: "ethereum-only",
