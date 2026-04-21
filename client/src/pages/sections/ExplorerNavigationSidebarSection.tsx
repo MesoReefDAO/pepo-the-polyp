@@ -365,7 +365,7 @@ export const ExplorerNavigationSidebarSection = (): JSX.Element => {
             <path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20" stroke="#83eef0" strokeWidth="1.8" strokeLinecap="round"/>
           </svg>
           <span className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-semibold text-[#83eef0cc] text-[10px] uppercase tracking-widest">
-            Reef Network Map
+            Coral Reef Network Map
           </span>
         </div>
         <Suspense
