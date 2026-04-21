@@ -29,18 +29,18 @@ function PrivyAwareLoginNavItem() {
   }
 
   return (
-    <Link
-      href="/profile"
+    <button
+      onClick={() => { try { login(); } catch { /* suppress */ } }}
       data-testid="nav-mobile-login"
-      className="flex flex-col items-center justify-center gap-1 flex-1 py-3 min-h-[56px] opacity-95 hover:opacity-100 transition-opacity no-underline"
+      className="flex flex-col items-center justify-center gap-1 flex-1 py-3 min-h-[56px] opacity-95 active:opacity-75 transition-opacity bg-transparent border-0"
     >
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-        <circle cx="11" cy="8" r="4" stroke="#83eef0" strokeWidth="2"/>
-        <path d="M3 20c0-4 3.58-7 8-7" stroke="#83eef0" strokeWidth="2" strokeLinecap="round"/>
-        <path d="M17 14l3 3-3 3M20 17H14" stroke="#83eef0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-      </svg>
+      <div className="w-7 h-7 rounded-full bg-[linear-gradient(135deg,rgba(131,238,240,0.9)_0%,rgba(63,176,179,0.9)_100%)] flex items-center justify-center">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+          <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3" stroke="#00585a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </div>
       <span className="text-[9px] font-semibold text-[#83eef0]">Log in</span>
-    </Link>
+    </button>
   );
 }
 

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { PrivyLoginButton } from "@/components/PrivyLoginButton";
 import { OrcidLoginButton } from "@/components/OrcidLoginButton";
 import { PRIVY_ENABLED } from "@/lib/privy";
-import { usePrivy } from "@privy-io/react-auth";
+import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { useOrcidAuth } from "@/hooks/use-orcid-auth";
 
 const navLinks = [
@@ -13,6 +13,28 @@ const navLinks = [
   { label: "Workspace", href: "/workspace", internal: true },
   { label: "Join", href: "https://linktr.ee/mesoreefdao" },
 ];
+
+function MetaMaskIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 35 33" fill="none">
+      <path d="M32.958 1L19.48 10.858l2.45-5.813L32.958 1z" fill="#E17726" stroke="#E17726" strokeWidth=".25" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M2.042 1l13.365 9.957-2.33-5.912L2.042 1z" fill="#E27625" stroke="#E27625" strokeWidth=".25" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M28.178 23.533l-3.588 5.487 7.677 2.114 2.202-7.48-6.291-.121zM1.55 23.654l2.19 7.48 7.666-2.114-3.577-5.487-6.279.121z" fill="#E27625" stroke="#E27625" strokeWidth=".25" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M11.406 29.02l4.58-2.224-3.95-3.083-.63 5.307zM19.014 26.796l4.591 2.224-.642-5.307-3.95 3.083z" fill="#E27625" stroke="#E27625" strokeWidth=".25" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M19.256 22.01l-.88 4.544.627.44 3.95-3.083.12-3.118-3.817 1.217zM15.744 22.01l-3.808-1.218.099 3.118 3.95 3.083.638-.44-.88-4.543z" fill="#F5841F" stroke="#F5841F" strokeWidth=".25" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M32.012 16.44l-7.59-2.222 2.15 3.233-3.193 6.236 4.215-.055h6.29l-1.872-7.192zM10.978 14.218l-7.59 2.222-1.86 7.192h6.28l4.204.055-3.193-6.236 2.16-3.233z" fill="#F5841F" stroke="#F5841F" strokeWidth=".25" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
+function CopyIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+      <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" strokeWidth="2"/>
+      <path d="M5 15H4C2.9 15 2 14.1 2 13V4C2 2.9 2.9 2 4 2H13C14.1 2 15 2.9 15 4V5" stroke="currentColor" strokeWidth="2"/>
+    </svg>
+  );
+}
 
 function PlainLoginButton({ onClick }: { onClick?: () => void }) {
   return (
@@ -25,6 +47,116 @@ function PlainLoginButton({ onClick }: { onClick?: () => void }) {
         Log in
       </span>
     </Button>
+  );
+}
+
+/** Wallet section shown inside the mobile overlay when the user is Privy-authenticated */
+function MobileWalletSection() {
+  const { linkWallet } = usePrivy();
+  const { wallets } = useWallets();
+  const [copied, setCopied] = useState<string | null>(null);
+
+  function copyAddr(addr: string) {
+    navigator.clipboard.writeText(addr).catch(() => {});
+    setCopied(addr);
+    setTimeout(() => setCopied(null), 2000);
+  }
+
+  const embeddedWallets = wallets.filter((w) => w.walletClientType === "privy");
+  const externalWallets = wallets.filter((w) => w.walletClientType !== "privy");
+  const hasWallets = wallets.length > 0;
+
+  return (
+    <div className="flex flex-col gap-2">
+      <p className="[font-family:'Inter',Helvetica] text-[#d4e9f350] text-xs px-1 uppercase tracking-wider">
+        Wallet
+      </p>
+
+      <div className="flex flex-col gap-2 px-1 py-3 rounded-2xl bg-[#0a293366] border border-[#83eef01a]">
+        {!hasWallets && (
+          <p className="[font-family:'Inter',Helvetica] text-[#9aaeb8] text-xs px-2 leading-5">
+            No wallet connected. Add one to participate in DAO governance.
+          </p>
+        )}
+
+        {embeddedWallets.length > 0 && (
+          <div className="flex flex-col gap-1.5 px-1">
+            <span className="[font-family:'Inter',Helvetica] text-[#d4e9f340] text-[9px] uppercase tracking-widest px-1">
+              Embedded
+            </span>
+            {embeddedWallets.map((w) => (
+              <button
+                key={w.address}
+                onClick={() => copyAddr(w.address)}
+                data-testid={`wallet-copy-mobile-${w.address.slice(-4)}`}
+                className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl bg-[#83eef008] border border-[#83eef020] active:bg-[#83eef015] transition-colors text-left w-full"
+              >
+                <span className="[font-family:'Inter',Helvetica] text-[#83eef0] text-sm font-mono tracking-tight">
+                  {w.address.slice(0, 8)}…{w.address.slice(-6)}
+                </span>
+                <span className="text-[#83eef0b2] flex-shrink-0">
+                  {copied === w.address ? (
+                    <span className="text-[#83eef0] text-xs [font-family:'Inter',Helvetica]">Copied!</span>
+                  ) : (
+                    <CopyIcon />
+                  )}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {externalWallets.length > 0 && (
+          <div className="flex flex-col gap-1.5 px-1">
+            <span className="[font-family:'Inter',Helvetica] text-[#d4e9f340] text-[9px] uppercase tracking-widest px-1">
+              External
+            </span>
+            {externalWallets.map((w) => {
+              const isMM = w.walletClientType === "metamask";
+              return (
+                <button
+                  key={w.address}
+                  onClick={() => copyAddr(w.address)}
+                  data-testid={`wallet-external-mobile-${w.address.slice(-4)}`}
+                  className={`flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl border transition-colors text-left w-full ${
+                    isMM
+                      ? "bg-[#E2761B0a] border-[#E2761B25] active:bg-[#E2761B18]"
+                      : "bg-[#ffffff08] border-[#ffffff12] active:bg-[#ffffff10]"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    {isMM && <MetaMaskIcon size={14} />}
+                    <span className="[font-family:'Inter',Helvetica] text-[#d4e9f3b2] text-sm font-mono tracking-tight">
+                      {w.address.slice(0, 8)}…{w.address.slice(-6)}
+                    </span>
+                  </div>
+                  <span className="text-[#d4e9f380] flex-shrink-0">
+                    {copied === w.address ? (
+                      <span className="text-[#83eef0] text-xs [font-family:'Inter',Helvetica]">Copied!</span>
+                    ) : (
+                      <CopyIcon />
+                    )}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        <div className="px-1">
+          <button
+            onClick={() => linkWallet()}
+            data-testid="button-connect-wallet-mobile"
+            className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl bg-[#83eef01a] border border-[#83eef033] text-[#83eef0] [font-family:'Inter',Helvetica] text-sm font-medium active:bg-[#83eef033] transition-colors"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
+            </svg>
+            Connect Wallet
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -46,18 +178,31 @@ function MobileOverlayAuthSection({ onClose }: { onClose: () => void }) {
 
   if (privyAuthenticated) {
     return (
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-4">
+        {/* User identity row */}
         <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-[#83eef008] border border-[#83eef018]">
-          <div className="w-8 h-8 rounded-full bg-[#83eef020] border border-[#83eef040] flex items-center justify-center flex-shrink-0">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-              <path d="M20 21V19C20 17.9 19.1 17 18 17H6C4.9 17 4 17.9 4 19V21" stroke="#83eef0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <circle cx="12" cy="9" r="4" stroke="#83eef0" strokeWidth="2"/>
-            </svg>
+          <div className="w-9 h-9 rounded-full bg-[linear-gradient(135deg,rgba(131,238,240,0.25)_0%,rgba(63,176,179,0.15)_100%)] border border-[#83eef040] flex items-center justify-center flex-shrink-0">
+            <span className="[font-family:'Inter',Helvetica] font-semibold text-[#83eef0] text-sm leading-none">
+              {privyDisplayName.replace("@", "").charAt(0).toUpperCase()}
+            </span>
           </div>
-          <span className="[font-family:'Inter',Helvetica] text-[#d4e9f3b2] text-sm flex-1 truncate">{privyDisplayName}</span>
+          <div className="flex flex-col flex-1 min-w-0">
+            <span className="[font-family:'Inter',Helvetica] text-[#d4e9f3] text-sm font-medium truncate">
+              {privyDisplayName}
+            </span>
+            <span className="[font-family:'Inter',Helvetica] text-[#83eef080] text-xs">
+              MesoReef DAO member
+            </span>
+          </div>
         </div>
+
+        {/* Wallet section */}
+        <MobileWalletSection />
+
+        {/* Sign out */}
         <button
           onClick={() => { onClose(); privyLogout().catch(() => {}); }}
+          data-testid="button-sign-out-mobile"
           className="flex items-center justify-center gap-2 px-5 py-3 min-h-[44px] rounded-2xl bg-[#ff4a4a0d] border border-[#ff4a4a20] text-[#ff8a8a] [font-family:'Inter',Helvetica] text-sm font-medium active:bg-[#ff4a4a18] transition-colors"
         >
           Sign Out
@@ -70,16 +215,21 @@ function MobileOverlayAuthSection({ onClose }: { onClose: () => void }) {
     return (
       <div className="flex flex-col gap-3">
         <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-[#a6ce3908] border border-[#a6ce3920]">
-          <div className="w-8 h-8 rounded-full bg-[#a6ce3920] border border-[#a6ce3940] flex items-center justify-center flex-shrink-0">
-            <span className="text-[#a6ce39] font-bold text-[10px] [font-family:'Inter',Helvetica]">iD</span>
+          <div className="w-9 h-9 rounded-full bg-[#a6ce3920] border border-[#a6ce3940] flex items-center justify-center flex-shrink-0">
+            <span className="text-[#a6ce39] font-bold text-[11px] [font-family:'Inter',Helvetica]">iD</span>
           </div>
           <div className="flex flex-col flex-1 min-w-0">
-            <span className="[font-family:'Inter',Helvetica] text-[#d4e9f3b2] text-sm truncate">{orcidName || "Researcher"}</span>
-            <span className="[font-family:'Inter',Helvetica] text-[#a6ce39] text-[10px] font-mono truncate">{orcidId}</span>
+            <span className="[font-family:'Inter',Helvetica] text-[#d4e9f3] text-sm font-medium truncate">
+              {orcidName || "Researcher"}
+            </span>
+            <span className="[font-family:'Inter',Helvetica] text-[#a6ce39] text-[10px] font-mono truncate">
+              {orcidId}
+            </span>
           </div>
         </div>
         <button
           onClick={() => { onClose(); orcidLogout(); }}
+          data-testid="button-sign-out-orcid-mobile"
           className="flex items-center justify-center gap-2 px-5 py-3 min-h-[44px] rounded-2xl bg-[#ff4a4a0d] border border-[#ff4a4a20] text-[#ff8a8a] [font-family:'Inter',Helvetica] text-sm font-medium active:bg-[#ff4a4a18] transition-colors"
         >
           Sign Out
@@ -92,8 +242,12 @@ function MobileOverlayAuthSection({ onClose }: { onClose: () => void }) {
     <div className="flex flex-col gap-3">
       <button
         onClick={() => { onClose(); setTimeout(() => { try { login(); } catch { } }, 150); }}
-        className="flex items-center justify-center gap-2 w-full px-5 py-3.5 min-h-[48px] rounded-2xl bg-[linear-gradient(170deg,rgba(131,238,240,1)_0%,rgba(63,176,179,1)_100%)] text-[#00585a] [font-family:'Inter',Helvetica] text-base font-semibold active:opacity-80 transition-opacity shadow-[0_4px_20px_rgba(131,238,240,0.2)]"
+        data-testid="button-login-mobile-overlay"
+        className="flex items-center justify-center gap-2 w-full px-5 py-3.5 min-h-[52px] rounded-2xl bg-[linear-gradient(170deg,rgba(131,238,240,1)_0%,rgba(63,176,179,1)_100%)] text-[#00585a] [font-family:'Inter',Helvetica] text-base font-semibold active:opacity-80 transition-opacity shadow-[0_4px_20px_rgba(131,238,240,0.2)]"
       >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3" stroke="#00585a" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
         Log in to MesoReef DAO
       </button>
       <div className="flex items-center gap-3">
@@ -145,21 +299,33 @@ export const ApplicationHeaderSection = (): JSX.Element => {
           )}
         </nav>
 
-        {/* Right side: auth (desktop) + hamburger (mobile) */}
+        {/* Right side: auth (desktop) + compact auth + hamburger (mobile) */}
         <div className="flex items-center gap-2">
-          {/* Auth button — desktop only to avoid duplication on mobile */}
+          {/* Full auth button — desktop only */}
           <div className="hidden md:block">
             {PRIVY_ENABLED ? <PrivyLoginButton /> : <PlainLoginButton />}
           </div>
 
-          {/* Mobile: compact auth button (shown/hidden based on auth state) + hamburger */}
+          {/* Mobile: compact auth icon + hamburger */}
           <div className="flex md:hidden items-center gap-2">
-            {PRIVY_ENABLED ? <PrivyLoginButton /> : <PlainLoginButton />}
+            {PRIVY_ENABLED ? (
+              <PrivyLoginButton compact />
+            ) : (
+              <button
+                onClick={() => setMobileMenuOpen(true)}
+                className="w-9 h-9 rounded-full bg-[linear-gradient(135deg,rgba(131,238,240,0.9)_0%,rgba(63,176,179,0.9)_100%)] flex items-center justify-center"
+                aria-label="Log in"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3" stroke="#00585a" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+            )}
             <button
               onClick={() => setMobileMenuOpen(true)}
               data-testid="button-mobile-menu"
               aria-label="Open menu"
-              className="flex items-center justify-center w-11 h-11 rounded-full bg-[#ffffff08] border border-[#ffffff12] text-[#d4e9f3b2] active:bg-[#ffffff18] transition-colors"
+              className="flex items-center justify-center w-10 h-10 rounded-full bg-[#ffffff08] border border-[#ffffff12] text-[#d4e9f3b2] active:bg-[#ffffff18] transition-colors"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
                 <path d="M3 12h18M3 6h18M3 18h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
@@ -176,7 +342,7 @@ export const ApplicationHeaderSection = (): JSX.Element => {
           style={{ background: "rgba(0,8,12,0.97)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)" }}
         >
           {/* Overlay header */}
-          <div className="flex items-center justify-between px-4 py-4 border-b border-[#ffffff0d]">
+          <div className="flex items-center justify-between px-4 py-4 border-b border-[#ffffff0d] flex-shrink-0">
             <img
               src="/figmaAssets/mesoreef-dao-logo-new.png"
               alt="MesoReef DAO"
@@ -185,7 +351,7 @@ export const ApplicationHeaderSection = (): JSX.Element => {
             <button
               onClick={() => setMobileMenuOpen(false)}
               aria-label="Close menu"
-              className="flex items-center justify-center w-11 h-11 rounded-full bg-[#ffffff08] border border-[#ffffff12] text-[#d4e9f3b2] active:bg-[#ffffff18] transition-colors"
+              className="flex items-center justify-center w-10 h-10 rounded-full bg-[#ffffff08] border border-[#ffffff12] text-[#d4e9f3b2] active:bg-[#ffffff18] transition-colors"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
                 <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
@@ -193,7 +359,7 @@ export const ApplicationHeaderSection = (): JSX.Element => {
             </button>
           </div>
 
-          {/* Overlay body */}
+          {/* Overlay body — scrollable */}
           <div className="flex flex-col gap-3 px-4 py-6 flex-1 overflow-y-auto">
             {/* Nav links */}
             {navLinks.map((link) =>
@@ -231,11 +397,11 @@ export const ApplicationHeaderSection = (): JSX.Element => {
             )}
 
             {/* Divider */}
-            <div className="border-t border-[#ffffff08] my-2" />
+            <div className="border-t border-[#ffffff08] my-1" />
 
             {/* Account section */}
-            <div className="px-1">
-              <p className="[font-family:'Inter',Helvetica] text-[#d4e9f350] text-xs mb-3 px-1 uppercase tracking-wider">
+            <div className="flex flex-col gap-3">
+              <p className="[font-family:'Inter',Helvetica] text-[#d4e9f350] text-xs px-1 uppercase tracking-wider">
                 Account
               </p>
               {PRIVY_ENABLED ? (
