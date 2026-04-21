@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, boolean, real } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -33,6 +33,8 @@ export const profiles = pgTable("profiles", {
   // Ceramic + IDX decentralized storage
   ceramicStreamId: text("ceramic_stream_id").default(""),
   ceramicDid: text("ceramic_did").default(""),
+  latitude: real("latitude"),
+  longitude: real("longitude"),
   createdAt: integer("created_at").notNull().default(sql`extract(epoch from now())::int`),
   updatedAt: integer("updated_at").notNull().default(sql`extract(epoch from now())::int`),
 });

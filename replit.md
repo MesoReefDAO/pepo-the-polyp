@@ -32,13 +32,14 @@ client/src/
     UserProfileDashboard.tsx              — My Profile edit page (bio, tags, links, ORCID linking)
     sections/
       ApplicationHeaderSection.tsx        — Top nav with Privy auth button
-      ExplorerNavigationSidebarSection.tsx — Sidebar with nav, Telegram bot link
+      ExplorerNavigationSidebarSection.tsx — Sidebar with nav, Telegram bot link, Reef Network Map
       ReefInsightDashboardSection.tsx      — Bonfires Knowledge Graph iframe + Telegram Bot panel
   components/
     PrivyLoginButton.tsx                  — Calls login() for Privy's native modal
     OrcidLoginButton.tsx                  — ORCID OAuth login button (redirects to /api/auth/orcid)
   hooks/
     use-profile-sync.ts                   — Auto-syncs Privy user to DB on login; awards first-login bonus points
+    use-geolocation.ts                    — Requests browser geolocation once per session; POSTs to /api/profiles/location
   lib/
     privy.ts                              — PRIVY_ENABLED / PRIVY_APP_ID constants
 server/
@@ -118,6 +119,8 @@ Registered redirect URIs:
 | `/api/profiles/sync` | POST | Syncs Privy user to DB; awards first-login points |
 | `/api/profiles/update` | POST | Updates bio, tags, links, etc. |
 | `/api/profiles/orcid` | POST `{ orcidId, orcidName }` | Links ORCID iD to authenticated user |
+| `/api/profiles/location` | POST `{ latitude, longitude }` | Saves geolocation for authenticated user (Privy or ORCID session) |
+| `/api/map/markers` | GET | Returns public users with lat/lng for the Reef Network Map |
 | `/api/profiles/:id` | GET | Public profile by member ID |
 | `/api/contributions` | POST `{ type, description }` | Records a contribution and awards points |
 | `/api/auth/orcid` | GET | Initiates ORCID OAuth2 flow |

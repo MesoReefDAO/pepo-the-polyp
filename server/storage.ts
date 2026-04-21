@@ -34,6 +34,10 @@ export interface IStorage {
 
   // Ceramic + IDX
   saveCeramic(profileId: string, ceramicStreamId: string, ceramicDid: string): Promise<Profile>;
+
+  // Geolocation
+  saveLocation(profileId: string, latitude: number, longitude: number): Promise<Profile>;
+  getMapMarkers(): Promise<{ id: string; displayName: string; avatarUrl: string; latitude: number; longitude: number; orcidId: string }[]>;
 }
 
 // ─── Database-backed storage ───────────────────────────────────────────────────
@@ -155,6 +159,42 @@ export class DbStorage implements IStorage {
       .where(eq(profiles.id, profileId))
       .returning();
     return row;
+  }
+
+  // ── Geolocation ───────────────────────────────────────────────────────────
+  async saveLocation(profileId: string, latitude: number, longitude: number): Promise<Profile> {
+    const now = Math.floor(Date.now() / 1000);
+    const [row] = await db
+      .update(profiles)
+      .set({ latitude, longitude, updatedAt: now })
+      .where(eq(profiles.id, profileId))
+      .returning();
+    return row;
+  }
+
+  async getMapMarkers(): Promise<{ id: string; displayName: string; avatarUrl: string; latitude: number; longitude: number; orcidId: string }[]> {
+    const rows = await db
+      .select({
+        id: profiles.id,
+        displayName: profiles.displayName,
+        avatarUrl: profiles.avatarUrl,
+        latitude: profiles.latitude,
+        longitude: profiles.longitude,
+        orcidId: profiles.orcidId,
+      })
+      .from(profiles)
+      .where(eq(profiles.isPublic, true));
+
+    return rows
+      .filter((r) => r.latitude != null && r.longitude != null)
+      .map((r) => ({
+        id: r.id,
+        displayName: r.displayName,
+        avatarUrl: r.avatarUrl,
+        latitude: r.latitude as number,
+        longitude: r.longitude as number,
+        orcidId: r.orcidId,
+      }));
   }
 
   // ── Leaderboard ───────────────────────────────────────────────────────────

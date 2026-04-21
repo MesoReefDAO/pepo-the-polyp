@@ -423,6 +423,43 @@ export async function registerRoutes(
     }
   });
 
+  // POST /api/profiles/location — save geolocation for authenticated user
+  app.post("/api/profiles/location", async (req: Request, res: Response) => {
+    // Accept both Privy token and ORCID session
+    let profileId: string | null = null;
+    const token = (req.headers["x-privy-token"] as string) || "";
+    if (token) {
+      const verify = await verifyPrivyToken(token);
+      if (verify.valid) profileId = verify.userId!;
+    }
+    if (!profileId && req.session?.orcid) profileId = req.session.orcid.profileId;
+    if (!profileId) return res.status(401).json({ error: "Unauthorized" });
+
+    const lat = parseFloat(req.body?.latitude);
+    const lng = parseFloat(req.body?.longitude);
+    if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+      return res.status(400).json({ error: "Invalid coordinates" });
+    }
+    try {
+      const profile = await storage.saveLocation(profileId, lat, lng);
+      return res.json({ profile });
+    } catch (err) {
+      console.error("[saveLocation]", err);
+      return res.status(500).json({ error: "Failed to save location" });
+    }
+  });
+
+  // GET /api/map/markers — public user location pins for the reef map
+  app.get("/api/map/markers", async (_req: Request, res: Response) => {
+    try {
+      const markers = await storage.getMapMarkers();
+      return res.json(markers);
+    } catch (err) {
+      console.error("[mapMarkers]", err);
+      return res.status(500).json({ error: "Failed to fetch markers" });
+    }
+  });
+
   // GET /api/contributions/:id
   app.get("/api/contributions/:id", async (req: Request, res: Response) => {
     try {
