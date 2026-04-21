@@ -10,6 +10,7 @@ import { Body } from "@/pages/Body";
 import { UserProfileDashboard } from "@/pages/UserProfileDashboard";
 import { CommunityLeaderboard } from "@/pages/CommunityLeaderboard";
 import { PublicProfile } from "@/pages/PublicProfile";
+import { MobileMapPage } from "@/pages/MobileMapPage";
 import { PRIVY_ENABLED, PRIVY_APP_ID } from "@/lib/privy";
 import { useProfileSync } from "@/hooks/use-profile-sync";
 import { useGeolocation } from "@/hooks/use-geolocation";
@@ -26,6 +27,7 @@ function Router() {
       <Route path="/profile" component={UserProfileDashboard} />
       <Route path="/community" component={CommunityLeaderboard} />
       <Route path="/members/:id" component={PublicProfile} />
+      <Route path="/map" component={MobileMapPage} />
       <Route component={NotFound} />
     </Switch>
   );
