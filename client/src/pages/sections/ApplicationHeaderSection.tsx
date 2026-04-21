@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { PrivyLoginButton } from "@/components/PrivyLoginButton";
 import { OrcidLoginButton } from "@/components/OrcidLoginButton";
@@ -9,6 +10,7 @@ import { useOrcidAuth } from "@/hooks/use-orcid-auth";
 const navLinks = [
   { label: "MesoReef DAO", href: "https://mesoreefdao.org/" },
   { label: "ReefRegen", href: "https://reefregen.org/" },
+  { label: "Workspace", href: "/workspace", internal: true },
   { label: "Join", href: "https://linktr.ee/mesoreefdao" },
 ];
 
@@ -119,17 +121,28 @@ export const ApplicationHeaderSection = (): JSX.Element => {
 
         {/* Desktop navigation links */}
         <nav className="hidden md:inline-flex items-center gap-8">
-          {navLinks.map((link) => (
-            <a
-              key={link.label}
-              className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-normal text-[#d4e9f3b2] text-base tracking-[-0.40px] leading-6 whitespace-nowrap hover:text-[#d4e9f3] transition-colors"
-              href={link.href}
-              rel="noopener noreferrer"
-              target="_blank"
-            >
-              {link.label}
-            </a>
-          ))}
+          {navLinks.map((link) =>
+            link.internal ? (
+              <Link
+                key={link.label}
+                href={link.href}
+                data-testid={`nav-header-${link.label.toLowerCase()}`}
+                className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-normal text-[#d4e9f3b2] text-base tracking-[-0.40px] leading-6 whitespace-nowrap hover:text-[#d4e9f3] transition-colors no-underline"
+              >
+                {link.label}
+              </Link>
+            ) : (
+              <a
+                key={link.label}
+                className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-normal text-[#d4e9f3b2] text-base tracking-[-0.40px] leading-6 whitespace-nowrap hover:text-[#d4e9f3] transition-colors"
+                href={link.href}
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                {link.label}
+              </a>
+            )
+          )}
         </nav>
 
         {/* Right side: auth (desktop) + hamburger (mobile) */}
@@ -182,24 +195,40 @@ export const ApplicationHeaderSection = (): JSX.Element => {
 
           {/* Overlay body */}
           <div className="flex flex-col gap-3 px-4 py-6 flex-1 overflow-y-auto">
-            {/* External nav links */}
-            {navLinks.map((link) => (
-              <a
-                key={link.label}
-                href={link.href}
-                rel="noopener noreferrer"
-                target="_blank"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center justify-between px-5 py-4 min-h-[56px] rounded-2xl bg-[#ffffff06] border border-[#ffffff0d] text-[#d4e9f3b2] hover:bg-[#83eef00a] hover:border-[#83eef01a] hover:text-[#d4e9f3] active:bg-[#83eef00f] transition-colors no-underline"
-              >
-                <span className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-semibold text-base">
-                  {link.label}
-                </span>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                  <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </a>
-            ))}
+            {/* Nav links */}
+            {navLinks.map((link) =>
+              link.internal ? (
+                <Link
+                  key={link.label}
+                  href={link.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center justify-between px-5 py-4 min-h-[56px] rounded-2xl bg-[#ffffff06] border border-[#ffffff0d] text-[#d4e9f3b2] hover:bg-[#83eef00a] hover:border-[#83eef01a] hover:text-[#d4e9f3] active:bg-[#83eef00f] transition-colors no-underline"
+                >
+                  <span className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-semibold text-base">
+                    {link.label}
+                  </span>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </Link>
+              ) : (
+                <a
+                  key={link.label}
+                  href={link.href}
+                  rel="noopener noreferrer"
+                  target="_blank"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center justify-between px-5 py-4 min-h-[56px] rounded-2xl bg-[#ffffff06] border border-[#ffffff0d] text-[#d4e9f3b2] hover:bg-[#83eef00a] hover:border-[#83eef01a] hover:text-[#d4e9f3] active:bg-[#83eef00f] transition-colors no-underline"
+                >
+                  <span className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-semibold text-base">
+                    {link.label}
+                  </span>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </a>
+              )
+            )}
 
             {/* Divider */}
             <div className="border-t border-[#ffffff08] my-2" />

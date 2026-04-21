@@ -108,6 +108,21 @@ export function MobileBottomNav() {
         <span className={`text-[9px] ${active("/community") ? "text-[#83eef0] font-medium" : "text-[#d4e9f380]"}`}>Community</span>
       </Link>
 
+      {/* Workspace */}
+      <Link
+        href="/workspace"
+        data-testid="nav-mobile-workspace"
+        className={`flex flex-col items-center justify-center gap-1 flex-1 py-3 min-h-[56px] no-underline transition-opacity ${active("/workspace") ? "opacity-100" : "opacity-50"}`}
+      >
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <rect x="3" y="3" width="7" height="9" rx="1.5" stroke={active("/workspace") ? "#48dbfb" : "#d4e9f380"} strokeWidth="1.8"/>
+          <rect x="14" y="3" width="7" height="5" rx="1.5" stroke={active("/workspace") ? "#1dd1a1" : "#d4e9f380"} strokeWidth="1.8"/>
+          <rect x="14" y="12" width="7" height="9" rx="1.5" stroke={active("/workspace") ? "#1dd1a1" : "#d4e9f380"} strokeWidth="1.8"/>
+          <rect x="3" y="16" width="7" height="5" rx="1.5" stroke={active("/workspace") ? "#48dbfb" : "#d4e9f380"} strokeWidth="1.8"/>
+        </svg>
+        <span className={`text-[9px] ${active("/workspace") ? "text-[#83eef0] font-medium" : "text-[#d4e9f380]"}`}>Workspace</span>
+      </Link>
+
       {/* Reef Map */}
       <Link
         href="/map"
