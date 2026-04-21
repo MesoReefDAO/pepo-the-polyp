@@ -210,15 +210,11 @@ function ExpandedMapModal({
             {markers.map((m) => (
               <Marker key={m.id} position={[m.latitude, m.longitude]} icon={makePin(!!m.orcidId)}>
                 <Popup>
-                  <div style={{ fontFamily: "Inter, sans-serif", minWidth: 130, fontSize: 12 }}>
-                    <div style={{ fontWeight: 700, color: "#00131c", fontSize: 13 }}>
-                      {m.displayName || "Reef Explorer"}
-                    </div>
-                    {m.orcidId && (
-                      <div style={{ fontSize: 10, color: "#A6CE39", marginTop: 2 }}>
-                        ✓ ORCID Verified Researcher
-                      </div>
-                    )}
+                  <div style={{ fontFamily: "Inter, sans-serif", fontSize: 11 }}>
+                    {m.orcidId
+                      ? <span style={{ color: "#A6CE39", fontWeight: 600 }}>✓ ORCID Verified Researcher</span>
+                      : <span style={{ color: "#83eef0", fontWeight: 600 }}>DAO Member</span>
+                    }
                   </div>
                 </Popup>
               </Marker>
@@ -453,15 +449,11 @@ export function ReefMap({
           {markers.map((m) => (
             <Marker key={m.id} position={[m.latitude, m.longitude]} icon={makePin(!!m.orcidId)}>
               <Popup>
-                <div style={{ fontFamily: "Inter, sans-serif", minWidth: 120, fontSize: 12 }}>
-                  <div style={{ fontWeight: 700, color: "#00131c", fontSize: 13 }}>
-                    {m.displayName || "Reef Explorer"}
-                  </div>
-                  {m.orcidId && (
-                    <div style={{ fontSize: 10, color: "#A6CE39", marginTop: 2 }}>
-                      ✓ Verified Researcher
-                    </div>
-                  )}
+                <div style={{ fontFamily: "Inter, sans-serif", fontSize: 11 }}>
+                  {m.orcidId
+                    ? <span style={{ color: "#A6CE39", fontWeight: 600 }}>✓ ORCID Verified Researcher</span>
+                    : <span style={{ color: "#83eef0", fontWeight: 600 }}>DAO Member</span>
+                  }
                 </div>
               </Popup>
             </Marker>
