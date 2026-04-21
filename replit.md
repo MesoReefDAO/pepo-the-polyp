@@ -37,6 +37,7 @@ client/src/
   components/
     PrivyLoginButton.tsx                  — Calls login() for Privy's native modal
     OrcidLoginButton.tsx                  — ORCID OAuth login button (redirects to /api/auth/orcid)
+    ReefMap.tsx                           — Leaflet map: Esri Ocean basemap + Allen Coral Atlas WMS + NOAA NCRMP benthic monitoring stations (8 Atlantic regions from MSE-NCCOS-NOAA/NCRMP_benthics) + NOAA CRW DHW toggle + community member pins
   hooks/
     use-profile-sync.ts                   — Auto-syncs Privy user to DB on login; awards first-login bonus points
     use-geolocation.ts                    — Requests browser geolocation once per session; POSTs to /api/profiles/location
