@@ -249,6 +249,17 @@ export function WorkspacePage() {
             </div>
           </div>
 
+          {/* Regen Reef Workspace — quick-launch inside archive section */}
+          <div style={{ marginBottom: 16 }}>
+            <div style={{
+              fontSize: 9, fontWeight: 700, color: "#ffbe6955",
+              letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8,
+            }}>
+              Regen Reef Workspace
+            </div>
+            <FileverseWorkspacePanel variant="page" />
+          </div>
+
           {/* Upload zone */}
           <IPFSImageUpload
             label="Add reef image to IPFS"
