@@ -309,7 +309,7 @@ export const ApplicationHeaderSection = (): JSX.Element => {
           {/* Mobile: compact auth icon + hamburger */}
           <div className="flex md:hidden items-center gap-2">
             {PRIVY_ENABLED ? (
-              <PrivyLoginButton compact />
+              <PrivyLoginButton compact onOpenMenu={() => setMobileMenuOpen(true)} />
             ) : (
               <button
                 onClick={() => setMobileMenuOpen(true)}
