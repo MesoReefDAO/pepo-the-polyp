@@ -1,6 +1,6 @@
 import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { useState } from "react";
-import { ExternalLink, FileText, Table2, Plus, CheckCircle2 } from "lucide-react";
+import { ExternalLink, FileText, Table2, Plus, CheckCircle2, Images } from "lucide-react";
 import { PRIVY_ENABLED } from "@/lib/privy";
 
 function dDocsIcon(size = 16) {
@@ -100,6 +100,15 @@ export function FileverseWorkspacePanel({
             {dSheetsIcon(15)}
             <span style={{ fontSize: 9, fontWeight: 700, color: "#1dd1a1bb", fontFamily: "Inter,sans-serif", letterSpacing: "0.04em" }}>dSheets</span>
           </a>
+          <a
+            href="/workspace"
+            data-testid="link-reef-image-repo-sidebar"
+            className="flex-1 flex flex-col items-center gap-1 py-2 rounded-[10px] no-underline transition-colors"
+            style={{ background: "rgba(255,159,67,0.06)", border: "1px solid rgba(255,159,67,0.2)" }}
+          >
+            <Images size={15} color="#ff9f43bb" strokeWidth={1.8} />
+            <span style={{ fontSize: 9, fontWeight: 700, color: "#ff9f43bb", fontFamily: "Inter,sans-serif", letterSpacing: "0.04em" }}>Reef Imgs</span>
+          </a>
           <button
             onClick={onLogin ?? (() => { try { login(); } catch {} })}
             data-testid="button-workspace-login-sidebar"
@@ -169,6 +178,15 @@ export function FileverseWorkspacePanel({
             <span style={{ fontSize: 9, fontWeight: 700, color: "#1dd1a1", fontFamily: "Inter,sans-serif" }}>dSheets</span>
           </a>
           <a
+            href="/workspace"
+            data-testid="link-reef-image-repo-sidebar-auth"
+            className="flex-1 flex flex-col items-center gap-1 py-2 rounded-[10px] no-underline transition-colors"
+            style={{ background: "rgba(255,159,67,0.08)", border: "1px solid rgba(255,159,67,0.28)" }}
+          >
+            <Images size={15} color="#ff9f43" strokeWidth={1.8} />
+            <span style={{ fontSize: 9, fontWeight: 700, color: "#ff9f43", fontFamily: "Inter,sans-serif" }}>Reef Imgs</span>
+          </a>
+          <a
             href="https://fileverse.io"
             target="_blank"
             rel="noopener noreferrer"
@@ -226,7 +244,7 @@ export function FileverseWorkspacePanel({
             Your Privy wallet is your Fileverse identity. Tap below to open your decentralised workspace.
           </p>
 
-          {/* dDocs + dSheets */}
+          {/* dDocs + dSheets + Reef Image Repo */}
           <div className="flex gap-2">
             <a
               href="https://ddocs.new"
@@ -254,6 +272,18 @@ export function FileverseWorkspacePanel({
               <div className="flex flex-col">
                 <span className="[font-family:'Inter',Helvetica] text-[#1dd1a1] text-[13px] font-bold leading-4">dSheets</span>
                 <span className="[font-family:'Inter',Helvetica] text-[#1dd1a188] text-[9px]">New spreadsheet</span>
+              </div>
+            </a>
+            <a
+              href="/workspace"
+              data-testid="link-reef-image-repo-mobile-overlay"
+              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl no-underline transition-colors"
+              style={{ background: "rgba(255,159,67,0.08)", border: "1px solid rgba(255,159,67,0.28)" }}
+            >
+              <Images size={16} color="#ff9f43" strokeWidth={1.8} />
+              <div className="flex flex-col">
+                <span className="[font-family:'Inter',Helvetica] text-[#ff9f43] text-[13px] font-bold leading-4">Reef Imgs</span>
+                <span className="[font-family:'Inter',Helvetica] text-[#ff9f4388] text-[9px]">Image archive</span>
               </div>
             </a>
           </div>
@@ -381,6 +411,19 @@ export function FileverseWorkspacePanel({
             <p className="[font-family:'Inter',Helvetica] text-[#1dd1a188] text-xs leading-4">Create a new decentralised spreadsheet</p>
           </div>
           <Plus size={14} color="#1dd1a188" />
+        </a>
+        <a
+          href="/workspace"
+          data-testid="link-reef-image-repo-page"
+          className="flex-1 flex items-center gap-3 px-4 py-3 rounded-xl no-underline group transition-colors"
+          style={{ background: "rgba(255,159,67,0.07)", border: "1px solid rgba(255,159,67,0.25)" }}
+        >
+          <Images size={20} color="#ff9f43" strokeWidth={1.6} />
+          <div className="flex-1">
+            <p className="[font-family:'Inter',Helvetica] text-[#ff9f43] text-sm font-bold leading-4">Reef Image Repo</p>
+            <p className="[font-family:'Inter',Helvetica] text-[#ff9f4388] text-xs leading-4">Community coral reef image archive</p>
+          </div>
+          <Plus size={14} color="#ff9f4388" />
         </a>
         <a
           href="https://fileverse.io"
