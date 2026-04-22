@@ -1,14 +1,14 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { useState, useEffect, useCallback } from "react";
-import { ExternalLink, Send } from "lucide-react";
+import { ExternalLink, Network } from "lucide-react";
 import pepoPng from "@assets/MesoReefDAO_Pepo_The_Polyp_1776218616437.png";
 import coralBg from "@assets/coral_textures_1776303814463.jpg";
 import { usePrivy } from "@privy-io/react-auth";
 import { useOrcidAuth } from "@/hooks/use-orcid-auth";
 import { useQueryClient } from "@tanstack/react-query";
 
-const TELEGRAM_BOT_URL = "https://web.telegram.org/k/#@PepothePolyp_bot";
-const TELEGRAM_DIRECT_URL = "https://t.me/PepothePolyp_bot";
+const TELEGRAM_BOT_URL = "https://t.me/PepothePolyp_bot";
+const BONFIRES_GRAPH_URL = "https://pepo.app.bonfires.ai/graph";
 
 const footerLinks = [
   { label: "PRIVACY", href: "https://mesoreefdao.gitbook.io/privacy-policy" },
@@ -16,182 +16,53 @@ const footerLinks = [
   { label: "CONSERVATION", href: "https://mesoreefdao.org/science-ai" },
 ];
 
+
 // ── Telegram icon SVG ────────────────────────────────────────────────────────
-function TgIcon({ size = 16, color = "#229ED9" }: { size?: number; color?: string }) {
+function TgIcon({ size = 16 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <path
-        d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.19 13.67l-2.948-.924c-.64-.203-.652-.64.136-.954l11.5-4.433c.536-.194 1.006.131.836.862z"
-        fill={color}
-      />
+      <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.19 13.67l-2.948-.924c-.64-.203-.652-.64.136-.954l11.5-4.433c.536-.194 1.006.131.836.862z" fill="#229ED9" />
     </svg>
   );
 }
 
-// ── Sample chat conversation ─────────────────────────────────────────────────
-const CHAT_MESSAGES = [
-  {
-    role: "user" as const,
-    text: "Hey Pepo! What's happening with coral bleaching in the Mesoamerican Reef?",
-    time: "10:42",
-  },
-  {
-    role: "bot" as const,
-    text: "🪸 Great question! The MesoAmerican Reef is facing elevated thermal stress this season. Degree Heating Weeks (DHW) in parts of Belize and Honduras have exceeded 4°C-weeks — bleaching watch territory.",
-    time: "10:42",
-  },
-  {
-    role: "bot" as const,
-    text: "The good news: community monitoring from our DAO members shows partial recovery in sections near Roatán. Want me to pull the latest NOAA data or connect you with a reef scientist?",
-    time: "10:43",
-  },
-  {
-    role: "user" as const,
-    text: "Yes! Show me the data and how I can help.",
-    time: "10:44",
-  },
-  {
-    role: "bot" as const,
-    text: "🌊 I've linked the latest NOAA DHW map to your profile. You can also earn Reef Points by logging a daily coral clean action in the app. Every action funds restoration through MesoReef DAO grants. 🐠",
-    time: "10:44",
-  },
-];
-
-// ── Telegram-styled chat panel ───────────────────────────────────────────────
-function TelegramBotPanel() {
-  const [visible, setVisible] = useState(false);
-
-  // Stagger the messages appearing for a realistic feel
-  useEffect(() => {
-    const t = setTimeout(() => setVisible(true), 180);
-    return () => clearTimeout(t);
-  }, []);
-
+// ── Bonfires Knowledge Graph panel ──────────────────────────────────────────
+function KnowledgeGraphPanel() {
   return (
     <div
-      className="relative flex-1 self-stretch w-full flex flex-col rounded-[24px] md:rounded-[32px] overflow-hidden border border-solid border-[#229ED926] bg-[#17212b]"
+      className="relative flex-1 self-stretch w-full flex flex-col rounded-[24px] md:rounded-[32px] overflow-hidden border border-solid border-[#83eef01a] bg-[#00080c]"
       style={{ minHeight: "320px", boxShadow: "inset 0 2px 6px rgba(0,0,0,0.55), inset 0 1px 2px rgba(0,0,0,0.35)" }}
     >
-      {/* ── Header ── */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-[#ffffff0f] bg-[#232e3c] shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="relative w-9 h-9 rounded-full overflow-hidden border border-[#229ED940] shrink-0">
-            <img src={pepoPng} alt="Pepo the Polyp" className="w-full h-full object-cover object-center" />
-            {/* Online dot */}
-            <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-[#4ddb4d] border-2 border-[#232e3c]" />
-          </div>
+      <div className="flex items-center justify-between px-4 py-3 border-b border-[#83eef01a] bg-[#001017bf] shrink-0">
+        <div className="flex items-center gap-2.5">
+          <img className="w-6 h-6 flex-shrink-0" alt="Bonfires" src="/figmaAssets/container.svg" />
           <div className="flex flex-col">
-            <span className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-bold text-white text-sm leading-5">
-              Pepo the Polyp
+            <span className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-bold text-[#83eef0] text-sm leading-5">
+              Reef Knowledge Graph
             </span>
-            <span className="[font-family:'Inter',Helvetica] font-normal text-[#229ED9] text-[10px] leading-4">
-              @PepothePolyp_bot · bot
+            <span className="[font-family:'Inter',Helvetica] font-normal text-[#d4e9f366] text-[10px] leading-4">
+              Powered by Bonfires.ai
             </span>
           </div>
         </div>
-
-        {/* Open in Telegram button */}
         <a
-          href={TELEGRAM_BOT_URL}
+          href={BONFIRES_GRAPH_URL}
           target="_blank"
           rel="noopener noreferrer"
-          data-testid="link-open-telegram-chat"
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-[#229ED91a] rounded-full border border-solid border-[#229ED933] hover:bg-[#229ED926] transition-colors no-underline"
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-[#83eef01a] rounded-full border border-solid border-[#83eef033] hover:bg-[#83eef026] transition-colors no-underline"
+          data-testid="link-full-graph"
         >
-          <ExternalLink size={10} className="text-[#229ED9]" />
-          <span className="[font-family:'Inter',Helvetica] text-[#229ED9] text-[10px] font-medium whitespace-nowrap">
-            Open
-          </span>
+          <ExternalLink size={10} className="text-[#83eef0]" />
+          <span className="[font-family:'Inter',Helvetica] text-[#83eef0] text-[10px] font-medium whitespace-nowrap">Full Graph</span>
         </a>
       </div>
-
-      {/* ── Chat wallpaper + messages ── */}
-      <div
-        className="flex-1 overflow-y-auto flex flex-col gap-2.5 px-4 py-4"
-        style={{
-          background: "linear-gradient(180deg, #0d1117 0%, #131b24 100%)",
-          backgroundImage: "radial-gradient(ellipse at 20% 80%, rgba(34,158,217,0.04) 0%, transparent 60%), radial-gradient(ellipse at 80% 20%, rgba(131,238,240,0.03) 0%, transparent 60%)",
-        }}
-      >
-        {/* Bot intro card */}
-        <div className="flex justify-center mb-2">
-          <div className="flex flex-col items-center gap-2 px-5 py-4 rounded-2xl bg-[#1e2c3a] border border-[#229ED920] max-w-xs text-center">
-            <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-[#229ED940]">
-              <img src={pepoPng} alt="Pepo" className="w-full h-full object-cover" />
-            </div>
-            <div>
-              <p className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-bold text-white text-sm">Pepo the Polyp</p>
-              <p className="[font-family:'Inter',Helvetica] text-[#229ED9] text-[10px] mb-1">@PepothePolyp_bot</p>
-              <p className="[font-family:'Inter',Helvetica] text-[#aab8c4] text-[11px] leading-4">
-                AI guide to the Coral Reef knowledge network. Ask me about reef science, conservation, and MesoReef DAO.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Service message */}
-        <div className="flex justify-center">
-          <span className="px-3 py-1 rounded-full bg-[#ffffff0a] text-[#aab8c4] text-[9px] [font-family:'Inter',Helvetica]">
-            Today
-          </span>
-        </div>
-
-        {/* Chat bubbles */}
-        {visible && CHAT_MESSAGES.map((msg, i) => (
-          <div
-            key={i}
-            className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-            style={{
-              opacity: 0,
-              animation: `fadeSlideIn 0.3s ease forwards`,
-              animationDelay: `${i * 0.12}s`,
-            }}
-          >
-            {msg.role === "bot" && (
-              <div className="w-6 h-6 rounded-full overflow-hidden shrink-0 mr-2 mt-auto mb-0.5">
-                <img src={pepoPng} alt="" className="w-full h-full object-cover" />
-              </div>
-            )}
-            <div
-              className={`max-w-[78%] px-3 py-2 rounded-2xl text-[12px] leading-5 [font-family:'Inter',Helvetica] ${
-                msg.role === "user"
-                  ? "bg-[#2b5278] text-white rounded-br-sm"
-                  : "bg-[#1e2c3a] text-[#e8f1f8] rounded-bl-sm border border-[#ffffff08]"
-              }`}
-            >
-              <p className="m-0">{msg.text}</p>
-              <span className={`block text-right text-[9px] mt-0.5 ${msg.role === "user" ? "text-[#8cb4d4]" : "text-[#aab8c460]"}`}>
-                {msg.time}
-              </span>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* ── Compose / CTA bar ── */}
-      <div className="shrink-0 px-4 py-3 bg-[#232e3c] border-t border-[#ffffff0f] flex items-center gap-3">
-        <a
-          href={TELEGRAM_DIRECT_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          data-testid="button-start-telegram-chat"
-          className="flex-1 flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#229ED9] hover:bg-[#1b8bbf] transition-colors no-underline"
-        >
-          <TgIcon size={15} color="white" />
-          <span className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-semibold text-white text-sm flex-1 text-center">
-            Chat with Pepo on Telegram
-          </span>
-          <Send size={14} className="text-white opacity-70" />
-        </a>
-      </div>
-
-      {/* Fade-in keyframes */}
-      <style>{`
-        @keyframes fadeSlideIn {
-          from { opacity: 0; transform: translateY(8px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
+      <iframe
+        src={BONFIRES_GRAPH_URL}
+        title="Reef Knowledge Graph"
+        className="flex-1 w-full border-none"
+        allow="fullscreen"
+        referrerPolicy="no-referrer-when-downgrade"
+      />
     </div>
   );
 }
@@ -413,24 +284,24 @@ function CleanCoralPanel() {
 
 // ── Main dashboard ───────────────────────────────────────────────────────────
 export const ReefInsightDashboardSection = (): JSX.Element => {
-  const [mobileTab, setMobileTab] = useState<"chat" | "action">("chat");
+  const [mobileTab, setMobileTab] = useState<"graph" | "action">("graph");
 
   return (
     <div className="flex flex-col flex-1 self-stretch overflow-hidden pb-24 md:pb-0">
       {/* Mobile tab switcher */}
       <div className="flex md:hidden items-center gap-2 px-4 pt-3 pb-0 shrink-0">
         <button
-          onClick={() => setMobileTab("chat")}
+          onClick={() => setMobileTab("graph")}
           className={`flex items-center gap-2 flex-1 justify-center py-2 rounded-full text-sm [font-family:'Inter',Helvetica] font-medium transition-all ${
-            mobileTab === "chat"
-              ? "bg-[#229ED91a] border border-[#229ED933] text-[#229ED9]"
+            mobileTab === "graph"
+              ? "bg-[#83eef01a] border border-[#83eef033] text-[#83eef0]"
               : "text-[#d4e9f380] border border-transparent"
           }`}
-          style={mobileTab === "chat" ? { boxShadow: "inset 0 2px 6px rgba(0,0,0,0.55), inset 0 1px 2px rgba(0,0,0,0.35)" } : {}}
-          data-testid="tab-telegram-chat"
+          style={mobileTab === "graph" ? { boxShadow: "inset 0 2px 6px rgba(0,0,0,0.55), inset 0 1px 2px rgba(0,0,0,0.35)" } : {}}
+          data-testid="tab-graph"
         >
-          <TgIcon size={13} color={mobileTab === "chat" ? "#229ED9" : "#d4e9f380"} />
-          Chat with Pepo
+          <Network size={13} className={mobileTab === "graph" ? "text-[#83eef0]" : "text-[#d4e9f380]"} />
+          Graph
         </button>
         <button
           onClick={() => setMobileTab("action")}
@@ -449,13 +320,13 @@ export const ReefInsightDashboardSection = (): JSX.Element => {
       {/* Panels row */}
       <div className="flex flex-col md:flex-row items-start gap-4 md:gap-6 p-3 md:p-6 flex-1 overflow-hidden">
 
-        {/* Left Panel: Telegram Bot Chat */}
+        {/* Left Panel: Reef Knowledge Graph */}
         <div className={`relative flex-1 self-stretch grow flex flex-col ${mobileTab === "action" ? "hidden md:flex" : "flex"}`}>
-          <TelegramBotPanel />
+          <KnowledgeGraphPanel />
         </div>
 
         {/* Right Panel: Clean a Coral + Footer */}
-        <div className={`flex flex-col gap-4 md:gap-6 relative self-stretch w-full md:w-[360px] md:flex-none ${mobileTab === "chat" ? "hidden md:flex" : "flex flex-1"}`}>
+        <div className={`flex flex-col gap-4 md:gap-6 relative self-stretch w-full md:w-[360px] md:flex-none ${mobileTab === "graph" ? "hidden md:flex" : "flex flex-1"}`}>
           <CleanCoralPanel />
 
           {/* Footer Card */}
