@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { PrivyLoginButton } from "@/components/PrivyLoginButton";
 import { OrcidLoginButton } from "@/components/OrcidLoginButton";
+import { FileverseWorkspacePanel } from "@/components/FileverseWorkspacePanel";
 import { PRIVY_ENABLED } from "@/lib/privy";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { useOrcidAuth } from "@/hooks/use-orcid-auth";
@@ -198,6 +199,9 @@ function MobileOverlayAuthSection({ onClose }: { onClose: () => void }) {
 
         {/* Wallet section */}
         <MobileWalletSection />
+
+        {/* Fileverse Workspace */}
+        <FileverseWorkspacePanel variant="overlay" />
 
         {/* Sign out */}
         <button

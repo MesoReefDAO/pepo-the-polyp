@@ -2,6 +2,7 @@ import { Link, useLocation } from "wouter";
 import { usePrivy } from "@privy-io/react-auth";
 import { PRIVY_ENABLED } from "@/lib/privy";
 import { useOrcidAuth } from "@/hooks/use-orcid-auth";
+import { useWallets } from "@privy-io/react-auth";
 
 function TelegramNavItem() {
   return (
@@ -41,6 +42,37 @@ function PrivyAwareLoginNavItem() {
       </div>
       <span className="text-[9px] font-semibold text-[#83eef0]">Log in</span>
     </button>
+  );
+}
+
+function WorkspaceNavItem({ active }: { active: boolean }) {
+  const { authenticated } = usePrivy();
+  const { wallets } = useWallets();
+  const isConnected = PRIVY_ENABLED && authenticated && wallets.length > 0;
+  const color = active ? "#83eef0" : "#d4e9f380";
+
+  return (
+    <Link
+      href="/workspace"
+      data-testid="nav-mobile-workspace"
+      className={`flex flex-col items-center justify-center gap-1 flex-1 py-3 min-h-[56px] no-underline transition-opacity relative ${active ? "opacity-100" : "opacity-50"}`}
+    >
+      <div className="relative">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <rect x="3" y="3" width="7" height="9" rx="1.5" stroke={active ? "#48dbfb" : color} strokeWidth="1.8"/>
+          <rect x="14" y="3" width="7" height="5" rx="1.5" stroke={active ? "#1dd1a1" : color} strokeWidth="1.8"/>
+          <rect x="14" y="12" width="7" height="9" rx="1.5" stroke={active ? "#1dd1a1" : color} strokeWidth="1.8"/>
+          <rect x="3" y="16" width="7" height="5" rx="1.5" stroke={active ? "#48dbfb" : color} strokeWidth="1.8"/>
+        </svg>
+        {isConnected && (
+          <span
+            className="absolute -top-0.5 -right-1 w-2 h-2 rounded-full border border-[#00080c]"
+            style={{ background: "#1dd1a1" }}
+          />
+        )}
+      </div>
+      <span className={`text-[9px] ${active ? "text-[#83eef0] font-medium" : "text-[#d4e9f380]"}`}>Workspace</span>
+    </Link>
   );
 }
 
@@ -109,19 +141,7 @@ export function MobileBottomNav() {
       </Link>
 
       {/* Workspace */}
-      <Link
-        href="/workspace"
-        data-testid="nav-mobile-workspace"
-        className={`flex flex-col items-center justify-center gap-1 flex-1 py-3 min-h-[56px] no-underline transition-opacity ${active("/workspace") ? "opacity-100" : "opacity-50"}`}
-      >
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-          <rect x="3" y="3" width="7" height="9" rx="1.5" stroke={active("/workspace") ? "#48dbfb" : "#d4e9f380"} strokeWidth="1.8"/>
-          <rect x="14" y="3" width="7" height="5" rx="1.5" stroke={active("/workspace") ? "#1dd1a1" : "#d4e9f380"} strokeWidth="1.8"/>
-          <rect x="14" y="12" width="7" height="9" rx="1.5" stroke={active("/workspace") ? "#1dd1a1" : "#d4e9f380"} strokeWidth="1.8"/>
-          <rect x="3" y="16" width="7" height="5" rx="1.5" stroke={active("/workspace") ? "#48dbfb" : "#d4e9f380"} strokeWidth="1.8"/>
-        </svg>
-        <span className={`text-[9px] ${active("/workspace") ? "text-[#83eef0] font-medium" : "text-[#d4e9f380]"}`}>Workspace</span>
-      </Link>
+      <WorkspaceNavItem active={active("/workspace")} />
 
       {/* Reef Map */}
       <Link

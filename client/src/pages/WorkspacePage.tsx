@@ -3,6 +3,7 @@ import { useState } from "react";
 import { ArrowLeft, ExternalLink, FileText, Table2, Lock, Globe, Zap, Users, ImageIcon } from "lucide-react";
 import { IPFSImageUpload } from "@/components/IPFSImageUpload";
 import { ipfsPublicUrl } from "@/lib/ipfs";
+import { FileverseWorkspacePanel } from "@/components/FileverseWorkspacePanel";
 
 const TOOLS = [
   {
@@ -123,6 +124,9 @@ export function WorkspacePage() {
             ))}
           </div>
         </div>
+
+        {/* ── Wallet / Fileverse connection status ── */}
+        <FileverseWorkspacePanel variant="page" />
 
         {/* ── Tool Cards ── */}
         <div style={{ display: "flex", flexDirection: "column", gap: 20, marginBottom: 40 }}>
