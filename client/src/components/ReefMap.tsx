@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
-import { MapContainer, TileLayer, WMSTileLayer, Marker, Popup, GeoJSON, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, WMSTileLayer, Marker, Popup, GeoJSON, CircleMarker, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { Maximize2, X, Users, Globe, Layers, Camera } from "lucide-react";
@@ -40,6 +40,186 @@ const GCRMN_LONG: Record<string, string> = {
   "South Asia":  "South Asia",
   "WIO":         "Western Indian Ocean",
 };
+
+// ─── GCRMN 2026 benthos monitoring sites ─────────────────────────────────────
+// Source: GCRMN / gcrmndb_benthos synthetic dataset (2026-04)
+// https://github.com/GCRMN/gcrmndb_benthos#6-description-of-the-synthetic-dataset
+interface GcrmnSite {
+  country: string; territory: string;
+  lat: number; lon: number;
+  sites: number; surveys: number; datasets: number;
+  firstYear: number; lastYear: number;
+}
+export const GCRMN_SITES_2026: GcrmnSite[] = [
+  { country:"Antigua and Barbuda", territory:"Antigua and Barbuda",       lat:17.12,  lon:-61.85,  sites:41,    surveys:50,    datasets:2,  firstYear:2003, lastYear:2022 },
+  { country:"Aruba",               territory:"Aruba",                     lat:12.52,  lon:-70.0,   sites:6,     surveys:7,     datasets:1,  firstYear:2003, lastYear:2009 },
+  { country:"Australia",           territory:"Australia",                  lat:-18.3,  lon:147.7,   sites:2614,  surveys:13110, datasets:13, firstYear:1988, lastYear:2025 },
+  { country:"Australia",           territory:"Christmas Island",           lat:-10.5,  lon:105.7,   sites:25,    surveys:84,    datasets:3,  firstYear:2003, lastYear:2023 },
+  { country:"Australia",           territory:"Cocos Islands",              lat:-12.2,  lon:96.8,    sites:27,    surveys:85,    datasets:2,  firstYear:1997, lastYear:2023 },
+  { country:"Australia",           territory:"Norfolk Island",             lat:-29.0,  lon:167.9,   sites:4,     surveys:19,    datasets:1,  firstYear:2020, lastYear:2025 },
+  { country:"Bahamas",             territory:"Bahamas",                    lat:25.0,   lon:-77.4,   sites:542,   surveys:808,   datasets:3,  firstYear:1986, lastYear:2024 },
+  { country:"Bahrain",             territory:"Bahrain",                    lat:26.2,   lon:50.6,    sites:45,    surveys:55,    datasets:5,  firstYear:1985, lastYear:2024 },
+  { country:"Bangladesh",          territory:"Bangladesh",                  lat:21.9,   lon:89.4,    sites:2,     surveys:2,     datasets:1,  firstYear:2005, lastYear:2006 },
+  { country:"Barbados",            territory:"Barbados",                   lat:13.2,   lon:-59.5,   sites:80,    surveys:349,   datasets:3,  firstYear:1982, lastYear:2022 },
+  { country:"Belize",              territory:"Belize",                     lat:16.5,   lon:-87.9,   sites:483,   surveys:776,   datasets:7,  firstYear:1985, lastYear:2024 },
+  { country:"Brazil",              territory:"Brazil",                     lat:-14.2,  lon:-39.0,   sites:205,   surveys:666,   datasets:5,  firstYear:2002, lastYear:2025 },
+  { country:"Brazil",              territory:"Trindade",                   lat:-20.5,  lon:-29.3,   sites:8,     surveys:24,    datasets:1,  firstYear:2009, lastYear:2024 },
+  { country:"Brunei",              territory:"Brunei",                     lat:4.9,    lon:114.9,   sites:84,    surveys:103,   datasets:3,  firstYear:1997, lastYear:2024 },
+  { country:"Cambodia",            territory:"Cambodia",                   lat:11.1,   lon:103.1,   sites:229,   surveys:484,   datasets:4,  firstYear:1998, lastYear:2024 },
+  { country:"China",               territory:"China",                      lat:19.9,   lon:110.4,   sites:179,   surveys:625,   datasets:4,  firstYear:1997, lastYear:2024 },
+  { country:"Colombia",            territory:"Colombia",                   lat:9.5,    lon:-76.3,   sites:221,   surveys:711,   datasets:6,  firstYear:1997, lastYear:2024 },
+  { country:"Comores",             territory:"Comores",                    lat:-11.7,  lon:43.3,    sites:35,    surveys:94,    datasets:4,  firstYear:1999, lastYear:2022 },
+  { country:"Costa Rica",          territory:"Costa Rica",                 lat:9.6,    lon:-84.6,   sites:234,   surveys:478,   datasets:6,  firstYear:1999, lastYear:2025 },
+  { country:"Cuba",                territory:"Cuba",                       lat:22.0,   lon:-79.5,   sites:196,   surveys:205,   datasets:3,  firstYear:1999, lastYear:2023 },
+  { country:"Curaçao",             territory:"Curaçao",                    lat:12.2,   lon:-69.0,   sites:151,   surveys:444,   datasets:4,  firstYear:1973, lastYear:2023 },
+  { country:"Djibouti",            territory:"Djibouti",                   lat:11.8,   lon:43.1,    sites:23,    surveys:23,    datasets:1,  firstYear:2005, lastYear:2008 },
+  { country:"Dominica",            territory:"Dominica",                   lat:15.4,   lon:-61.4,   sites:31,    surveys:46,    datasets:2,  firstYear:2004, lastYear:2018 },
+  { country:"Dominican Republic",  territory:"Dominican Republic",         lat:18.7,   lon:-69.3,   sites:178,   surveys:516,   datasets:8,  firstYear:1999, lastYear:2024 },
+  { country:"East Timor",          territory:"East Timor",                 lat:-8.9,   lon:125.7,   sites:11,    surveys:13,    datasets:2,  firstYear:2004, lastYear:2017 },
+  { country:"Ecuador",             territory:"Ecuador",                    lat:-1.0,   lon:-80.5,   sites:43,    surveys:49,    datasets:1,  firstYear:1999, lastYear:2015 },
+  { country:"Ecuador",             territory:"Galapagos",                  lat:-0.95,  lon:-91.0,   sites:37,    surveys:249,   datasets:3,  firstYear:1994, lastYear:2024 },
+  { country:"Egypt",               territory:"Egypt",                      lat:27.9,   lon:34.5,    sites:216,   surveys:527,   datasets:4,  firstYear:1997, lastYear:2024 },
+  { country:"El Salvador",         territory:"El Salvador",                lat:13.5,   lon:-89.8,   sites:9,     surveys:45,    datasets:1,  firstYear:2009, lastYear:2024 },
+  { country:"Eritrea",             territory:"Eritrea",                    lat:15.2,   lon:41.8,    sites:2,     surveys:2,     datasets:1,  firstYear:2000, lastYear:2000 },
+  { country:"Federal Republic of Somalia", territory:"Federal Republic of Somalia", lat:2.0, lon:45.3, sites:5, surveys:5, datasets:2, firstYear:2005, lastYear:2024 },
+  { country:"Fiji",                territory:"Fiji",                       lat:-17.7,  lon:177.4,   sites:654,   surveys:1003,  datasets:12, firstYear:1997, lastYear:2025 },
+  { country:"France",              territory:"Collectivity of Saint Martin",lat:18.1,  lon:-63.1,   sites:12,    surveys:83,    datasets:2,  firstYear:2007, lastYear:2022 },
+  { country:"France",              territory:"Europa Island",              lat:-22.3,  lon:40.4,    sites:1,     surveys:1,     datasets:1,  firstYear:2002, lastYear:2002 },
+  { country:"France",              territory:"French Polynesia",           lat:-17.7,  lon:-149.4,  sites:229,   surveys:2191,  datasets:8,  firstYear:1987, lastYear:2024 },
+  { country:"France",              territory:"Guadeloupe",                 lat:16.3,   lon:-61.6,   sites:27,    surveys:209,   datasets:4,  firstYear:2002, lastYear:2024 },
+  { country:"France",              territory:"Martinique",                 lat:14.6,   lon:-61.0,   sites:42,    surveys:323,   datasets:3,  firstYear:2001, lastYear:2024 },
+  { country:"France",              territory:"Mayotte",                    lat:-12.8,  lon:45.2,    sites:39,    surveys:303,   datasets:2,  firstYear:1998, lastYear:2025 },
+  { country:"France",              territory:"New Caledonia",              lat:-20.9,  lon:165.6,   sites:880,   surveys:4121,  datasets:9,  firstYear:1997, lastYear:2025 },
+  { country:"France",              territory:"Réunion",                    lat:-21.1,  lon:55.5,    sites:4025,  surveys:4461,  datasets:3,  firstYear:1998, lastYear:2025 },
+  { country:"France",              territory:"Saint-Barthélemy",           lat:17.9,   lon:-62.8,   sites:4,     surveys:43,    datasets:2,  firstYear:2002, lastYear:2024 },
+  { country:"France",              territory:"Wallis and Futuna",          lat:-13.3,  lon:-176.2,  sites:11,    surveys:22,    datasets:1,  firstYear:2019, lastYear:2024 },
+  { country:"Grenada",             territory:"Grenada",                    lat:12.1,   lon:-61.7,   sites:99,    surveys:239,   datasets:4,  firstYear:2004, lastYear:2024 },
+  { country:"Guatemala",           territory:"Guatemala",                  lat:14.0,   lon:-91.7,   sites:24,    surveys:49,    datasets:3,  firstYear:2006, lastYear:2023 },
+  { country:"Haiti",               territory:"Haiti",                      lat:18.7,   lon:-73.4,   sites:96,    surveys:109,   datasets:2,  firstYear:2003, lastYear:2018 },
+  { country:"Haiti",               territory:"Navassa Island",             lat:18.4,   lon:-75.0,   sites:15,    surveys:15,    datasets:1,  firstYear:2012, lastYear:2012 },
+  { country:"Honduras",            territory:"Honduras",                   lat:15.9,   lon:-83.8,   sites:405,   surveys:848,   datasets:4,  firstYear:1997, lastYear:2024 },
+  { country:"India",               territory:"Andaman and Nicobar",        lat:11.7,   lon:92.7,    sites:29,    surveys:29,    datasets:1,  firstYear:2021, lastYear:2022 },
+  { country:"India",               territory:"India",                      lat:10.8,   lon:72.8,    sites:117,   surveys:1745,  datasets:6,  firstYear:1998, lastYear:2024 },
+  { country:"Indonesia",           territory:"Indonesia",                  lat:-3.0,   lon:118.0,   sites:726,   surveys:1320,  datasets:5,  firstYear:1987, lastYear:2024 },
+  { country:"Iran",                territory:"Iran",                       lat:26.9,   lon:56.2,    sites:46,    surveys:71,    datasets:3,  firstYear:1999, lastYear:2024 },
+  { country:"Israel",              territory:"Israel",                     lat:29.5,   lon:34.9,    sites:4,     surveys:4,     datasets:1,  firstYear:1997, lastYear:2001 },
+  { country:"Jamaica",             territory:"Jamaica",                    lat:17.9,   lon:-76.8,   sites:308,   surveys:794,   datasets:7,  firstYear:1986, lastYear:2024 },
+  { country:"Japan",               territory:"Japan",                      lat:26.5,   lon:127.8,   sites:951,   surveys:8216,  datasets:4,  firstYear:1983, lastYear:2025 },
+  { country:"Jordan",              territory:"Jordan",                     lat:29.5,   lon:35.0,    sites:12,    surveys:34,    datasets:2,  firstYear:2008, lastYear:2024 },
+  { country:"Kenya",               territory:"Kenya",                      lat:-3.2,   lon:40.1,    sites:158,   surveys:568,   datasets:8,  firstYear:1987, lastYear:2024 },
+  { country:"Kiribati",            territory:"Gilbert Islands",            lat:1.4,    lon:173.0,   sites:18,    surveys:18,    datasets:2,  firstYear:2011, lastYear:2018 },
+  { country:"Kiribati",            territory:"Line Group",                 lat:2.0,    lon:-157.5,  sites:97,    surveys:125,   datasets:3,  firstYear:2009, lastYear:2023 },
+  { country:"Kiribati",            territory:"Phoenix Group",              lat:-4.0,   lon:-171.1,  sites:58,    surveys:123,   datasets:1,  firstYear:2009, lastYear:2018 },
+  { country:"Kuwait",              territory:"Kuwait",                     lat:29.1,   lon:48.5,    sites:18,    surveys:27,    datasets:4,  firstYear:1987, lastYear:2014 },
+  { country:"Madagascar",          territory:"Madagascar",                 lat:-15.7,  lon:46.4,    sites:121,   surveys:294,   datasets:10, firstYear:1998, lastYear:2024 },
+  { country:"Malaysia",            territory:"Malaysia",                   lat:4.5,    lon:114.5,   sites:1351,  surveys:5711,  datasets:5,  firstYear:1987, lastYear:2024 },
+  { country:"Maldives",            territory:"Maldives",                   lat:3.2,    lon:73.2,    sites:444,   surveys:822,   datasets:6,  firstYear:1997, lastYear:2024 },
+  { country:"Marshall Islands",    territory:"Marshall Islands",           lat:7.1,    lon:171.2,   sites:147,   surveys:174,   datasets:3,  firstYear:2002, lastYear:2020 },
+  { country:"Mexico",              territory:"Mexico",                     lat:20.6,   lon:-86.9,   sites:709,   surveys:2321,  datasets:10, firstYear:1997, lastYear:2024 },
+  { country:"Micronesia",          territory:"Federated States of Micronesia", lat:6.9, lon:158.2, sites:217,  surveys:555,   datasets:3,  firstYear:2000, lastYear:2020 },
+  { country:"Mozambique",          territory:"Mozambique",                 lat:-15.0,  lon:40.4,    sites:162,   surveys:376,   datasets:10, firstYear:1997, lastYear:2024 },
+  { country:"Myanmar",             territory:"Myanmar",                    lat:16.0,   lon:97.6,    sites:53,    surveys:62,    datasets:3,  firstYear:1990, lastYear:2025 },
+  { country:"Netherlands",         territory:"Bonaire",                    lat:12.2,   lon:-68.3,   sites:165,   surveys:640,   datasets:7,  firstYear:1973, lastYear:2025 },
+  { country:"Netherlands",         territory:"Saba",                       lat:17.6,   lon:-63.2,   sites:30,    surveys:68,    datasets:3,  firstYear:1994, lastYear:2024 },
+  { country:"Netherlands",         territory:"Sint-Eustatius",             lat:17.5,   lon:-63.0,   sites:37,    surveys:72,    datasets:3,  firstYear:1999, lastYear:2023 },
+  { country:"New Zealand",         territory:"Cook Islands",               lat:-21.2,  lon:-159.8,  sites:191,   surveys:246,   datasets:5,  firstYear:2005, lastYear:2023 },
+  { country:"New Zealand",         territory:"Niue",                       lat:-19.1,  lon:-169.9,  sites:7,     surveys:7,     datasets:1,  firstYear:2011, lastYear:2011 },
+  { country:"Nicaragua",           territory:"Nicaragua",                  lat:12.5,   lon:-83.5,   sites:58,    surveys:77,    datasets:3,  firstYear:2003, lastYear:2015 },
+  { country:"Oman",                territory:"Oman",                       lat:22.9,   lon:59.5,    sites:132,   surveys:277,   datasets:12, firstYear:2003, lastYear:2024 },
+  { country:"Palau",               territory:"Palau",                      lat:7.5,    lon:134.6,   sites:116,   surveys:425,   datasets:4,  firstYear:1997, lastYear:2024 },
+  { country:"Panama",              territory:"Panama",                     lat:8.5,    lon:-82.0,   sites:308,   surveys:480,   datasets:5,  firstYear:1997, lastYear:2024 },
+  { country:"Papua New Guinea",    territory:"Papua New Guinea",           lat:-5.5,   lon:144.0,   sites:280,   surveys:536,   datasets:5,  firstYear:1998, lastYear:2025 },
+  { country:"Philippines",         territory:"Philippines",                lat:10.3,   lon:123.9,   sites:922,   surveys:1289,  datasets:5,  firstYear:1986, lastYear:2023 },
+  { country:"Qatar",               territory:"Qatar",                      lat:25.3,   lon:51.5,    sites:26,    surveys:26,    datasets:4,  firstYear:2014, lastYear:2024 },
+  { country:"Republic of Mauritius",territory:"Chagos Archipelago",        lat:-6.3,   lon:71.9,    sites:63,    surveys:224,   datasets:3,  firstYear:2010, lastYear:2023 },
+  { country:"Republic of Mauritius",territory:"Republic of Mauritius",     lat:-20.3,  lon:57.5,    sites:10,    surveys:12,    datasets:1,  firstYear:1999, lastYear:2003 },
+  { country:"Saint Kitts and Nevis",territory:"Saint Kitts and Nevis",     lat:17.4,   lon:-62.8,   sites:38,    surveys:55,    datasets:2,  firstYear:2004, lastYear:2024 },
+  { country:"Saint Lucia",         territory:"Saint Lucia",                lat:13.9,   lon:-61.0,   sites:21,    surveys:61,    datasets:1,  firstYear:1999, lastYear:2014 },
+  { country:"Saint Vincent and the Grenadines", territory:"Saint Vincent and the Grenadines", lat:13.3, lon:-61.2, sites:55, surveys:74, datasets:4, firstYear:1999, lastYear:2024 },
+  { country:"Samoa",               territory:"Samoa",                      lat:-13.8,  lon:-172.1,  sites:50,    surveys:90,    datasets:4,  firstYear:2012, lastYear:2022 },
+  { country:"Saudi Arabia",        territory:"Saudi Arabia",               lat:22.0,   lon:38.0,    sites:179,   surveys:346,   datasets:7,  firstYear:1985, lastYear:2024 },
+  { country:"Seychelles",          territory:"Seychelles",                 lat:-4.7,   lon:55.5,    sites:125,   surveys:244,   datasets:4,  firstYear:1994, lastYear:2024 },
+  { country:"Singapore",           territory:"Singapore",                  lat:1.3,    lon:103.8,   sites:65,    surveys:362,   datasets:3,  firstYear:1986, lastYear:2024 },
+  { country:"Sint-Maarten",        territory:"Sint-Maarten",               lat:18.0,   lon:-63.1,   sites:14,    surveys:61,    datasets:3,  firstYear:1999, lastYear:2024 },
+  { country:"Solomon Islands",     territory:"Solomon Islands",            lat:-9.6,   lon:160.2,   sites:190,   surveys:288,   datasets:6,  firstYear:2005, lastYear:2024 },
+  { country:"South Africa",        territory:"South Africa",               lat:-27.0,  lon:32.9,    sites:6,     surveys:37,    datasets:2,  firstYear:1993, lastYear:2023 },
+  { country:"Sri Lanka",           territory:"Sri Lanka",                  lat:7.5,    lon:81.8,    sites:10,    surveys:32,    datasets:2,  firstYear:2003, lastYear:2024 },
+  { country:"Sudan",               territory:"Sudan",                      lat:21.0,   lon:37.1,    sites:86,    surveys:123,   datasets:6,  firstYear:2004, lastYear:2022 },
+  { country:"Taiwan",              territory:"Taiwan",                     lat:22.5,   lon:120.5,   sites:186,   surveys:459,   datasets:3,  firstYear:1997, lastYear:2024 },
+  { country:"Tanzania",            territory:"Tanzania",                   lat:-7.0,   lon:39.7,    sites:197,   surveys:369,   datasets:14, firstYear:1992, lastYear:2025 },
+  { country:"Thailand",            territory:"Thailand",                   lat:9.5,    lon:100.0,   sites:297,   surveys:619,   datasets:4,  firstYear:1988, lastYear:2024 },
+  { country:"Tonga",               territory:"Tonga",                      lat:-21.2,  lon:-175.0,  sites:551,   surveys:682,   datasets:8,  firstYear:2002, lastYear:2024 },
+  { country:"Trinidad and Tobago", territory:"Trinidad and Tobago",        lat:10.7,   lon:-61.0,   sites:52,    surveys:115,   datasets:3,  firstYear:2007, lastYear:2023 },
+  { country:"United Arab Emirates",territory:"Abu musa, Greater and Lesser Tunb", lat:25.9, lon:55.0, sites:7, surveys:7, datasets:1, firstYear:2016, lastYear:2017 },
+  { country:"United Arab Emirates",territory:"United Arab Emirates",       lat:24.5,   lon:54.5,    sites:78,    surveys:230,   datasets:13, firstYear:2004, lastYear:2024 },
+  { country:"United Kingdom",      territory:"Anguilla",                   lat:18.2,   lon:-63.1,   sites:10,    surveys:132,   datasets:2,  firstYear:2002, lastYear:2023 },
+  { country:"United Kingdom",      territory:"Bermuda",                    lat:32.3,   lon:-64.8,   sites:203,   surveys:255,   datasets:2,  firstYear:1982, lastYear:2021 },
+  { country:"United Kingdom",      territory:"British Virgin Islands",     lat:18.4,   lon:-64.6,   sites:34,    surveys:328,   datasets:3,  firstYear:1992, lastYear:2024 },
+  { country:"United Kingdom",      territory:"Cayman Islands",             lat:19.3,   lon:-81.4,   sites:70,    surveys:227,   datasets:5,  firstYear:1997, lastYear:2024 },
+  { country:"United Kingdom",      territory:"Montserrat",                 lat:16.7,   lon:-62.2,   sites:87,    surveys:109,   datasets:2,  firstYear:2005, lastYear:2017 },
+  { country:"United Kingdom",      territory:"Pitcairn",                   lat:-25.1,  lon:-130.1,  sites:6,     surveys:12,    datasets:2,  firstYear:2009, lastYear:2023 },
+  { country:"United Kingdom",      territory:"Turks and Caicos Islands",   lat:21.8,   lon:-71.8,   sites:91,    surveys:149,   datasets:5,  firstYear:1999, lastYear:2024 },
+  { country:"United States",       territory:"American Samoa",             lat:-14.3,  lon:-170.7,  sites:1039,  surveys:1219,  datasets:4,  firstYear:1997, lastYear:2019 },
+  { country:"United States",       territory:"Guam",                       lat:13.4,   lon:144.8,   sites:391,   surveys:545,   datasets:4,  firstYear:1997, lastYear:2021 },
+  { country:"United States",       territory:"Hawaii",                     lat:20.8,   lon:-156.5,  sites:2019,  surveys:2405,  datasets:4,  firstYear:1997, lastYear:2021 },
+  { country:"United States",       territory:"Howland and Baker Islands",  lat:0.8,    lon:-176.6,  sites:150,   surveys:150,   datasets:1,  firstYear:2015, lastYear:2017 },
+  { country:"United States",       territory:"Jarvis Island",              lat:-0.4,   lon:-160.0,  sites:222,   surveys:222,   datasets:1,  firstYear:2015, lastYear:2017 },
+  { country:"United States",       territory:"Johnston Atoll",             lat:16.7,   lon:-169.5,  sites:46,    surveys:46,    datasets:1,  firstYear:2015, lastYear:2015 },
+  { country:"United States",       territory:"Northern Mariana Islands",   lat:15.2,   lon:145.8,   sites:680,   surveys:924,   datasets:3,  firstYear:1999, lastYear:2020 },
+  { country:"United States",       territory:"Palmyra Atoll",              lat:5.9,    lon:-162.1,  sites:194,   surveys:298,   datasets:2,  firstYear:2009, lastYear:2019 },
+  { country:"United States",       territory:"Puerto Rico",                lat:18.4,   lon:-66.1,   sites:2985,  surveys:3296,  datasets:8,  firstYear:1982, lastYear:2024 },
+  { country:"United States",       territory:"United States",              lat:24.6,   lon:-81.7,   sites:2038,  surveys:5283,  datasets:13, firstYear:1984, lastYear:2024 },
+  { country:"United States",       territory:"United States Virgin Islands",lat:18.3,  lon:-64.9,   sites:5885,  surveys:6878,  datasets:10, firstYear:1982, lastYear:2024 },
+  { country:"United States",       territory:"Wake Island",                lat:19.3,   lon:166.6,   sites:146,   surveys:146,   datasets:1,  firstYear:2014, lastYear:2017 },
+  { country:"Vanuatu",             territory:"Vanuatu",                    lat:-15.4,  lon:166.9,   sites:75,    surveys:114,   datasets:3,  firstYear:2004, lastYear:2023 },
+  { country:"Venezuela",           territory:"Venezuela",                  lat:12.0,   lon:-70.3,   sites:50,    surveys:57,    datasets:3,  firstYear:1999, lastYear:2018 },
+  { country:"Vietnam",             territory:"Vietnam",                    lat:15.0,   lon:108.5,   sites:278,   surveys:705,   datasets:3,  firstYear:1998, lastYear:2024 },
+  { country:"Yemen",               territory:"Yemen",                      lat:14.5,   lon:43.0,    sites:6,     surveys:12,    datasets:3,  firstYear:1999, lastYear:2017 },
+];
+
+// Pre-compute totals once
+const GCRMN_TOTALS = GCRMN_SITES_2026.reduce(
+  (acc, s) => ({ sites: acc.sites + s.sites, surveys: acc.surveys + s.surveys }),
+  { sites: 0, surveys: 0 }
+);
+
+function gcrmnSiteRadius(surveys: number): number {
+  return Math.max(4, Math.min(22, Math.sqrt(surveys) * 0.55));
+}
+
+// ─── GCRMN site popup ─────────────────────────────────────────────────────────
+function GcrmnSitePopup({ site }: { site: GcrmnSite }) {
+  return (
+    <div style={{ fontFamily: "Inter, sans-serif", minWidth: 170, maxWidth: 210 }}>
+      <div style={{ fontSize: 10.5, fontWeight: 800, color: "#A6CE39", marginBottom: 3, lineHeight: 1.3 }}>
+        🪸 {site.territory}
+      </div>
+      <div style={{ fontSize: 9.5, color: "#888", marginBottom: 6 }}>{site.country}</div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px 10px", marginBottom: 6 }}>
+        {[
+          ["Sites",    site.sites.toLocaleString()],
+          ["Surveys",  site.surveys.toLocaleString()],
+          ["Datasets", site.datasets.toString()],
+          ["Period",   `${site.firstYear}–${site.lastYear}`],
+        ].map(([k, v]) => (
+          <div key={k}>
+            <div style={{ fontSize: 8, color: "#aaa", textTransform: "uppercase", letterSpacing: "0.05em" }}>{k}</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#d4e9f3" }}>{v}</div>
+          </div>
+        ))}
+      </div>
+      <a
+        href="https://github.com/GCRMN/gcrmndb_benthos#6-description-of-the-synthetic-dataset"
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{ fontSize: 9, color: "#A6CE39", textDecoration: "none", display: "block",
+          border: "1px solid #A6CE3944", borderRadius: 4, padding: "2px 6px", textAlign: "center" }}
+      >
+        ↗ GCRMN gcrmndb_benthos
+      </a>
+    </div>
+  );
+}
 
 // ─── Custom coral-teal member pin ─────────────────────────────────────────────
 function makePin() {
@@ -179,11 +359,12 @@ function ExpandedMapModal({
   gcrmnGeoJson: GeoJSON.FeatureCollection | undefined;
   onClose: () => void;
 }) {
-  const [showGcrmn, setShowGcrmn] = useState(true);
-  const [showAca,   setShowAca]   = useState(true);
-  const [showImgs,  setShowImgs]  = useState(true);
+  const [showGcrmn,      setShowGcrmn]      = useState(true);
+  const [showAca,        setShowAca]        = useState(true);
+  const [showImgs,       setShowImgs]       = useState(true);
+  const [showGcrmnSites, setShowGcrmnSites] = useState(true);
 
-  const activeLayers = (showGcrmn ? 1 : 0) + (showAca ? 1 : 0) + (showImgs ? 1 : 0) + 1;
+  const activeLayers = (showGcrmn ? 1 : 0) + (showAca ? 1 : 0) + (showImgs ? 1 : 0) + (showGcrmnSites ? 1 : 0) + 1;
 
   return createPortal(
     <div
@@ -270,6 +451,21 @@ function ExpandedMapModal({
                 onEachFeature={bindGcrmnLayer}
               />
             )}
+            {showGcrmnSites && GCRMN_SITES_2026.map((site) => (
+              <CircleMarker
+                key={`gcrmn-${site.territory}`}
+                center={[site.lat, site.lon]}
+                radius={gcrmnSiteRadius(site.surveys)}
+                pathOptions={{
+                  color: "#A6CE39", weight: 1.5, opacity: 0.9,
+                  fillColor: "#A6CE39", fillOpacity: 0.35,
+                }}
+              >
+                <Popup maxWidth={220}>
+                  <GcrmnSitePopup site={site} />
+                </Popup>
+              </CircleMarker>
+            ))}
             {markers.map((m) => (
               <Marker key={m.id} position={[m.latitude, m.longitude]} icon={makePin()}>
                 <Popup>
@@ -299,6 +495,14 @@ function ExpandedMapModal({
           overflowY: "auto",
         }}>
           <SideSection title="Layers">
+            <LayerToggle
+              label="GCRMN Sites 2026"
+              sublabel={`${GCRMN_SITES_2026.length} territories · ${GCRMN_TOTALS.surveys.toLocaleString()} surveys`}
+              active={showGcrmnSites}
+              color="#A6CE39"
+              onClick={() => setShowGcrmnSites((v) => !v)}
+              testId="expanded-toggle-gcrmn-sites"
+            />
             <LayerToggle
               label="GCRMN Regions"
               sublabel="10 GCRMN monitoring zones"
@@ -345,6 +549,13 @@ function ExpandedMapModal({
 
           <SideSection title="Map Key">
             <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "3px 0" }}>
+              <span style={{ width:11,height:11,borderRadius:"50%",background:"#A6CE3988",border:"1.5px solid #A6CE39",display:"inline-block",flexShrink:0 }}/>
+              <span style={{ fontSize: 10.5, color: "#d4e9f3bb" }}>GCRMN monitoring territory</span>
+            </div>
+            <div style={{ fontSize: 8.5, color: "#d4e9f344", marginLeft: 19, marginBottom: 4, marginTop: -1 }}>
+              Circle size ∝ survey count
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "3px 0" }}>
               <span style={{ width:11,height:11,borderRadius:"50%",background:"#83eef0",border:"2px solid #83eef0",display:"inline-block",flexShrink:0 }}/>
               <span style={{ fontSize: 10.5, color: "#d4e9f3bb" }}>DAO Member</span>
             </div>
@@ -354,19 +565,52 @@ function ExpandedMapModal({
             </div>
           </SideSection>
 
+          <SideSection title="GCRMN Benthos Dataset">
+            <div style={{ fontSize: 9.5, color: "#d4e9f3aa", lineHeight: 1.5, marginBottom: 8 }}>
+              The GCRMN <em>gcrmndb_benthos</em> synthetic dataset integrates benthic cover surveys from contributing national and regional monitoring programs into a single harmonised record.
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 8px", marginBottom: 8 }}>
+              {[
+                ["Territories", GCRMN_SITES_2026.length],
+                ["Total Sites", GCRMN_TOTALS.sites.toLocaleString()],
+                ["Total Surveys", GCRMN_TOTALS.surveys.toLocaleString()],
+                ["Time Span", "1973–2025"],
+              ].map(([k, v]) => (
+                <div key={String(k)} style={{ background: "rgba(166,206,57,0.07)", border: "1px solid rgba(166,206,57,0.2)", borderRadius: 6, padding: "5px 7px" }}>
+                  <div style={{ fontSize: 7.5, color: "#A6CE3988", textTransform: "uppercase", letterSpacing: "0.07em" }}>{k}</div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: "#A6CE39" }}>{v}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ fontSize: 8.5, color: "#d4e9f344", lineHeight: 1.4, marginBottom: 6 }}>
+              Variables: country · territory · site · lat/lon · date · habitat · zone · transect · benthic cover category &amp; sub-category · observer
+            </div>
+            <a
+              href="https://github.com/GCRMN/gcrmndb_benthos#6-description-of-the-synthetic-dataset"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: "block", fontSize: 9, color: "#A6CE39", textDecoration: "none",
+                border: "1px solid #A6CE3944", borderRadius: 5, padding: "4px 8px",
+                textAlign: "center", fontWeight: 600,
+              }}
+            >
+              ↗ GCRMN / gcrmndb_benthos (GitHub)
+            </a>
+          </SideSection>
+
           <SideSection title="Data Sources">
             {[
-              { label: "Esri Ocean Basemap", href: "https://www.arcgis.com" },
-              { label: "Allen Coral Atlas", href: "https://allencoralatlas.org" },
-              { label: "GCRMN Regions", href: "https://gcrmn.net" },
-              { label: "NOAA Coral Reef Watch", href: "https://coralreefwatch.noaa.gov" },
-            ].map(({ label, href }) => (
-              <a key={label} href={href} target="_blank" rel="noopener noreferrer" style={{
-                display: "block", fontSize: 10, color: "#83eef099",
-                textDecoration: "none", padding: "2px 0",
-              }}
+              { label: "GCRMN gcrmndb_benthos",  href: "https://github.com/GCRMN/gcrmndb_benthos#6-description-of-the-synthetic-dataset", color: "#A6CE39" },
+              { label: "Esri Ocean Basemap",      href: "https://www.arcgis.com",              color: "#83eef099" },
+              { label: "Allen Coral Atlas",       href: "https://allencoralatlas.org",         color: "#83eef099" },
+              { label: "GCRMN Regions",           href: "https://gcrmn.net",                   color: "#83eef099" },
+              { label: "NOAA Coral Reef Watch",   href: "https://coralreefwatch.noaa.gov",     color: "#83eef099" },
+            ].map(({ label, href, color }) => (
+              <a key={label} href={href} target="_blank" rel="noopener noreferrer"
+                style={{ display: "block", fontSize: 10, color, textDecoration: "none", padding: "2px 0" }}
                 onMouseEnter={e => (e.currentTarget.style.color = "#83eef0")}
-                onMouseLeave={e => (e.currentTarget.style.color = "#83eef099")}
+                onMouseLeave={e => (e.currentTarget.style.color = color)}
               >
                 ↗ {label}
               </a>
@@ -446,8 +690,9 @@ export function ReefMap({
   expanded?: boolean;
   onExpandChange?: (v: boolean) => void;
 }) {
-  const [showGcrmn, setShowGcrmn] = useState(true);
-  const [showImgs,  setShowImgs]  = useState(true);
+  const [showGcrmn,      setShowGcrmn]      = useState(true);
+  const [showImgs,       setShowImgs]       = useState(true);
+  const [showGcrmnSites, setShowGcrmnSites] = useState(true);
   const [internalExpanded, setInternalExpanded] = useState(false);
 
   const expanded  = externalExpanded !== undefined ? externalExpanded : internalExpanded;
@@ -522,6 +767,21 @@ export function ReefMap({
               onEachFeature={bindGcrmnLayer}
             />
           )}
+          {showGcrmnSites && GCRMN_SITES_2026.map((site) => (
+            <CircleMarker
+              key={`gcrmn-c-${site.territory}`}
+              center={[site.lat, site.lon]}
+              radius={gcrmnSiteRadius(site.surveys)}
+              pathOptions={{
+                color: "#A6CE39", weight: 1.2, opacity: 0.85,
+                fillColor: "#A6CE39", fillOpacity: 0.28,
+              }}
+            >
+              <Popup maxWidth={220}>
+                <GcrmnSitePopup site={site} />
+              </Popup>
+            </CircleMarker>
+          ))}
           {markers.map((m) => (
             <Marker key={m.id} position={[m.latitude, m.longitude]} icon={makePin()}>
               <Popup>
@@ -546,6 +806,19 @@ export function ReefMap({
           className="absolute top-2 left-2 flex flex-col gap-1 pointer-events-auto"
           style={{ zIndex: 500 }}
         >
+          <button
+            data-testid="toggle-gcrmn-sites-layer"
+            onClick={() => setShowGcrmnSites((v) => !v)}
+            style={{
+              background: showGcrmnSites ? "rgba(166,206,57,0.82)" : "rgba(0,19,28,0.75)",
+              border: `1px solid ${showGcrmnSites ? "#A6CE39" : "rgba(166,206,57,0.4)"}`,
+              borderRadius: 6, padding: "2px 7px", fontSize: 9,
+              color: showGcrmnSites ? "#fff" : "#A6CE39cc",
+              fontFamily: "Inter,sans-serif", fontWeight: 700, cursor: "pointer", letterSpacing: "0.05em",
+            }}
+          >
+            Sites
+          </button>
           <button
             data-testid="toggle-gcrmn-layer"
             onClick={() => setShowGcrmn((v) => !v)}
@@ -599,6 +872,12 @@ export function ReefMap({
           className="absolute bottom-2 left-2 flex flex-col gap-1 pointer-events-none"
           style={{ zIndex: 500 }}
         >
+          {showGcrmnSites && (
+            <div className="flex items-center gap-1.5">
+              <span style={{ width:9,height:9,borderRadius:"50%",background:"rgba(166,206,57,0.35)",border:"1.5px solid #A6CE39",display:"inline-block" }}/>
+              <span style={{ fontSize: 8.5, color: "#d4e9f3aa", fontFamily: "Inter,sans-serif" }}>GCRMN site</span>
+            </div>
+          )}
           {showGcrmn && (
             <div className="flex items-center gap-1.5">
               <span style={{ width:10,height:6,background:"rgba(29,209,161,0.35)",border:"1.5px solid #1dd1a1",borderRadius:2,display:"inline-block" }}/>
