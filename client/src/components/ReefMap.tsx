@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
-import { MapContainer, TileLayer, WMSTileLayer, Marker, Popup, GeoJSON, CircleMarker, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, WMSTileLayer, Marker, Popup, GeoJSON, CircleMarker, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { Maximize2, X, Users, Globe, Layers, Camera } from "lucide-react";
@@ -347,6 +347,92 @@ function ReefImagePopup({ img }: { img: ReefImageMarker }) {
   );
 }
 
+// ─── WDPA GetFeatureInfo click handler (wdpar data pipeline in the browser) ──
+// Calls Protected Planet WMS GetFeatureInfo on click to retrieve real WDPA
+// attributes: PA name, IUCN category, marine status, area, designation year.
+// Falls back silently if CORS is not configured on the WMS server.
+function WdparClickHandler({ active }: { active: boolean }) {
+  const map = useMap();
+
+  useMapEvents({
+    click: async (e) => {
+      if (!active) return;
+
+      const bounds  = map.getBounds();
+      const size    = map.getSize();
+      const point   = map.latLngToContainerPoint(e.latlng);
+
+      const bbox = [
+        bounds.getWest(), bounds.getSouth(),
+        bounds.getEast(), bounds.getNorth(),
+      ].join(",");
+
+      const params = new URLSearchParams({
+        SERVICE:      "WMS",
+        VERSION:      "1.1.1",
+        REQUEST:      "GetFeatureInfo",
+        LAYERS:       "wdpa:wdpa_marine_poly",
+        QUERY_LAYERS: "wdpa:wdpa_marine_poly",
+        INFO_FORMAT:  "application/json",
+        FEATURE_COUNT:"1",
+        X:            String(Math.round(point.x)),
+        Y:            String(Math.round(point.y)),
+        WIDTH:        String(size.x),
+        HEIGHT:       String(size.y),
+        BBOX:         bbox,
+        SRS:          "EPSG:4326",
+      });
+
+      try {
+        const res = await fetch(
+          `https://maps.protectedplanet.net/geoserver/wms?${params}`,
+          { signal: AbortSignal.timeout(6000) }
+        );
+        if (!res.ok) return;
+        const data = await res.json();
+        const features = data?.features;
+        if (!features?.length) return;
+
+        const p = features[0].properties ?? {};
+        const marineLabel =
+          p.MARINE === "2" ? "Wholly marine" :
+          p.MARINE === "1" ? "Partially marine" : String(p.MARINE ?? "");
+        const areaFmt = p.REP_AREA
+          ? `${Number(p.REP_AREA).toLocaleString()} km²` : "—";
+        const iucn   = p.IUCN_CAT || "—";
+        const name   = p.NAME || "Marine Protected Area";
+        const desig  = p.DESIG_ENG || p.DESIG || "—";
+        const yr     = p.STATUS_YR || "—";
+        const wdpaid = p.WDPAID || "—";
+
+        const html = `
+          <div style="font-family:Inter,sans-serif;font-size:11.5px;min-width:170px;max-width:240px;color:#d4e9f3">
+            <div style="font-weight:800;color:#00b894;font-size:12.5px;margin-bottom:5px;line-height:1.3">${name}</div>
+            <table style="border-collapse:collapse;width:100%">
+              <tr><td style="color:#888;padding:1px 6px 1px 0;font-size:10px">IUCN category</td><td style="font-weight:700;color:#55efc4">${iucn}</td></tr>
+              <tr><td style="color:#888;padding:1px 6px 1px 0;font-size:10px">Marine status</td><td>${marineLabel}</td></tr>
+              <tr><td style="color:#888;padding:1px 6px 1px 0;font-size:10px">Reported area</td><td>${areaFmt}</td></tr>
+              <tr><td style="color:#888;padding:1px 6px 1px 0;font-size:10px">Designation</td><td style="font-size:10px">${desig}</td></tr>
+              <tr><td style="color:#888;padding:1px 6px 1px 0;font-size:10px">Year</td><td>${yr}</td></tr>
+            </table>
+            <div style="margin-top:5px;font-size:8.5px;color:#666;border-top:1px solid rgba(131,238,240,0.12);padding-top:4px">
+              WDPA ID ${wdpaid} · Source: Protected Planet / wdpar
+            </div>
+          </div>`;
+
+        L.popup({ maxWidth: 260, className: "wdpar-popup" })
+          .setLatLng(e.latlng)
+          .setContent(html)
+          .openOn(map);
+      } catch {
+        // CORS or network error — silent fail, WMS tiles continue to render
+      }
+    },
+  });
+
+  return null;
+}
+
 // ─── Expanded map modal ───────────────────────────────────────────────────────
 function ExpandedMapModal({
   markers,
@@ -422,7 +508,13 @@ function ExpandedMapModal({
       {/* ── Body: map + side panel ── */}
       <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
         <div style={{ flex: 1, position: "relative" }}>
-          <style>{`.gcrmn-tooltip { background: rgba(0,19,28,0.88) !important; border: 1px solid rgba(131,238,240,0.25) !important; color: #d4e9f3 !important; font-family: Inter,sans-serif !important; font-size: 11px !important; padding: 3px 9px !important; border-radius: 6px !important; box-shadow: none !important; }`}</style>
+          <style>{`
+            .gcrmn-tooltip { background: rgba(0,19,28,0.88) !important; border: 1px solid rgba(131,238,240,0.25) !important; color: #d4e9f3 !important; font-family: Inter,sans-serif !important; font-size: 11px !important; padding: 3px 9px !important; border-radius: 6px !important; box-shadow: none !important; }
+            .wdpar-popup .leaflet-popup-content-wrapper { background: rgba(0,19,28,0.97) !important; border: 1px solid rgba(0,184,148,0.35) !important; border-radius: 10px !important; box-shadow: 0 4px 24px rgba(0,184,148,0.18) !important; color: #d4e9f3 !important; padding: 0 !important; }
+            .wdpar-popup .leaflet-popup-content { margin: 10px 12px !important; }
+            .wdpar-popup .leaflet-popup-tip-container { display: none !important; }
+            .wdpar-popup .leaflet-popup-close-button { color: #55efc4 !important; font-size: 16px !important; top: 6px !important; right: 8px !important; }
+          `}</style>
 
           <MapContainer
             center={[12, 10]}
@@ -525,6 +617,7 @@ function ExpandedMapModal({
               </Marker>
             ))}
             {markers.length > 0 && <FitBounds markers={markers} />}
+            <WdparClickHandler active={showCoralMPA || showMPA} />
           </MapContainer>
         </div>
 
@@ -722,8 +815,12 @@ function ExpandedMapModal({
           </SideSection>
 
           <SideSection title="Coral MPAs · wdpar">
-            <div style={{ fontSize: 9.5, color: "#d4e9f3aa", lineHeight: 1.5, marginBottom: 8 }}>
+            <div style={{ fontSize: 9.5, color: "#d4e9f3aa", lineHeight: 1.5, marginBottom: 6 }}>
               wdpar is the rOpenSci-endorsed R package for the complete WDPA data pipeline — downloading, cleaning, and preparing marine protected area data for coral reef conservation planning and spatial prioritisation.
+            </div>
+            <div style={{ background: "rgba(0,184,148,0.1)", border: "1px solid rgba(0,184,148,0.3)", borderRadius: 6, padding: "5px 8px", marginBottom: 8, fontSize: 9, color: "#55efc4", display: "flex", alignItems: "flex-start", gap: 6 }}>
+              <span style={{ fontSize: 12, marginTop: -1 }}>👆</span>
+              <span><strong>Click any MPA polygon</strong> on the map to query real WDPA attributes — PA name, IUCN category, marine status, area (km²), designation type and year — direct from the Protected Planet GeoServer via WMS GetFeatureInfo.</span>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 8px", marginBottom: 8 }}>
               {[
@@ -1085,6 +1182,7 @@ export function ReefMap({
             </Marker>
           ))}
           {markers.length > 0 && <FitBounds markers={markers} />}
+          <WdparClickHandler active={showCoralMPA || showMPA} />
         </MapContainer>
 
         {/* ── Layer toggles ── */}
