@@ -6,6 +6,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { Maximize2, X, Users, Globe, Layers, Camera } from "lucide-react";
 import type { Feature } from "geojson";
+import { usePrivy } from "@privy-io/react-auth";
 
 // ─── Fix Leaflet default icon paths broken by Vite ────────────────────────────
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -892,6 +893,8 @@ export function ReefMap({
   const expanded  = externalExpanded !== undefined ? externalExpanded : internalExpanded;
   const setExpanded = onExpandChange ?? setInternalExpanded;
 
+  const { login, authenticated } = usePrivy();
+
   const { data: markers = [] } = useQuery<MapMarker[]>({
     queryKey: ["/api/map/markers"],
     refetchInterval: 60_000,
@@ -1104,44 +1107,37 @@ export function ReefMap({
           Expand
         </button>
 
-        {/* ── Legend ── */}
+        {/* ── Legend + Login ── */}
         <div
-          className="absolute bottom-2 left-2 flex flex-col gap-1 pointer-events-none"
+          className="absolute bottom-2 left-2 flex flex-col gap-1.5"
           style={{ zIndex: 500 }}
         >
-          {showMarineRegions && (
-            <div className="flex items-center gap-1.5">
-              <span style={{ width:10,height:6,background:"rgba(253,203,110,0.2)",border:"1.5px solid #fdcb6e",borderRadius:2,display:"inline-block" }}/>
-              <span style={{ fontSize: 8.5, color: "#d4e9f3aa", fontFamily: "Inter,sans-serif" }}>EEZ boundary</span>
-            </div>
-          )}
-          {showCoralMapping && (
-            <div className="flex items-center gap-1.5">
-              <span style={{ width:10,height:6,background:"rgba(253,114,114,0.2)",border:"1.5px solid #fd7272",borderRadius:2,display:"inline-block" }}/>
-              <span style={{ fontSize: 8.5, color: "#d4e9f3aa", fontFamily: "Inter,sans-serif" }}>CoralMapping region</span>
-            </div>
-          )}
-          {showGcrmnSites && (
-            <div className="flex items-center gap-1.5">
-              <span style={{ width:9,height:9,borderRadius:"50%",background:"rgba(166,206,57,0.35)",border:"1.5px solid #A6CE39",display:"inline-block" }}/>
-              <span style={{ fontSize: 8.5, color: "#d4e9f3aa", fontFamily: "Inter,sans-serif" }}>GCRMN site</span>
-            </div>
-          )}
-          {showGcrmn && (
-            <div className="flex items-center gap-1.5">
-              <span style={{ width:10,height:6,background:"rgba(29,209,161,0.35)",border:"1.5px solid #1dd1a1",borderRadius:2,display:"inline-block" }}/>
-              <span style={{ fontSize: 8.5, color: "#d4e9f3aa", fontFamily: "Inter,sans-serif" }}>GCRMN region</span>
-            </div>
-          )}
-          <div className="flex items-center gap-1.5">
-            <span style={{ width:9,height:9,borderRadius:"50%",background:"#83eef0",border:"2px solid #83eef0",display:"inline-block" }}/>
-            <span style={{ fontSize: 8.5, color: "#d4e9f3aa", fontFamily: "Inter,sans-serif" }}>Member</span>
+          {/* Colour swatches — no labels */}
+          <div className="flex items-center gap-1 pointer-events-none">
+            {showMarineRegions && <span title="EEZ boundary" style={{ width:10,height:6,background:"rgba(253,203,110,0.2)",border:"1.5px solid #fdcb6e",borderRadius:2,display:"inline-block" }}/>}
+            {showCoralMapping  && <span title="CoralMapping region" style={{ width:10,height:6,background:"rgba(253,114,114,0.2)",border:"1.5px solid #fd7272",borderRadius:2,display:"inline-block" }}/>}
+            {showGcrmnSites    && <span title="GCRMN monitoring site" style={{ width:8,height:8,borderRadius:"50%",background:"rgba(166,206,57,0.35)",border:"1.5px solid #A6CE39",display:"inline-block" }}/>}
+            {showGcrmn         && <span title="GCRMN region" style={{ width:10,height:6,background:"rgba(29,209,161,0.35)",border:"1.5px solid #1dd1a1",borderRadius:2,display:"inline-block" }}/>}
+            <span title="DAO member" style={{ width:8,height:8,borderRadius:"50%",background:"#83eef0",border:"2px solid #83eef0",display:"inline-block" }}/>
+            {showImgs && reefImgs.length > 0 && <span title="Reef photo" style={{ width:8,height:8,borderRadius:2,background:"#ff9f43",border:"1.5px solid #ffb347",display:"inline-block" }}/>}
           </div>
-          {showImgs && reefImgs.length > 0 && (
-            <div className="flex items-center gap-1.5">
-              <span style={{ width:9,height:9,borderRadius:2,background:"#ff9f43",border:"1.5px solid #ffb347",display:"inline-block" }}/>
-              <span style={{ fontSize: 8.5, color: "#d4e9f3aa", fontFamily: "Inter,sans-serif" }}>Reef photo</span>
-            </div>
+          {/* Log in button */}
+          {!authenticated && (
+            <button
+              data-testid="map-login-button"
+              onClick={() => { try { login(); } catch { /* suppress */ } }}
+              style={{
+                background: "rgba(131,238,240,0.12)",
+                border: "1px solid rgba(131,238,240,0.35)",
+                borderRadius: 6, padding: "3px 9px",
+                fontSize: 9, color: "#83eef0",
+                fontFamily: "Inter,sans-serif", fontWeight: 700,
+                cursor: "pointer", letterSpacing: "0.06em",
+                pointerEvents: "auto",
+              }}
+            >
+              Log in
+            </button>
           )}
         </div>
 
