@@ -364,10 +364,11 @@ function ExpandedMapModal({
   const [showGcrmn,          setShowGcrmn]          = useState(true);
   const [showCoralMapping,   setShowCoralMapping]   = useState(true);
   const [showMPA,            setShowMPA]            = useState(true);
+  const [showMarineRegions,  setShowMarineRegions]  = useState(true);
   const [showImgs,           setShowImgs]           = useState(true);
   const [showGcrmnSites,     setShowGcrmnSites]     = useState(true);
 
-  const activeLayers = (showGcrmn ? 1 : 0) + (showCoralMapping ? 1 : 0) + (showMPA ? 1 : 0) + (showImgs ? 1 : 0) + (showGcrmnSites ? 1 : 0) + 1;
+  const activeLayers = (showGcrmn ? 1 : 0) + (showCoralMapping ? 1 : 0) + (showMPA ? 1 : 0) + (showMarineRegions ? 1 : 0) + (showImgs ? 1 : 0) + (showGcrmnSites ? 1 : 0) + 1;
 
   return createPortal(
     <div
@@ -435,6 +436,17 @@ function ExpandedMapModal({
               attribution="© Esri"
               maxZoom={10}
             />
+            {showMarineRegions && (
+              <WMSTileLayer
+                url="https://geo.vliz.be/geoserver/MarineRegions/wms"
+                layers="MarineRegions:eez"
+                format="image/png"
+                transparent={true}
+                opacity={0.45}
+                version="1.1.1"
+                attribution='© <a href="https://www.marineregions.org">MarineRegions.org · VLIZ</a>'
+              />
+            )}
             {showMPA && (
               <WMSTileLayer
                 url="https://maps.protectedplanet.net/geoserver/wms"
@@ -514,6 +526,14 @@ function ExpandedMapModal({
         }}>
           <SideSection title="Layers">
             <LayerToggle
+              label="EEZ Boundaries (Marine Regions)"
+              sublabel="Exclusive Economic Zones · MarineRegions.org · VLIZ"
+              active={showMarineRegions}
+              color="#fdcb6e"
+              onClick={() => setShowMarineRegions((v) => !v)}
+              testId="expanded-toggle-marine-regions"
+            />
+            <LayerToggle
               label="Marine Protected Areas"
               sublabel="WDPA marine polygons · UNEP-WCMC & IUCN"
               active={showMPA}
@@ -575,6 +595,10 @@ function ExpandedMapModal({
 
           <SideSection title="Map Key">
             <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "3px 0" }}>
+              <span style={{ width:13,height:8,borderRadius:2,background:"rgba(253,203,110,0.2)",border:"1.5px solid #fdcb6e",display:"inline-block",flexShrink:0 }}/>
+              <span style={{ fontSize: 10.5, color: "#d4e9f3bb" }}>Exclusive Economic Zone (EEZ)</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "3px 0" }}>
               <span style={{ width:13,height:8,borderRadius:2,background:"rgba(9,132,227,0.25)",border:"1.5px solid #0984e3",display:"inline-block",flexShrink:0 }}/>
               <span style={{ fontSize: 10.5, color: "#d4e9f3bb" }}>Marine protected area (WDPA)</span>
             </div>
@@ -631,6 +655,46 @@ function ExpandedMapModal({
             >
               ↗ GCRMN / gcrmndb_benthos (GitHub)
             </a>
+          </SideSection>
+
+          <SideSection title="Marine Regions · EEZ">
+            <div style={{ fontSize: 9.5, color: "#d4e9f3aa", lineHeight: 1.5, marginBottom: 8 }}>
+              Marine Regions is a standard reference list of marine place names and geographic areas from the world's seas and oceans, maintained by VLIZ. The EEZ layer shows Exclusive Economic Zones — maritime boundaries within which coastal nations exercise sovereign rights over resources.
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 8px", marginBottom: 8 }}>
+              {[
+                ["Coverage",  "Global"],
+                ["EEZ zones", "~200+"],
+                ["Source",    "VLIZ"],
+                ["API",       "mregions2"],
+              ].map(([k, v]) => (
+                <div key={String(k)} style={{ background: "rgba(253,203,110,0.07)", border: "1px solid rgba(253,203,110,0.25)", borderRadius: 6, padding: "5px 7px" }}>
+                  <div style={{ fontSize: 7.5, color: "#fdcb6e88", textTransform: "uppercase", letterSpacing: "0.07em" }}>{k}</div>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: "#fdcb6e" }}>{v}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ marginBottom: 8 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: "#fdcb6e", marginBottom: 2 }}>mregions2</div>
+              <div style={{ fontSize: 9, color: "#d4e9f377", lineHeight: 1.4 }}>
+                rOpenSci R package for querying the Marine Regions Gazetteer and GeoServer — returns EEZ, IHO Sea Areas, Large Marine Ecosystems, Marine Ecoregions, and 27,000+ other standardised marine place names with geometry.
+              </div>
+            </div>
+            {[
+              { label: "MarineRegions.org (VLIZ)",        href: "https://www.marineregions.org",                                          color: "#fdcb6e" },
+              { label: "mregions2 — rOpenSci (GitHub)",   href: "https://github.com/ropensci/mregions2",                                  color: "#ffeaa7" },
+              { label: "mregions2 documentation",         href: "https://docs.ropensci.org/mregions2/",                                   color: "#ffeaa7" },
+              { label: "Marine Regions Gazetteer",        href: "https://www.marineregions.org/gazetteer.php",                            color: "#ffeaa7" },
+              { label: "EEZ GeoServer layer",             href: "https://geo.vliz.be/geoserver/MarineRegions/wms?SERVICE=WMS&REQUEST=GetCapabilities", color: "#ffeaa7" },
+            ].map(({ label, href, color }) => (
+              <a key={label} href={href} target="_blank" rel="noopener noreferrer"
+                style={{ display: "block", fontSize: 9, color, textDecoration: "none", padding: "2px 0", marginBottom: 2 }}
+                onMouseEnter={e => (e.currentTarget.style.color = "#83eef0")}
+                onMouseLeave={e => (e.currentTarget.style.color = color)}
+              >
+                ↗ {label}
+              </a>
+            ))}
           </SideSection>
 
           <SideSection title="Marine Protected Areas">
@@ -703,6 +767,7 @@ function ExpandedMapModal({
 
           <SideSection title="Data Sources">
             {[
+              { label: "Marine Regions · EEZ (VLIZ / mregions2)",    href: "https://www.marineregions.org",  color: "#fdcb6e" },
               { label: "WDPA · Protected Planet (UNEP-WCMC / IUCN)", href: "https://www.protectedplanet.net", color: "#0984e3" },
               { label: "CoralMapping / GlobalMappingRegions", href: "https://github.com/CoralMapping/GlobalMappingRegions", color: "#fd7272" },
               { label: "CoralMapping / proc_gee_utils",       href: "https://github.com/CoralMapping/proc_gee_utils",       color: "#fdcb6e" },
@@ -797,6 +862,7 @@ export function ReefMap({
   const [showGcrmn,         setShowGcrmn]         = useState(true);
   const [showCoralMapping,  setShowCoralMapping]  = useState(true);
   const [showMPA,           setShowMPA]           = useState(true);
+  const [showMarineRegions, setShowMarineRegions] = useState(true);
   const [showImgs,          setShowImgs]          = useState(true);
   const [showGcrmnSites,    setShowGcrmnSites]    = useState(true);
   const [internalExpanded,  setInternalExpanded]  = useState(false);
@@ -861,6 +927,17 @@ export function ReefMap({
             attribution="© Esri"
             maxZoom={10}
           />
+          {showMarineRegions && (
+            <WMSTileLayer
+              url="https://geo.vliz.be/geoserver/MarineRegions/wms"
+              layers="MarineRegions:eez"
+              format="image/png"
+              transparent={true}
+              opacity={0.4}
+              version="1.1.1"
+              attribution='© MarineRegions.org · VLIZ'
+            />
+          )}
           {showMPA && (
             <WMSTileLayer
               url="https://maps.protectedplanet.net/geoserver/wms"
@@ -929,6 +1006,19 @@ export function ReefMap({
           className="absolute top-2 left-2 flex flex-col gap-1 pointer-events-auto"
           style={{ zIndex: 500 }}
         >
+          <button
+            data-testid="toggle-marine-regions-layer"
+            onClick={() => setShowMarineRegions((v) => !v)}
+            style={{
+              background: showMarineRegions ? "rgba(253,203,110,0.82)" : "rgba(0,19,28,0.75)",
+              border: `1px solid ${showMarineRegions ? "#fdcb6e" : "rgba(253,203,110,0.4)"}`,
+              borderRadius: 6, padding: "2px 7px", fontSize: 9,
+              color: showMarineRegions ? "#00131c" : "#fdcb6ecc",
+              fontFamily: "Inter,sans-serif", fontWeight: 700, cursor: "pointer", letterSpacing: "0.05em",
+            }}
+          >
+            EEZ
+          </button>
           <button
             data-testid="toggle-mpa-layer"
             onClick={() => setShowMPA((v) => !v)}
@@ -1021,6 +1111,12 @@ export function ReefMap({
           className="absolute bottom-2 left-2 flex flex-col gap-1 pointer-events-none"
           style={{ zIndex: 500 }}
         >
+          {showMarineRegions && (
+            <div className="flex items-center gap-1.5">
+              <span style={{ width:10,height:6,background:"rgba(253,203,110,0.2)",border:"1.5px solid #fdcb6e",borderRadius:2,display:"inline-block" }}/>
+              <span style={{ fontSize: 8.5, color: "#d4e9f3aa", fontFamily: "Inter,sans-serif" }}>EEZ boundary</span>
+            </div>
+          )}
           {showMPA && (
             <div className="flex items-center gap-1.5">
               <span style={{ width:10,height:6,background:"rgba(9,132,227,0.25)",border:"1.5px solid #0984e3",borderRadius:2,display:"inline-block" }}/>
