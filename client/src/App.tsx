@@ -89,7 +89,7 @@ function App() {
       <PrivyProvider
         appId={PRIVY_APP_ID}
         config={{
-          loginMethods: ["wallet", "email", "google", "twitter", "linkedin"],
+          loginMethods: ["siwe", "email", "sms", "google", "twitter", "discord", "github", "linkedin", "apple", "farcaster"],
           defaultChain: mainnet,
           supportedChains: EVM_CHAINS,
           appearance: {
@@ -100,12 +100,13 @@ function App() {
             loginMessage: "Access the Coral Reef Knowledge Network",
             walletChainType: "ethereum-only",
             walletList: [
+              "metamask",
               "coinbase_wallet",
               "rainbow",
               "zerion",
               "uniswap",
               "okx_wallet",
-              "metamask",
+              "detected_wallets",
             ],
           },
           embeddedWallets: {
