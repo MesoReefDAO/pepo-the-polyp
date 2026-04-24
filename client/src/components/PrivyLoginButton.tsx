@@ -15,12 +15,45 @@ function MetaMaskIcon({ size = 16 }: { size?: number }) {
   );
 }
 
+function WalletConnectIcon({ size = 13 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <path d="M4.91 7.52C9.86 2.67 17.58 2.67 22.52 7.52L23.1 8.09a.5.5 0 010 .71l-2.06 2.02a.27.27 0 01-.37 0l-.82-.8c-3.47-3.39-9.09-3.39-12.56 0l-.88.86a.27.27 0 01-.37 0L4.01 8.87a.5.5 0 010-.71l.9-.64zm20.34 3.78l1.83 1.79a.5.5 0 010 .71l-8.27 8.1a.53.53 0 01-.75 0l-5.87-5.74a.13.13 0 00-.18 0l-5.87 5.74a.53.53 0 01-.75 0L.33 13.8a.5.5 0 010-.71l1.83-1.79a.53.53 0 01.75 0l5.87 5.74c.05.05.13.05.18 0l5.87-5.74a.53.53 0 01.75 0l5.87 5.74c.05.05.13.05.18 0l5.87-5.74a.53.53 0 01.75 0z" fill="#3B99FC"/>
+    </svg>
+  );
+}
+
+function CoinbaseIcon({ size = 13 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <rect width="24" height="24" rx="6" fill="#0052FF"/>
+      <path d="M12 4.5A7.5 7.5 0 104.5 12 7.51 7.51 0 0012 4.5zm0 13.5A6 6 0 1118 12a6 6 0 01-6 6zm-2.25-6a2.25 2.25 0 104.5 0 2.25 2.25 0 00-4.5 0z" fill="white"/>
+    </svg>
+  );
+}
+
+function BinanceIcon({ size = 13 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <rect width="24" height="24" rx="12" fill="#F3BA2F"/>
+      <path d="M12 6l1.55 1.55L9.1 12l4.45 4.45L12 18 6.65 12 12 6zm0 0l-1.55 1.55L14.9 12l-4.45 4.45L12 18l5.35-6L12 6zM12 9.55L13.45 12 12 14.45 10.55 12 12 9.55z" fill="#1A1A1A"/>
+    </svg>
+  );
+}
+
 function ProviderIcon({ user }: { user: any }) {
   const linked = user?.linkedAccounts ?? [];
   const { wallets } = useWallets();
+
   const metamaskWallet = wallets.find((w) => w.walletClientType === "metamask");
+  const coinbaseWallet = wallets.find((w) => w.walletClientType === "coinbase_wallet");
+  const binanceWallet  = wallets.find((w) => w.walletClientType === "binance");
+  const wcWallet       = wallets.find((w) => w.connectorType === "wallet_connect");
 
   if (metamaskWallet) return <MetaMaskIcon size={14} />;
+  if (coinbaseWallet) return <CoinbaseIcon size={14} />;
+  if (binanceWallet)  return <BinanceIcon size={14} />;
+  if (wcWallet)       return <WalletConnectIcon size={14} />;
 
   if (linked.some((a: any) => a.type === "google_oauth")) {
     return (

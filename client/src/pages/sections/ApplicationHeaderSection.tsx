@@ -114,23 +114,49 @@ function MobileWalletSection() {
               External
             </span>
             {externalWallets.map((w) => {
-              const isMM = w.walletClientType === "metamask";
+              const wct = w.walletClientType;
+              const isMM       = wct === "metamask";
+              const isCoinbase = wct === "coinbase_wallet";
+              const isBinance  = wct === "binance";
+              const isWC       = (w as any).connectorType === "wallet_connect";
+
+              const bgClass = isMM       ? "bg-[#E2761B0a] border-[#E2761B25] active:bg-[#E2761B18]"
+                            : isCoinbase ? "bg-[#0052FF0a] border-[#0052FF25] active:bg-[#0052FF18]"
+                            : isBinance  ? "bg-[#F3BA2F0a] border-[#F3BA2F25] active:bg-[#F3BA2F18]"
+                            : isWC       ? "bg-[#3B99FC0a] border-[#3B99FC25] active:bg-[#3B99FC18]"
+                            :              "bg-[#ffffff08] border-[#ffffff12] active:bg-[#ffffff10]";
+
+              const WalletIcon = () => {
+                if (isMM)       return <MetaMaskIcon size={14} />;
+                if (isCoinbase) return (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect width="24" height="24" rx="6" fill="#0052FF"/><path d="M12 4.5A7.5 7.5 0 104.5 12 7.51 7.51 0 0012 4.5zm0 13.5A6 6 0 1118 12a6 6 0 01-6 6zm-2.25-6a2.25 2.25 0 104.5 0 2.25 2.25 0 00-4.5 0z" fill="white"/></svg>
+                );
+                if (isBinance)  return (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect width="24" height="24" rx="12" fill="#F3BA2F"/><path d="M12 7.5l1.2 1.2-3.45 3.3 3.45 3.3L12 16.5l-4.5-4.5 4.5-4.5zm0 0l-1.2 1.2 3.45 3.3-3.45 3.3L12 16.5l4.5-4.5-4.5-4.5z" fill="#1A1A1A"/></svg>
+                );
+                if (isWC)       return (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M4.91 7.52C9.86 2.67 17.58 2.67 22.52 7.52L23.1 8.09a.5.5 0 010 .71l-2.06 2.02a.27.27 0 01-.37 0l-.82-.8c-3.47-3.39-9.09-3.39-12.56 0l-.88.86a.27.27 0 01-.37 0L4.01 8.87a.5.5 0 010-.71l.9-.64z" fill="#3B99FC"/></svg>
+                );
+                return null;
+              };
+
+              const label = isMM ? "MetaMask" : isCoinbase ? "Coinbase" : isBinance ? "Binance" : isWC ? "WalletConnect" : "Wallet";
+
               return (
                 <button
                   key={w.address}
                   onClick={() => copyAddr(w.address)}
                   data-testid={`wallet-external-mobile-${w.address.slice(-4)}`}
-                  className={`flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl border transition-colors text-left w-full ${
-                    isMM
-                      ? "bg-[#E2761B0a] border-[#E2761B25] active:bg-[#E2761B18]"
-                      : "bg-[#ffffff08] border-[#ffffff12] active:bg-[#ffffff10]"
-                  }`}
+                  className={`flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl border transition-colors text-left w-full ${bgClass}`}
                 >
                   <div className="flex items-center gap-2">
-                    {isMM && <MetaMaskIcon size={14} />}
-                    <span className="[font-family:'Inter',Helvetica] text-[#d4e9f3b2] text-sm font-mono tracking-tight">
-                      {w.address.slice(0, 8)}…{w.address.slice(-6)}
-                    </span>
+                    <WalletIcon />
+                    <div className="flex flex-col">
+                      <span className="[font-family:'Inter',Helvetica] text-[#d4e9f380] text-[9px] uppercase tracking-wider leading-none mb-0.5">{label}</span>
+                      <span className="[font-family:'Inter',Helvetica] text-[#d4e9f3b2] text-sm font-mono tracking-tight">
+                        {w.address.slice(0, 6)}…{w.address.slice(-4)}
+                      </span>
+                    </div>
                   </div>
                   <span className="text-[#d4e9f380] flex-shrink-0">
                     {copied === w.address ? (

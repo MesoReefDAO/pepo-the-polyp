@@ -100,13 +100,15 @@ function App() {
             loginMessage: "Access the Coral Reef Knowledge Network",
             walletChainType: "ethereum-only",
             walletList: [
-              "metamask",
-              "coinbase_wallet",
-              "rainbow",
-              "zerion",
-              "uniswap",
-              "okx_wallet",
-              "detected_wallets",
+              "metamask",       // MetaMask
+              "coinbase_wallet", // Coinbase Wallet
+              "binance",        // Binance Web3 Wallet
+              "okx_wallet",     // OKX Wallet
+              "zerion",         // Zerion
+              "rainbow",        // Rainbow
+              "uniswap",        // Uniswap Wallet
+              "wallet_connect", // WalletConnect — covers Ledger, Trezor, Rabby, Bitso & 300+ others
+              "detected_wallets", // Any other injected browser extension (Rabby, Bitso, etc.)
             ],
           },
           embeddedWallets: {
