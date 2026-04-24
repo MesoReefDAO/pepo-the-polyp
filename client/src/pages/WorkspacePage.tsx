@@ -5,6 +5,7 @@ import { usePrivy } from "@privy-io/react-auth";
 import { IPFSImageUpload } from "@/components/IPFSImageUpload";
 import { ipfsPublicUrl } from "@/lib/ipfs";
 import { FileverseWorkspacePanel } from "@/components/FileverseWorkspacePanel";
+import coralBg from "@assets/coral_polmicro_1777059731544.jpg";
 
 const PRIVY_ENABLED = !!import.meta.env.VITE_PRIVY_APP_ID;
 
@@ -64,16 +65,30 @@ export function WorkspacePage() {
     <div
       style={{
         minHeight: "100vh",
-        background: "#00080c",
+        backgroundImage: `url(${coralBg})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundAttachment: "fixed",
         fontFamily: "Inter, sans-serif",
         color: "#d4e9f3",
+        position: "relative",
       }}
     >
+      {/* Dark overlay so text stays legible over the bright coral image */}
+      <div style={{
+        position: "fixed",
+        inset: 0,
+        background: "linear-gradient(180deg, rgba(0,8,12,0.82) 0%, rgba(0,19,28,0.75) 40%, rgba(0,8,12,0.88) 100%)",
+        zIndex: 0,
+        pointerEvents: "none",
+      }} />
       {/* ── Header ── */}
       <div style={{
         display: "flex", alignItems: "center", gap: 12,
         padding: "14px 24px",
-        background: "rgba(0,19,28,0.97)",
+        background: "rgba(0,19,28,0.88)",
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
         borderBottom: "1px solid rgba(131,238,240,0.12)",
         position: "sticky", top: 0, zIndex: 50,
       }}>
@@ -92,7 +107,7 @@ export function WorkspacePage() {
         </Link>
         <div>
           <div style={{ fontSize: 13, fontWeight: 800, color: "#83eef0", letterSpacing: "0.06em", textTransform: "uppercase" }}>
-            Reef Workspace
+            Regen Reef Workspace
           </div>
           <div style={{ fontSize: 9.5, color: "#d4e9f344", marginTop: 1 }}>
             Powered by Fileverse · Decentralised collaboration tools
@@ -100,7 +115,7 @@ export function WorkspacePage() {
         </div>
       </div>
 
-      <div style={{ maxWidth: 800, margin: "0 auto", padding: "32px 20px 80px" }}>
+      <div style={{ maxWidth: 800, margin: "0 auto", padding: "32px 20px 80px", position: "relative", zIndex: 1 }}>
 
         {/* ── Hero ── */}
         <div style={{ textAlign: "center", marginBottom: 40 }}>
