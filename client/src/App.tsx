@@ -89,7 +89,7 @@ function App() {
       <PrivyProvider
         appId={PRIVY_APP_ID}
         config={{
-          loginMethods: ["siwe", "email", "sms", "google", "twitter", "discord", "github", "linkedin", "apple", "farcaster"],
+          loginMethods: ["siwe", "email", "sms", "google", "twitter", "github", "linkedin"],
           defaultChain: mainnet,
           supportedChains: EVM_CHAINS,
           appearance: {
