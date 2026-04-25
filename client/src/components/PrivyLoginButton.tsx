@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, LogOut } from "lucide-react";
+import { WalletPickerModal } from "./WalletPickerModal";
 
 function MetaMaskIcon({ size = 16 }: { size?: number }) {
   return (
@@ -134,6 +136,7 @@ interface PrivyLoginButtonProps {
 
 export function PrivyLoginButton({ compact = false, onOpenMenu }: PrivyLoginButtonProps) {
   const { ready, authenticated, login, logout, user } = usePrivy();
+  const [showPicker, setShowPicker] = useState(false);
 
   /* ── Loading ── */
   if (!ready) {
@@ -229,30 +232,36 @@ export function PrivyLoginButton({ compact = false, onOpenMenu }: PrivyLoginButt
   /* ── Not authenticated — compact ── */
   if (compact) {
     return (
-      <button
-        onClick={() => { try { login(); } catch { /* suppress */ } }}
-        data-testid="button-login-compact"
-        aria-label="Log in"
-        className="w-9 h-9 rounded-full bg-[linear-gradient(135deg,rgba(131,238,240,0.92)_0%,rgba(63,176,179,0.92)_100%)] border-none shadow-[0_2px_12px_rgba(131,238,240,0.28)] flex items-center justify-center flex-shrink-0 active:opacity-80 transition-opacity"
-      >
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-          <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3" stroke="#00585a" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-      </button>
+      <>
+        <button
+          onClick={() => setShowPicker(true)}
+          data-testid="button-login-compact"
+          aria-label="Log in"
+          className="w-9 h-9 rounded-full bg-[linear-gradient(135deg,rgba(131,238,240,0.92)_0%,rgba(63,176,179,0.92)_100%)] border-none shadow-[0_2px_12px_rgba(131,238,240,0.28)] flex items-center justify-center flex-shrink-0 active:opacity-80 transition-opacity"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+            <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3" stroke="#00585a" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+        {showPicker && <WalletPickerModal onClose={() => setShowPicker(false)} />}
+      </>
     );
   }
 
   /* ── Not authenticated — full desktop ── */
   return (
-    <button
-      onClick={() => { try { login(); } catch { /* suppress */ } }}
-      data-testid="button-login-toggle"
-      className="relative inline-flex items-center justify-center gap-2 px-5 md:px-6 py-2.5 h-auto rounded-full bg-[linear-gradient(170deg,#83eef0_0%,#3fb0b3_100%)] border-none shadow-[0_4px_20px_rgba(131,238,240,0.25)] hover:shadow-[0_4px_24px_rgba(131,238,240,0.4)] hover:opacity-95 transition-all"
-    >
-      <span className="[font-family:'Inter',Helvetica] font-semibold text-[#00585a] text-sm md:text-base leading-6 whitespace-nowrap">
-        Log in
-      </span>
-      <ChevronDown size={14} className="text-[#006b6d]" />
-    </button>
+    <>
+      <button
+        onClick={() => setShowPicker(true)}
+        data-testid="button-login-toggle"
+        className="relative inline-flex items-center justify-center gap-2 px-5 md:px-6 py-2.5 h-auto rounded-full bg-[linear-gradient(170deg,#83eef0_0%,#3fb0b3_100%)] border-none shadow-[0_4px_20px_rgba(131,238,240,0.25)] hover:shadow-[0_4px_24px_rgba(131,238,240,0.4)] hover:opacity-95 transition-all"
+      >
+        <span className="[font-family:'Inter',Helvetica] font-semibold text-[#00585a] text-sm md:text-base leading-6 whitespace-nowrap">
+          Log in
+        </span>
+        <ChevronDown size={14} className="text-[#006b6d]" />
+      </button>
+      {showPicker && <WalletPickerModal onClose={() => setShowPicker(false)} />}
+    </>
   );
 }
