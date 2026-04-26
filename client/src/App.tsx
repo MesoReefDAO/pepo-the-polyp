@@ -19,6 +19,7 @@ import { useGeolocation } from "@/hooks/use-geolocation";
 import { useOrcidAuth } from "@/hooks/use-orcid-auth";
 import { usePrivy } from "@privy-io/react-auth";
 import { SplashScreen } from "@/components/SplashScreen";
+import { LoginModal } from "@/components/LoginModal";
 import coralBg from "@assets/coral_reefs_1777179421866.jpg";
 
 function useSplash() {
@@ -62,8 +63,7 @@ function GeoSyncOrcidOnly() {
 }
 
 function LoginGate() {
-  const { login } = usePrivy();
-  const doLogin = () => { try { login(); } catch { /* ignore */ } };
+  const [showModal, setShowModal] = useState(false);
   return (
     <div className="fixed inset-0 z-40 flex flex-col items-center justify-center px-6">
       {/* Background image */}
@@ -73,31 +73,26 @@ function LoginGate() {
         aria-hidden="true"
         className="absolute inset-0 w-full h-full object-cover"
       />
-      {/* Dark overlay to keep text readable */}
+      {/* Dark overlay */}
       <div className="absolute inset-0" style={{ background: "linear-gradient(160deg,rgba(0,8,12,0.82) 0%,rgba(0,26,34,0.75) 60%,rgba(0,8,12,0.88) 100%)" }} />
       {/* Teal glow */}
       <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 60% 40% at 50% 40%, rgba(131,238,240,0.08) 0%, transparent 70%)" }} />
 
-      {/* Content (above overlays) */}
+      {/* Content */}
       <div className="relative z-10 flex flex-col items-center">
-        {/* Logo */}
         <img
           src="/figmaAssets/mesoreef-dao-logo-new.png"
           alt="MesoReef DAO"
           className="h-16 w-auto object-contain mb-8 opacity-90"
         />
-
-        {/* Heading */}
         <h1 className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-bold text-[#d4e9f3] text-2xl md:text-3xl text-center mb-3 leading-tight">
           Pepo the Polyp
         </h1>
         <p className="[font-family:'Inter',Helvetica] text-[#d4e9f380] text-sm md:text-base text-center max-w-xs mb-10 leading-relaxed">
           Sign in to access the MesoReef DAO Coral Knowledge Network
         </p>
-
-        {/* Login button */}
         <button
-          onClick={doLogin}
+          onClick={() => setShowModal(true)}
           data-testid="button-gate-login"
           className="inline-flex items-center justify-center gap-2.5 px-8 py-3.5 rounded-full bg-[linear-gradient(170deg,#83eef0_0%,#3fb0b3_100%)] shadow-[0_4px_24px_rgba(131,238,240,0.3)] hover:shadow-[0_6px_32px_rgba(131,238,240,0.45)] hover:opacity-95 transition-all"
         >
@@ -108,16 +103,9 @@ function LoginGate() {
             Sign in
           </span>
         </button>
-
-        {/* ORCID secondary link */}
-        <a
-          href="/api/auth/orcid"
-          data-testid="link-orcid-gate"
-          className="mt-5 [font-family:'Inter',Helvetica] text-[#A6CE3980] text-xs hover:text-[#A6CE39bb] transition-colors"
-        >
-          Researcher? Sign in with ORCID iD →
-        </a>
       </div>
+
+      {showModal && <LoginModal onClose={() => setShowModal(false)} />}
     </div>
   );
 }
