@@ -1,95 +1,7 @@
-import { useState, useEffect, useRef } from "react";
-import { usePrivy, useLoginWithSiwe } from "@privy-io/react-auth";
-import { X, Loader2, AlertCircle, ExternalLink } from "lucide-react";
+import { useState } from "react";
+import { usePrivy } from "@privy-io/react-auth";
+import { X, Loader2, AlertCircle } from "lucide-react";
 import { OrcidIcon } from "./OrcidLoginButton";
-
-// ─── EIP-6963 types ───────────────────────────────────────────────────────────
-
-interface EIP6963ProviderInfo {
-  uuid: string;
-  name: string;
-  icon: string;
-  rdns: string;
-}
-interface EIP6963ProviderDetail {
-  info: EIP6963ProviderInfo;
-  provider: { request: (args: { method: string; params?: any[] }) => Promise<any> };
-}
-
-// ─── Wallet definitions ───────────────────────────────────────────────────────
-
-interface WalletDef {
-  id: string;
-  name: string;
-  desc: string;
-  accent: string;
-  clientType: string;
-  rdns: string;
-  installUrl: string;
-  icon: React.ReactNode;
-}
-
-const FEATURED_WALLETS: WalletDef[] = [
-  {
-    id: "metamask",
-    name: "MetaMask",
-    desc: "The most popular Ethereum wallet",
-    accent: "#E2761B",
-    clientType: "metamask",
-    rdns: "io.metamask",
-    installUrl: "https://metamask.io/download",
-    icon: (
-      <svg width="32" height="32" viewBox="0 0 35 33" fill="none">
-        <path d="M32.958 1L19.48 10.858l2.45-5.813L32.958 1z" fill="#E17726" stroke="#E17726" strokeWidth=".25" strokeLinecap="round" strokeLinejoin="round"/>
-        <path d="M2.042 1l13.365 9.957-2.33-5.912L2.042 1z" fill="#E27625" stroke="#E27625" strokeWidth=".25" strokeLinecap="round" strokeLinejoin="round"/>
-        <path d="M28.178 23.533l-3.588 5.487 7.677 2.114 2.202-7.48-6.291-.121zM1.55 23.654l2.19 7.48 7.666-2.114-3.577-5.487-6.279.121z" fill="#E27625" stroke="#E27625" strokeWidth=".25" strokeLinecap="round" strokeLinejoin="round"/>
-        <path d="M11.406 29.02l4.58-2.224-3.95-3.083-.63 5.307zM19.014 26.796l4.591 2.224-.642-5.307-3.95 3.083z" fill="#E27625" stroke="#E27625" strokeWidth=".25" strokeLinecap="round" strokeLinejoin="round"/>
-        <path d="M19.256 22.01l-.88 4.544.627.44 3.95-3.083.12-3.118-3.817 1.217zM15.744 22.01l-3.808-1.218.099 3.118 3.95 3.083.638-.44-.88-4.543z" fill="#F5841F" stroke="#F5841F" strokeWidth=".25" strokeLinecap="round" strokeLinejoin="round"/>
-        <path d="M32.012 16.44l-7.59-2.222 2.15 3.233-3.193 6.236 4.215-.055h6.29l-1.872-7.192zM10.978 14.218l-7.59 2.222-1.86 7.192h6.28l4.204.055-3.193-6.236 2.16-3.233z" fill="#F5841F" stroke="#F5841F" strokeWidth=".25" strokeLinecap="round" strokeLinejoin="round"/>
-      </svg>
-    ),
-  },
-  {
-    id: "coinbase",
-    name: "Coinbase Wallet",
-    desc: "Simple & secure self-custody",
-    accent: "#0052FF",
-    clientType: "coinbase_wallet",
-    rdns: "com.coinbase.wallet",
-    installUrl: "https://www.coinbase.com/wallet/downloads",
-    icon: (
-      <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-        <rect width="32" height="32" rx="10" fill="#0052FF"/>
-        <path d="M16 6A10 10 0 106 16 10.01 10.01 0 0016 6zm0 18A8 8 0 1124 16 8 8 0 0116 24zm-3-8a3 3 0 106 0 3 3 0 00-6 0z" fill="white"/>
-      </svg>
-    ),
-  },
-  {
-    id: "rabby",
-    name: "Rabby Wallet",
-    desc: "Multi-chain DeFi browser wallet",
-    accent: "#8B5CF6",
-    clientType: "injected",
-    rdns: "io.rabby",
-    installUrl: "https://rabby.io",
-    icon: (
-      <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-        <rect width="32" height="32" rx="10" fill="#8B5CF6"/>
-        <ellipse cx="16" cy="13" rx="7" ry="8" fill="#C4B5FD"/>
-        <ellipse cx="10" cy="8" rx="2.5" ry="4.5" fill="#C4B5FD"/>
-        <ellipse cx="22" cy="8" rx="2.5" ry="4.5" fill="#C4B5FD"/>
-        <ellipse cx="10" cy="7.5" rx="1.2" ry="3.5" fill="#8B5CF6"/>
-        <ellipse cx="22" cy="7.5" rx="1.2" ry="3.5" fill="#8B5CF6"/>
-        <circle cx="13" cy="14" r="1.5" fill="#5B21B6"/>
-        <circle cx="19" cy="14" r="1.5" fill="#5B21B6"/>
-        <path d="M13.5 17.5q2.5 2 5 0" stroke="#5B21B6" strokeWidth="1.2" strokeLinecap="round" fill="none"/>
-        <ellipse cx="16" cy="21" rx="5" ry="3" fill="#A78BFA"/>
-        <path d="M11 21q-3 1-2 4t4 3" stroke="#C4B5FD" strokeWidth="1.1" strokeLinecap="round" fill="none"/>
-        <path d="M21 21q3 1 2 4t-4 3" stroke="#C4B5FD" strokeWidth="1.1" strokeLinecap="round" fill="none"/>
-      </svg>
-    ),
-  },
-];
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
@@ -98,102 +10,28 @@ interface WalletPickerModalProps {
 }
 
 export function WalletPickerModal({ onClose }: WalletPickerModalProps) {
-  const [connecting, setConnecting] = useState<string | null>(null);
-  const [error, setError]           = useState<string | null>(null);
-
-  // EIP-6963: collect one entry per rdns
-  const [detected, setDetected] = useState<Map<string, EIP6963ProviderDetail>>(new Map());
-  const detectedRef = useRef<Map<string, EIP6963ProviderDetail>>(new Map());
-
-  useEffect(() => {
-    const handle = (event: Event) => {
-      const { info, provider } = (event as CustomEvent<EIP6963ProviderDetail>).detail;
-      detectedRef.current.set(info.rdns, { info, provider });
-      setDetected(new Map(detectedRef.current));
-    };
-    window.addEventListener("eip6963:announceProvider", handle as EventListener);
-    window.dispatchEvent(new Event("eip6963:requestProvider"));
-    return () => window.removeEventListener("eip6963:announceProvider", handle as EventListener);
-  }, []);
-
-  // Call Privy's SIWE hook WITHOUT callbacks — we handle success/error via the
-  // returned Promise (avoids stale-closure issues with callback-based patterns).
-  const { generateSiweMessage, loginWithSiwe } = useLoginWithSiwe();
-
-  // ── Headless Privy SIWE — uses each wallet's specific EIP-6963 provider ────
-  const connectWallet = async (wallet: WalletDef) => {
-    setError(null);
-
-    // Use the exact EIP-6963 provider for this wallet; fall back to window.ethereum
-    const providerDetail = detected.get(wallet.rdns);
-    const eth = providerDetail?.provider ?? (window as any).ethereum;
-
-    if (!eth) {
-      setError(`${wallet.name} not found. Install it, then refresh and try again.`);
-      return;
-    }
-
-    setConnecting(wallet.id);
-    try {
-      // Step 1 — Unlock wallet and get the connected address
-      const accounts: string[] = await eth.request({ method: "eth_requestAccounts" });
-      const address = accounts?.[0];
-      if (!address) throw new Error("No account returned from wallet.");
-
-      // Step 2 — Read current chain
-      const chainIdHex: string = await eth.request({ method: "eth_chainId" });
-      const chainId = parseInt(chainIdHex, 16) || 1;
-
-      // Step 3 — Ask Privy to build the EIP-4361 SIWE message (includes nonce)
-      const message = await generateSiweMessage({
-        address,
-        chainId: `eip155:${chainId}` as `eip155:${number}`,
-      });
-
-      // Step 4 — Sign in the user's wallet (shows one native wallet popup)
-      const signature: string = await eth.request({
-        method: "personal_sign",
-        params: [message, address],
-      });
-
-      // Step 5 — Exchange the signed message for a Privy session
-      await loginWithSiwe({
-        message,
-        signature,
-        walletClientType: wallet.clientType,
-        connectorType:    "injected",
-      });
-
-      // Success — loginWithSiwe resolved, session is live
-      setConnecting(null);
-      onClose();
-    } catch (err: any) {
-      const msg: string = err?.message ?? "";
-      if (err?.code === 4001 || /reject|denied|cancelled|user rejected/i.test(msg)) {
-        setError("You declined the signature. Approve the sign request in your wallet to continue.");
-      } else if (err?.code === -32002) {
-        setError("A wallet request is already pending — check your wallet extension.");
-      } else if (/already.*authenticated|already logged in/i.test(msg)) {
-        // Privy thinks the user is already logged in — treat as success
-        setConnecting(null);
-        onClose();
-        return;
-      } else {
-        setError(msg || "Connection failed. Please try again.");
-      }
-      setConnecting(null);
-    }
-  };
+  const [connectingWC, setConnectingWC] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const { login } = usePrivy();
 
-  const openPrivyFallback = () => {
+  // Opens Privy's own modal (has WalletConnect, detected wallets, etc.)
+  const openPrivy = (source?: string) => {
+    if (source === "wc") setConnectingWC(true);
+    setError(null);
     onClose();
-    // A tiny delay lets the modal unmount before Privy's modal mounts
-    setTimeout(() => { try { login(); } catch { /* */ } }, 80);
+    setTimeout(() => {
+      try {
+        login();
+      } catch {
+        /* ignore */
+      } finally {
+        setConnectingWC(false);
+      }
+    }, 80);
   };
 
-  const busy = connecting !== null;
+  const busy = connectingWC;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
@@ -241,18 +79,36 @@ export function WalletPickerModal({ onClose }: WalletPickerModalProps) {
         {/* Scrollable body */}
         <div className="overflow-y-auto flex-1 px-4 pb-6">
 
-          {/* ── Featured wallets (MetaMask · Coinbase · Rabby) ── */}
+          {/* ── WalletConnect ── */}
           <div className="flex flex-col gap-2.5 mb-5">
-            {FEATURED_WALLETS.map((w) => (
-              <FeaturedWalletRow
-                key={w.id}
-                wallet={w}
-                isAvailable={detected.has(w.rdns)}
-                isLoading={connecting === w.id}
-                disabled={busy}
-                onConnect={() => connectWallet(w)}
-              />
-            ))}
+            <button
+              onClick={busy ? undefined : () => openPrivy("wc")}
+              disabled={busy}
+              data-testid="wallet-option-walletconnect"
+              className="flex items-center gap-3.5 w-full px-4 py-3.5 rounded-2xl border transition-all text-left disabled:opacity-60"
+              style={{ background: "#3b99fc08", borderColor: "#3b99fc28" }}
+            >
+              {/* Icon */}
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "#3b99fc16" }}>
+                {connectingWC
+                  ? <Loader2 size={24} className="animate-spin text-[#83eef0]" />
+                  : <WalletConnectIcon />
+                }
+              </div>
+              {/* Label */}
+              <div className="flex-1 min-w-0">
+                <div className="[font-family:'Inter',Helvetica] font-semibold text-[#d4e9f3] text-sm leading-snug">
+                  WalletConnect
+                </div>
+                <div className="[font-family:'Inter',Helvetica] text-[#d4e9f348] text-xs mt-0.5">
+                  {connectingWC
+                    ? <span style={{ color: "#3b99fccc" }}>Opening wallet selector…</span>
+                    : "Connect any compatible Web3 wallet"
+                  }
+                </div>
+              </div>
+              {!connectingWC && <ChevronRight color="#3b99fc80" />}
+            </button>
           </div>
 
           {/* ── ORCID ── */}
@@ -275,13 +131,13 @@ export function WalletPickerModal({ onClose }: WalletPickerModalProps) {
             </button>
           </div>
 
-          {/* ── Other sign-in options ── */}
+          {/* ── Social / email options ── */}
           <div>
             <div className="grid grid-cols-2 gap-2 mt-2.5">
               {OTHER_OPTIONS.map((opt) => (
                 <button
                   key={opt.id}
-                  onClick={busy ? undefined : openPrivyFallback}
+                  onClick={busy ? undefined : () => openPrivy(opt.id)}
                   disabled={busy}
                   data-testid={`wallet-option-${opt.id}`}
                   className="flex flex-col items-center gap-1.5 px-2 py-3 rounded-xl border border-[#ffffff0a] bg-[#ffffff04] hover:bg-[#ffffff0a] transition-colors disabled:opacity-50"
@@ -308,71 +164,6 @@ export function WalletPickerModal({ onClose }: WalletPickerModalProps) {
   );
 }
 
-// ─── Featured wallet row ──────────────────────────────────────────────────────
-
-function FeaturedWalletRow({
-  wallet, isAvailable, isLoading, disabled, onConnect,
-}: {
-  wallet: WalletDef;
-  isAvailable: boolean;
-  isLoading: boolean;
-  disabled: boolean;
-  onConnect: () => void;
-}) {
-  return (
-    <button
-      onClick={disabled ? undefined : onConnect}
-      disabled={disabled}
-      data-testid={`wallet-option-${wallet.id}`}
-      className="flex items-center gap-3.5 w-full px-4 py-3.5 rounded-2xl border transition-all text-left disabled:opacity-60"
-      style={{
-        background:  `${wallet.accent}08`,
-        borderColor: `${wallet.accent}28`,
-      }}
-    >
-      {/* Icon / spinner */}
-      <div
-        className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
-        style={{ background: `${wallet.accent}16` }}
-      >
-        {isLoading
-          ? <Loader2 size={24} className="animate-spin text-[#83eef0]" />
-          : wallet.icon}
-      </div>
-
-      {/* Label */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <span className="[font-family:'Inter',Helvetica] font-semibold text-[#d4e9f3] text-sm leading-snug">
-            {wallet.name}
-          </span>
-          {isAvailable && !isLoading && (
-            <span
-              className="px-1.5 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wider"
-              style={{ background: `${wallet.accent}20`, color: wallet.accent }}
-            >
-              Detected
-            </span>
-          )}
-        </div>
-        <div className="[font-family:'Inter',Helvetica] text-[#d4e9f348] text-xs mt-0.5">
-          {isLoading
-            ? <span style={{ color: `${wallet.accent}cc` }}>Connecting… approve in wallet</span>
-            : isAvailable
-            ? wallet.desc
-            : <span className="flex items-center gap-1 text-[#d4e9f340]">
-                Not installed
-                <ExternalLink size={9} />
-              </span>
-          }
-        </div>
-      </div>
-
-      {!isLoading && <ChevronRight color={isAvailable ? `${wallet.accent}80` : "#d4e9f320"} />}
-    </button>
-  );
-}
-
 // ─── Tiny helpers ─────────────────────────────────────────────────────────────
 
 function ChevronRight({ color = "#d4e9f320" }: { color?: string }) {
@@ -395,7 +186,16 @@ function SectionDivider({ label }: { label: string }) {
   );
 }
 
-// ─── Other sign-in pill options ───────────────────────────────────────────────
+function WalletConnectIcon() {
+  return (
+    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+      <rect width="32" height="32" rx="10" fill="#3b99fc"/>
+      <path d="M9.58 12.76c3.54-3.47 9.28-3.47 12.82 0l.43.42a.44.44 0 010 .63l-1.46 1.43a.23.23 0 01-.32 0l-.59-.58c-2.47-2.42-6.47-2.42-8.94 0l-.63.62a.23.23 0 01-.32 0L9.11 13.85a.44.44 0 010-.63l.47-.46zm15.84 2.95l1.3 1.27a.44.44 0 010 .63l-5.86 5.74a.46.46 0 01-.64 0l-4.16-4.08a.12.12 0 00-.16 0l-4.16 4.08a.46.46 0 01-.64 0L5.24 17.61a.44.44 0 010-.63l1.3-1.27a.46.46 0 01.64 0l4.16 4.08a.12.12 0 00.16 0l4.16-4.08a.46.46 0 01.64 0l4.16 4.08a.12.12 0 00.16 0l4.16-4.08a.46.46 0 01.64 0z" fill="white"/>
+    </svg>
+  );
+}
+
+// ─── Social / email pill options ──────────────────────────────────────────────
 
 const OTHER_OPTIONS = [
   { id: "google",   label: "Google",   color: "#4285F4",

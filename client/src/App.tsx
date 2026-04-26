@@ -100,7 +100,7 @@ function LoginGate() {
       </button>
 
       <p className="[font-family:'Inter',Helvetica] text-[#d4e9f328] text-[10px] text-center mt-6">
-        MetaMask · Coinbase · Rabby · ORCID iD · Google · Email · GitHub · X · LinkedIn
+        WalletConnect · ORCID iD · Google · Email · GitHub · X · LinkedIn
       </p>
 
       {showPicker && <WalletPickerModal onClose={() => setShowPicker(false)} />}
@@ -169,6 +169,7 @@ function App() {
             "detected_wallets",
           ],
         },
+        walletConnectCloudProjectId: "f5524663247ff0def1a83d46985aba41",
         embeddedWallets: {
           ethereum: { createOnLogin: "users-without-wallets" },
           showWalletUIs: true,
