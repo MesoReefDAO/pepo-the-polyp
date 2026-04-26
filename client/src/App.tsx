@@ -10,6 +10,7 @@ import NotFound from "@/pages/not-found";
 import { Body } from "@/pages/Body";
 import { UserProfileDashboard } from "@/pages/UserProfileDashboard";
 import { CommunityLeaderboard } from "@/pages/CommunityLeaderboard";
+import { Governance } from "@/pages/Governance";
 import { PublicProfile } from "@/pages/PublicProfile";
 import { MobileMapPage } from "@/pages/MobileMapPage";
 import { WorkspacePage } from "@/pages/WorkspacePage";
@@ -39,6 +40,7 @@ function Router() {
       <Route path="/" component={Body} />
       <Route path="/profile" component={UserProfileDashboard} />
       <Route path="/community" component={CommunityLeaderboard} />
+      <Route path="/governance" component={Governance} />
       <Route path="/members/:id" component={PublicProfile} />
       <Route path="/map" component={MobileMapPage} />
       <Route path="/workspace" component={WorkspacePage} />

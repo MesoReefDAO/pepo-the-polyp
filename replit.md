@@ -28,6 +28,7 @@ client/src/
   pages/
     Body.tsx                              — Main layout (header + sidebar + dashboard)
     CommunityLeaderboard.tsx              — Community page: Leaderboard (left) + Profile cards (right); rows/cards are clickable divs navigating to /members/:id
+    Governance.tsx                        — /governance page: Vocdoni-powered DAO voting. Lists proposals fetched from Vocdoni API, vote modal (requires connected wallet), create proposal form. Configured via VITE_VOCDONI_ORG_ADDRESS + VITE_VOCDONI_ENV env vars.
     PublicProfile.tsx                     — Public member profile at /members/:id; shows avatar, bio, ORCID badge, stats, activity feed
     UserProfileDashboard.tsx              — My Profile edit page (bio, tags, links, ORCID linking)
     WorkspacePage.tsx                     — /workspace page: Fileverse dDocs + dSheets integration cards with launch buttons, About Fileverse section

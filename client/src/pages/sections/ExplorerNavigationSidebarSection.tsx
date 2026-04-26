@@ -80,6 +80,17 @@ function PlusIcon() {
   );
 }
 
+function GovernanceIcon({ active }: { active?: boolean }) {
+  const color = active ? "#83eef0" : "#d4e9f380";
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <path d="M3 10L12 3L21 10V20C21 20.55 20.55 21 20 21H15V15H9V21H4C3.45 21 3 20.55 3 20V10Z" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M8 21V15H16V21" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+      <circle cx="12" cy="10" r="2" stroke={color} strokeWidth="1.8"/>
+    </svg>
+  );
+}
+
 // ─── Wallet Panel ─────────────────────────────────────────────────────────────
 function WalletPanel() {
   const { authenticated, linkWallet } = usePrivy();
@@ -261,6 +272,7 @@ export const ExplorerNavigationSidebarSection = (): JSX.Element => {
   const [location] = useLocation();
   const isProfile = location === "/profile";
   const isCommunity = location === "/community";
+  const isGovernance = location === "/governance";
 
   return (
     <nav className="flex flex-col w-64 min-h-screen items-start justify-between p-6 bg-[#00080c99] border-r border-[#ffffff0d] backdrop-blur-md [-webkit-backdrop-filter:blur(12px)_brightness(100%)] relative z-10">
@@ -304,6 +316,21 @@ export const ExplorerNavigationSidebarSection = (): JSX.Element => {
           <img className="w-5 h-5 flex-shrink-0" alt="Community" src="/figmaAssets/container-2.svg" />
           <span className={`${TEXT_BASE} ${isCommunity ? "font-bold text-[#83eef0]" : "font-medium text-[#d4e9f380]"}`}>
             Community
+          </span>
+        </Link>
+
+        {/* Governance */}
+        <Link
+          href="/governance"
+          data-testid="link-governance"
+          className={`${PILL_BASE} ${isGovernance ? PILL_ACTIVE : PILL_INACTIVE}`}
+          style={isGovernance ? EMBOSS : {}}
+        >
+          <div className="w-5 h-5 flex-shrink-0 flex items-center justify-center">
+            <GovernanceIcon active={isGovernance} />
+          </div>
+          <span className={`${TEXT_BASE} ${isGovernance ? "font-bold text-[#83eef0]" : "font-medium text-[#d4e9f380]"}`}>
+            Governance
           </span>
         </Link>
 
