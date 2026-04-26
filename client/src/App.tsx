@@ -84,7 +84,7 @@ function LoginGate() {
         <img
           src="/figmaAssets/mesoreef-dao-logo-new.png"
           alt="MesoReef DAO"
-          className="h-10 w-auto object-contain mb-8 opacity-90"
+          className="h-16 w-auto object-contain mb-8 opacity-90"
         />
 
         {/* Heading */}

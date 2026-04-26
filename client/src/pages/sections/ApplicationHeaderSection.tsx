@@ -301,7 +301,7 @@ export const ApplicationHeaderSection = (): JSX.Element => {
         <img
           src="/figmaAssets/mesoreef-dao-logo-new.png"
           alt="MesoReef DAO"
-          className="h-8 md:h-10 w-auto flex-shrink-0 object-contain"
+          className="h-11 md:h-14 w-auto flex-shrink-0 object-contain"
         />
 
         {/* Desktop navigation links */}
@@ -383,7 +383,7 @@ export const ApplicationHeaderSection = (): JSX.Element => {
             <img
               src="/figmaAssets/mesoreef-dao-logo-new.png"
               alt="MesoReef DAO"
-              className="h-8 w-auto object-contain"
+              className="h-11 w-auto object-contain"
             />
             <button
               onClick={() => setMobileMenuOpen(false)}

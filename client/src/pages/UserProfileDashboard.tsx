@@ -735,7 +735,7 @@ export function UserProfileDashboard() {
             <BackIcon />
             <span className="[font-family:'Inter',Helvetica] text-sm">Back</span>
           </Link>
-          <img src="/figmaAssets/mesoreef-dao-logo-new.png" alt="MesoReef DAO" className="h-8 w-auto object-contain" />
+          <img src="/figmaAssets/mesoreef-dao-logo-new.png" alt="MesoReef DAO" className="h-11 w-auto object-contain" />
           {authenticated ? (
             <button
               onClick={logout}
