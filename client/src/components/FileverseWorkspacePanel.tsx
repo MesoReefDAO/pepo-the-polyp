@@ -2,7 +2,6 @@ import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { useState } from "react";
 import { ExternalLink, FileText, Table2, Plus, CheckCircle2, Images } from "lucide-react";
 import { PRIVY_ENABLED } from "@/lib/privy";
-import { WalletPickerModal } from "@/components/WalletPickerModal";
 
 function dDocsIcon(size = 16) {
   return (
@@ -57,10 +56,10 @@ export function FileverseWorkspacePanel({
   variant = "sidebar",
   onLogin,
 }: FileverseWorkspacePanelProps) {
-  const { authenticated, user } = usePrivy();
+  const { authenticated, login, user } = usePrivy();
   const { wallets } = useWallets();
-  const [showPicker, setShowPicker] = useState(false);
   const [copied, setCopied] = useState(false);
+  const doLogin = () => { try { login(); } catch { /* ignore */ } };
 
   const primaryWallet = wallets[0];
   const walletAddr = primaryWallet?.address ?? user?.wallet?.address;
@@ -113,7 +112,7 @@ export function FileverseWorkspacePanel({
               <span style={{ fontSize: 9, fontWeight: 700, color: "#ff9f43bb", fontFamily: "Inter,sans-serif", letterSpacing: "0.04em" }}>Reef Imgs</span>
             </a>
             <button
-              onClick={onLogin ?? (() => setShowPicker(true))}
+              onClick={onLogin ?? doLogin}
               data-testid="button-workspace-login-sidebar"
               className="flex-1 flex flex-col items-center gap-1 py-2 rounded-[10px] transition-colors cursor-pointer"
               style={{ background: "rgba(131,238,240,0.05)", border: "1px solid rgba(131,238,240,0.14)", outline: "none" }}
@@ -124,7 +123,6 @@ export function FileverseWorkspacePanel({
               <span style={{ fontSize: 9, fontWeight: 700, color: "#83eef055", fontFamily: "Inter,sans-serif", letterSpacing: "0.04em" }}>Log in</span>
             </button>
           </div>
-          {showPicker && <WalletPickerModal onClose={() => setShowPicker(false)} />}
         </>
       );
     }

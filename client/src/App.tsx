@@ -19,7 +19,6 @@ import { useGeolocation } from "@/hooks/use-geolocation";
 import { useOrcidAuth } from "@/hooks/use-orcid-auth";
 import { usePrivy } from "@privy-io/react-auth";
 import { SplashScreen } from "@/components/SplashScreen";
-import { WalletPickerModal } from "@/components/WalletPickerModal";
 import coralBg from "@assets/coral_reefs_1777179421866.jpg";
 
 function useSplash() {
@@ -63,7 +62,8 @@ function GeoSyncOrcidOnly() {
 }
 
 function LoginGate() {
-  const [showPicker, setShowPicker] = useState(false);
+  const { login } = usePrivy();
+  const doLogin = () => { try { login(); } catch { /* ignore */ } };
   return (
     <div className="fixed inset-0 z-40 flex flex-col items-center justify-center px-6">
       {/* Background image */}
@@ -97,7 +97,7 @@ function LoginGate() {
 
         {/* Login button */}
         <button
-          onClick={() => setShowPicker(true)}
+          onClick={doLogin}
           data-testid="button-gate-login"
           className="inline-flex items-center justify-center gap-2.5 px-8 py-3.5 rounded-full bg-[linear-gradient(170deg,#83eef0_0%,#3fb0b3_100%)] shadow-[0_4px_24px_rgba(131,238,240,0.3)] hover:shadow-[0_6px_32px_rgba(131,238,240,0.45)] hover:opacity-95 transition-all"
         >
@@ -108,9 +108,16 @@ function LoginGate() {
             Sign in
           </span>
         </button>
-      </div>
 
-      {showPicker && <WalletPickerModal onClose={() => setShowPicker(false)} />}
+        {/* ORCID secondary link */}
+        <a
+          href="/api/auth/orcid"
+          data-testid="link-orcid-gate"
+          className="mt-5 [font-family:'Inter',Helvetica] text-[#A6CE3980] text-xs hover:text-[#A6CE39bb] transition-colors"
+        >
+          Researcher? Sign in with ORCID iD →
+        </a>
+      </div>
     </div>
   );
 }
