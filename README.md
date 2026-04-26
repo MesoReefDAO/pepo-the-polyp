@@ -133,14 +133,14 @@ ORCID is the primary standalone login — no wallet required.
 4. Server exchanges code for access token + ORCID iD, creates/updates profile, stores session
 5. Redirect to `/profile`
 
-ORCID App ID: `APP-7ZOOJ6V1LVQD5MBX`  
+ORCID App ID: ``  
 Registered redirect URIs:
-- `https://thepolyp.xyz/api/auth/orcid/callback`
-- `https://pepothepolyp.replit.app/api/auth/orcid/callback`
+- ``
+- ``
 
 ### Privy (Wallet + Social)
 
-- App ID: `cmnysfvqe00ff0cjmh15ba116`
+- App ID: ``
 - Login methods: MetaMask, Coinbase, Rainbow, Rabby, WalletConnect, Google, Twitter, LinkedIn, email
 - Default chain: Base
 - EVM chains: mainnet, polygon, base, arbitrum, optimism, avalanche
