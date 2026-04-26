@@ -84,45 +84,40 @@ function AppContent() {
 }
 
 function App() {
-  if (PRIVY_ENABLED) {
-    return (
-      <PrivyProvider
-        appId={PRIVY_APP_ID}
-        config={{
-          loginMethods: ["siwe", "email", "sms", "google", "twitter", "github", "linkedin"],
-          defaultChain: mainnet,
-          supportedChains: EVM_CHAINS,
-          appearance: {
-            theme: "dark",
-            accentColor: "#83eef0",
-            logo: `${window.location.origin}/transparent.png`,
-            landingHeader: "Sign in to MesoReef DAO",
-            loginMessage: "Access the Coral Reef Knowledge Network",
-            walletChainType: "ethereum-only",
-            walletList: [
-              "metamask",       // MetaMask
-              "coinbase_wallet", // Coinbase Wallet
-              "binance",        // Binance Web3 Wallet
-              "okx_wallet",     // OKX Wallet
-              "zerion",         // Zerion
-              "rainbow",        // Rainbow
-              "uniswap",        // Uniswap Wallet
-              "wallet_connect", // WalletConnect — covers Ledger, Trezor, Rabby, Bitso & 300+ others
-              "detected_wallets", // Any other injected browser extension (Rabby, Bitso, etc.)
-            ],
-          },
-          embeddedWallets: {
-            ethereum: { createOnLogin: "users-without-wallets" },
-            showWalletUIs: true,
-          },
-        }}
-      >
-        <AppContent />
-      </PrivyProvider>
-    );
-  }
-
-  return <AppContent />;
+  // Always wrap with PrivyProvider so Privy hooks can be called unconditionally
+  // anywhere in the tree — the PRIVY_ENABLED flag only gates the login methods.
+  return (
+    <PrivyProvider
+      appId={PRIVY_APP_ID || "placeholder-disabled"}
+      config={{
+        loginMethods: PRIVY_ENABLED
+          ? ["siwe", "email", "sms", "google", "twitter", "github", "linkedin"]
+          : [],
+        defaultChain: mainnet,
+        supportedChains: EVM_CHAINS,
+        appearance: {
+          theme: "dark",
+          accentColor: "#83eef0",
+          logo: `${window.location.origin}/transparent.png`,
+          landingHeader: "Sign in to MesoReef DAO",
+          loginMessage: "Access the Coral Reef Knowledge Network",
+          walletChainType: "ethereum-only",
+          walletList: [
+            "metamask",
+            "coinbase_wallet",
+            "wallet_connect",
+            "detected_wallets",
+          ],
+        },
+        embeddedWallets: {
+          ethereum: { createOnLogin: "users-without-wallets" },
+          showWalletUIs: true,
+        },
+      }}
+    >
+      <AppContent />
+    </PrivyProvider>
+  );
 }
 
 export default App;

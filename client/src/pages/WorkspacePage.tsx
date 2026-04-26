@@ -7,7 +7,6 @@ import { ipfsPublicUrl } from "@/lib/ipfs";
 import { FileverseWorkspacePanel } from "@/components/FileverseWorkspacePanel";
 import coralBg from "@assets/coral_polmicro_1777059731544.jpg";
 
-const PRIVY_ENABLED = !!import.meta.env.VITE_PRIVY_APP_ID;
 
 const TOOLS = [
   {
@@ -45,9 +44,7 @@ export function WorkspacePage() {
   const [archivedImages, setArchivedImages] = useState<{ cid: string; localUrl: string; mimeType: string }[]>([]);
   const [privyToken, setPrivyToken] = useState<string | undefined>(undefined);
 
-  const { authenticated, getAccessToken } = PRIVY_ENABLED
-    ? usePrivy()
-    : { authenticated: false, getAccessToken: async () => null as string | null };
+  const { authenticated, getAccessToken } = usePrivy();
 
   useEffect(() => {
     if (!authenticated) return;

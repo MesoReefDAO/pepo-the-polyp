@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { usePrivy } from "@privy-io/react-auth";
-import { PRIVY_ENABLED } from "@/lib/privy";
 import { Trophy, MessageCircle, Star, Users, ArrowLeft, Globe, ChevronRight } from "lucide-react";
 import type { LeaderboardEntry } from "@shared/schema";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
@@ -248,10 +247,7 @@ function ProfileCard({ entry, rank }: { entry: LeaderboardEntry; rank: number })
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export function CommunityLeaderboard() {
-  const { user, authenticated } = PRIVY_ENABLED
-    ? // eslint-disable-next-line react-hooks/rules-of-hooks
-      usePrivy()
-    : { user: null, authenticated: false };
+  const { user, authenticated } = usePrivy();
 
   const { data: leaderboard = [], isLoading } = useQuery<LeaderboardEntry[]>({
     queryKey: ["/api/leaderboard"],

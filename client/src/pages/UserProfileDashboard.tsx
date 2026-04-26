@@ -477,16 +477,10 @@ function WalletsRow({ wallets }: { wallets: any[] }) {
 
 // ─── Main dashboard ───────────────────────────────────────────────────────────
 export function UserProfileDashboard() {
-  const { ready, authenticated: privyAuthenticated, user, login, logout: privyLogout, getAccessToken } = PRIVY_ENABLED
-    ? usePrivy()
-    : { ready: true, authenticated: false, user: null, login: () => {}, logout: () => {}, getAccessToken: async () => null };
-  const { wallets } = PRIVY_ENABLED
-    ? useWallets()
-    : { wallets: [] as any[] };
+  const { ready, authenticated: privyAuthenticated, user, login, logout: privyLogout, getAccessToken } = usePrivy();
+  const { wallets } = useWallets();
 
-  const ceramic = PRIVY_ENABLED
-    ? useCeramicProfile()
-    : { did: null, isAuthenticated: false, authenticate: async () => null, saveProfile: async () => null, loadProfile: async () => null, authLoading: false, syncLoading: false, error: null };
+  const ceramic = useCeramicProfile();
 
   const {
     orcidAuthenticated,
