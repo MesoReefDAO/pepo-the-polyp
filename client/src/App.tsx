@@ -165,7 +165,7 @@ function App() {
       appId={PRIVY_APP_ID || "placeholder-disabled"}
       config={{
         loginMethods: PRIVY_ENABLED
-          ? ["siwe", "google", "twitter", "github", "linkedin", "email"]
+          ? ["wallet", "google", "twitter", "github", "linkedin", "email"]
           : [],
         defaultChain: base,
         supportedChains: EVM_CHAINS,
@@ -176,6 +176,7 @@ function App() {
           landingHeader: "Sign in to MesoReef DAO",
           loginMessage: "Access the Coral Reef Knowledge Network",
           walletChainType: "ethereum-only",
+          showWalletLoginFirst: true,
           walletList: [
             "metamask",
             "coinbase_wallet",
