@@ -19,7 +19,6 @@ import { useGeolocation } from "@/hooks/use-geolocation";
 import { useOrcidAuth } from "@/hooks/use-orcid-auth";
 import { usePrivy } from "@privy-io/react-auth";
 import { SplashScreen } from "@/components/SplashScreen";
-import { LoginModal } from "@/components/LoginModal";
 import coralBg from "@assets/coral_reefs_1777179421866.jpg";
 
 function useSplash() {
@@ -63,7 +62,8 @@ function GeoSyncOrcidOnly() {
 }
 
 function LoginGate() {
-  const [showModal, setShowModal] = useState(false);
+  const { login } = usePrivy();
+  const doLogin = () => { try { login(); } catch { /* ignore */ } };
   return (
     <div className="fixed inset-0 z-40 flex flex-col items-center justify-center px-6">
       {/* Background image */}
@@ -88,13 +88,15 @@ function LoginGate() {
         <h1 className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-bold text-[#d4e9f3] text-2xl md:text-3xl text-center mb-3 leading-tight">
           Pepo the Polyp
         </h1>
-        <p className="[font-family:'Inter',Helvetica] text-[#d4e9f380] text-sm md:text-base text-center max-w-xs mb-10 leading-relaxed">
+        <p className="[font-family:'Inter',Helvetica] text-[#d4e9f380] text-sm md:text-base text-center max-w-xs mb-8 leading-relaxed">
           Sign in to access the MesoReef DAO Coral Knowledge Network
         </p>
+
+        {/* Primary: Privy (wallets + socials) */}
         <button
-          onClick={() => setShowModal(true)}
+          onClick={doLogin}
           data-testid="button-gate-login"
-          className="inline-flex items-center justify-center gap-2.5 px-8 py-3.5 rounded-full bg-[linear-gradient(170deg,#83eef0_0%,#3fb0b3_100%)] shadow-[0_4px_24px_rgba(131,238,240,0.3)] hover:shadow-[0_6px_32px_rgba(131,238,240,0.45)] hover:opacity-95 transition-all"
+          className="inline-flex items-center justify-center gap-2.5 px-8 py-3.5 rounded-full bg-[linear-gradient(170deg,#83eef0_0%,#3fb0b3_100%)] shadow-[0_4px_24px_rgba(131,238,240,0.3)] hover:shadow-[0_6px_32px_rgba(131,238,240,0.45)] hover:opacity-95 transition-all w-64"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
             <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3" stroke="#00585a" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/>
@@ -103,9 +105,35 @@ function LoginGate() {
             Sign in
           </span>
         </button>
-      </div>
 
-      {showModal && <LoginModal onClose={() => setShowModal(false)} />}
+        {/* Divider */}
+        <div className="flex items-center gap-3 w-64 my-4">
+          <div className="flex-1 h-px" style={{ background: "rgba(255,255,255,0.12)" }} />
+          <span className="[font-family:'Inter',Helvetica] text-xs" style={{ color: "rgba(255,255,255,0.3)" }}>or</span>
+          <div className="flex-1 h-px" style={{ background: "rgba(255,255,255,0.12)" }} />
+        </div>
+
+        {/* Alternative: ORCID */}
+        <a
+          href="/api/auth/orcid"
+          data-testid="link-orcid-gate"
+          className="inline-flex items-center justify-center gap-2.5 px-8 py-3.5 rounded-full w-64 transition-all hover:opacity-90 active:scale-[0.98]"
+          style={{
+            background: "rgba(166,206,57,0.10)",
+            border: "1px solid rgba(166,206,57,0.35)",
+            boxShadow: "0 2px 16px rgba(166,206,57,0.10)",
+          }}
+        >
+          {/* ORCID logo */}
+          <svg width="18" height="18" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="128" cy="128" r="128" fill="#A6CE39"/>
+            <path d="M86.3 186.2H70.9V79.1h15.4v107.1zM108.9 79.1h41.6c39.6 0 57 28.3 57 53.6 0 27.5-21.5 53.6-56.8 53.6h-41.8V79.1zm15.4 93.3h24.5c34.9 0 42.9-26.5 42.9-39.7C191.7 111.2 178 93 148 93h-23.7v79.4zM88.7 56.8c0 5.5-4.5 10.1-10.1 10.1s-10.1-4.6-10.1-10.1c0-5.6 4.5-10.1 10.1-10.1s10.1 4.5 10.1 10.1z" fill="white"/>
+          </svg>
+          <span className="[font-family:'Inter',Helvetica] font-semibold text-sm leading-none" style={{ color: "#A6CE39" }}>
+            Sign in with ORCID iD
+          </span>
+        </a>
+      </div>
     </div>
   );
 }
