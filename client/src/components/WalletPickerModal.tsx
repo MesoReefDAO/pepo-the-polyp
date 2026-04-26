@@ -1,7 +1,91 @@
 import { useState } from "react";
 import { usePrivy } from "@privy-io/react-auth";
-import { X, Loader2, AlertCircle } from "lucide-react";
+import { X, AlertCircle } from "lucide-react";
 import { OrcidIcon } from "./OrcidLoginButton";
+
+// ─── Wallet definitions ───────────────────────────────────────────────────────
+
+interface WalletDef {
+  id: string;
+  name: string;
+  desc: string;
+  accent: string;
+  icon: React.ReactNode;
+}
+
+const FEATURED_WALLETS: WalletDef[] = [
+  {
+    id: "metamask",
+    name: "MetaMask",
+    desc: "The most popular Ethereum wallet",
+    accent: "#F6851B",
+    icon: (
+      <svg width="34" height="32" viewBox="0 0 318 318" fill="none">
+        <polygon points="274.1,35.5 174.6,109.4 193,65.8" fill="#E2761B" stroke="#E2761B" strokeLinecap="round" strokeLinejoin="round"/>
+        <polygon points="43.4,35.5 141.5,110.1 124.5,65.8" fill="#E4761B" stroke="#E4761B" strokeLinecap="round" strokeLinejoin="round"/>
+        <polygon points="238,206.8 211.8,247.4 268.5,263 284.8,207.7" fill="#E4761B" stroke="#E4761B" strokeLinecap="round" strokeLinejoin="round"/>
+        <polygon points="32.7,207.7 48.9,263 105.6,247.4 79.4,206.8" fill="#E4761B" stroke="#E4761B" strokeLinecap="round" strokeLinejoin="round"/>
+        <polygon points="102.3,138.2 86.5,162.1 142.7,164.6 140.8,104.3" fill="#E4761B" stroke="#E4761B" strokeLinecap="round" strokeLinejoin="round"/>
+        <polygon points="215.3,138.2 176.6,103.6 174.6,164.6 230.9,162.1" fill="#E4761B" stroke="#E4761B" strokeLinecap="round" strokeLinejoin="round"/>
+        <polygon points="105.6,247.4 139.2,230.9 110,208.1" fill="#E4761B" stroke="#E4761B" strokeLinecap="round" strokeLinejoin="round"/>
+        <polygon points="178.3,230.9 211.8,247.4 207.5,208.1" fill="#E4761B" stroke="#E4761B" strokeLinecap="round" strokeLinejoin="round"/>
+        <polygon points="211.8,247.4 178.3,230.9 181,254.5 180.6,262.3" fill="#D7C1B3" stroke="#D7C1B3" strokeLinecap="round" strokeLinejoin="round"/>
+        <polygon points="105.6,247.4 136.9,262.3 136.6,254.5 139.2,230.9" fill="#D7C1B3" stroke="#D7C1B3" strokeLinecap="round" strokeLinejoin="round"/>
+        <polygon points="137.4,200.6 109.2,192.1 128.8,182.8" fill="#233447" stroke="#233447" strokeLinecap="round" strokeLinejoin="round"/>
+        <polygon points="180.1,200.6 188.7,182.8 208.4,192.1" fill="#233447" stroke="#233447" strokeLinecap="round" strokeLinejoin="round"/>
+        <polygon points="105.6,247.4 110.2,206.8 79.4,207.7" fill="#CD6116" stroke="#CD6116" strokeLinecap="round" strokeLinejoin="round"/>
+        <polygon points="207.3,206.8 211.8,247.4 238,207.7" fill="#CD6116" stroke="#CD6116" strokeLinecap="round" strokeLinejoin="round"/>
+        <polygon points="230.9,162.1 174.6,164.6 180.1,200.6 188.7,182.8 208.4,192.1" fill="#CD6116" stroke="#CD6116" strokeLinecap="round" strokeLinejoin="round"/>
+        <polygon points="109.2,192.1 128.8,182.8 137.4,200.6 142.7,164.6 86.5,162.1" fill="#CD6116" stroke="#CD6116" strokeLinecap="round" strokeLinejoin="round"/>
+        <polygon points="86.5,162.1 110,208.1 109.2,192.1" fill="#E4751F" stroke="#E4751F" strokeLinecap="round" strokeLinejoin="round"/>
+        <polygon points="208.4,192.1 207.5,208.1 230.9,162.1" fill="#E4751F" stroke="#E4751F" strokeLinecap="round" strokeLinejoin="round"/>
+        <polygon points="142.7,164.6 137.4,200.6 144.1,235.6 145.6,186.1" fill="#E4751F" stroke="#E4751F" strokeLinecap="round" strokeLinejoin="round"/>
+        <polygon points="174.6,164.6 171.9,186 178.3,235.6 185.4,200.6" fill="#E4751F" stroke="#E4751F" strokeLinecap="round" strokeLinejoin="round"/>
+        <polygon points="185.4,200.6 178.3,235.6 183.1,238.7 207.5,208.1 208.4,192.1" fill="#F6851B" stroke="#F6851B" strokeLinecap="round" strokeLinejoin="round"/>
+        <polygon points="109.2,192.1 110,208.1 134.4,238.7 139.2,235.6 142.7,200.6 137.4,200.6" fill="#F6851B" stroke="#F6851B" strokeLinecap="round" strokeLinejoin="round"/>
+        <polygon points="185.9,262.3 186.1,254.5 183.7,252.3 134,252.3 131.8,254.5 136.9,262.3" fill="#C0AD9E" stroke="#C0AD9E" strokeLinecap="round" strokeLinejoin="round"/>
+        <polygon points="180.6,262.3 181,254.5 178.3,230.9 139.2,230.9 136.6,254.5 136.9,262.3" fill="#D7C1B3" stroke="#D7C1B3" strokeLinecap="round" strokeLinejoin="round"/>
+        <polygon points="274.1,35.5 193,65.8 206.3,103.3 230.9,162.1 215.3,138.2 193,112.1" fill="#763D16" stroke="#763D16" strokeLinecap="round" strokeLinejoin="round"/>
+        <polygon points="43.4,35.5 124.5,112.1 102.3,138.2 86.5,162.1 110.5,103.3 124.5,65.8" fill="#763D16" stroke="#763D16" strokeLinecap="round" strokeLinejoin="round"/>
+        <polygon points="139.2,230.9 134.4,238.7 131.8,254.5 134,252.3 183.7,252.3 186.1,254.5 183.1,238.7 178.3,230.9" fill="#763D16" stroke="#763D16" strokeLinecap="round" strokeLinejoin="round"/>
+        <polygon points="174.6,109.4 193,65.8 206.3,103.3" fill="#F6851B" stroke="#F6851B" strokeLinecap="round" strokeLinejoin="round"/>
+        <polygon points="110.5,103.3 124.5,65.8 141.5,110.1" fill="#F6851B" stroke="#F6851B" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    ),
+  },
+  {
+    id: "rabby",
+    name: "Rabby Wallet",
+    desc: "Multi-chain DeFi browser wallet",
+    accent: "#8697FF",
+    icon: (
+      <svg width="34" height="34" viewBox="0 0 80 80" fill="none">
+        <rect width="80" height="80" rx="18" fill="#8697FF"/>
+        <path d="M59.2 30.6c0-10.3-8.6-18.6-19.2-18.6S20.8 20.3 20.8 30.6c0 6.3 3.2 11.8 8.1 15.2L25 55h30l-3.9-9.2c4.9-3.4 8.1-8.9 8.1-15.2z" fill="white" fillOpacity="0.95"/>
+        <ellipse cx="33" cy="30" rx="4" ry="5" fill="#8697FF"/>
+        <ellipse cx="47" cy="30" rx="4" ry="5" fill="#8697FF"/>
+        <circle cx="33" cy="30" r="2" fill="#1a1a2e"/>
+        <circle cx="47" cy="30" r="2" fill="#1a1a2e"/>
+        <path d="M35 37c0 2.8 10 2.8 10 0" stroke="#8697FF" strokeWidth="1.8" strokeLinecap="round"/>
+        <rect x="28" y="53" width="24" height="8" rx="4" fill="white" fillOpacity="0.9"/>
+        <path d="M28 57c-4 0-7 2-7 5s3 5 7 5h2v-10h-2z" fill="white" fillOpacity="0.7"/>
+        <path d="M52 57c4 0 7 2 7 5s-3 5-7 5h-2v-10h2z" fill="white" fillOpacity="0.7"/>
+      </svg>
+    ),
+  },
+  {
+    id: "coinbase",
+    name: "Coinbase Wallet",
+    desc: "Simple & secure self-custody",
+    accent: "#0052FF",
+    icon: (
+      <svg width="34" height="34" viewBox="0 0 200 200" fill="none">
+        <rect width="200" height="200" rx="42" fill="#0052FF"/>
+        <path fillRule="evenodd" clipRule="evenodd" d="M100 15C53.6 15 16 52.6 16 99S53.6 183 100 183s84-37.6 84-84S146.4 15 100 15zm-20.8 60.2h41.6c3.1 0 5.6 2.5 5.6 5.6v38.4c0 3.1-2.5 5.6-5.6 5.6H79.2c-3.1 0-5.6-2.5-5.6-5.6V80.8c0-3.1 2.5-5.6 5.6-5.6z" fill="white"/>
+      </svg>
+    ),
+  },
+];
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
@@ -10,36 +94,22 @@ interface WalletPickerModalProps {
 }
 
 export function WalletPickerModal({ onClose }: WalletPickerModalProps) {
-  const [connectingWC, setConnectingWC] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
   const { login } = usePrivy();
 
-  // Opens Privy's own modal (has WalletConnect, detected wallets, etc.)
-  const openPrivy = (source?: string) => {
-    if (source === "wc") setConnectingWC(true);
+  // All wallet buttons route through Privy's native modal
+  const openPrivy = () => {
     setError(null);
     onClose();
     setTimeout(() => {
-      try {
-        login();
-      } catch {
-        /* ignore */
-      } finally {
-        setConnectingWC(false);
-      }
+      try { login(); } catch { /* ignore */ }
     }, 80);
   };
-
-  const busy = connectingWC;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
       {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-        onClick={busy ? undefined : onClose}
-      />
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
 
       {/* Sheet */}
       <div
@@ -57,10 +127,9 @@ export function WalletPickerModal({ onClose }: WalletPickerModalProps) {
             </p>
           </div>
           <button
-            onClick={busy ? undefined : onClose}
-            disabled={busy}
+            onClick={onClose}
             data-testid="wallet-picker-close"
-            className="w-8 h-8 rounded-full bg-[#ffffff0a] hover:bg-[#ffffff14] flex items-center justify-center transition-colors disabled:opacity-30"
+            className="w-8 h-8 rounded-full bg-[#ffffff0a] hover:bg-[#ffffff14] flex items-center justify-center transition-colors"
           >
             <X size={15} className="text-[#d4e9f380]" />
           </button>
@@ -70,44 +139,63 @@ export function WalletPickerModal({ onClose }: WalletPickerModalProps) {
         {error && (
           <div className="mx-4 mb-3 px-3 py-2.5 rounded-xl bg-[#ff4a4a0d] border border-[#ff4a4a30] flex items-start gap-2 flex-shrink-0">
             <AlertCircle size={13} className="text-[#ff8080] mt-0.5 flex-shrink-0" />
-            <p className="[font-family:'Inter',Helvetica] text-[#ff9090] text-xs leading-relaxed">
-              {error}
-            </p>
+            <p className="[font-family:'Inter',Helvetica] text-[#ff9090] text-xs leading-relaxed">{error}</p>
           </div>
         )}
 
         {/* Scrollable body */}
         <div className="overflow-y-auto flex-1 px-4 pb-6">
 
-          {/* ── WalletConnect ── */}
+          {/* ── Browser wallets ── */}
           <div className="flex flex-col gap-2.5 mb-5">
+            {FEATURED_WALLETS.map((w) => (
+              <button
+                key={w.id}
+                onClick={openPrivy}
+                data-testid={`wallet-option-${w.id}`}
+                className="flex items-center gap-3.5 w-full px-4 py-3.5 rounded-2xl border transition-all text-left hover:opacity-90 active:scale-[0.99]"
+                style={{ background: `${w.accent}08`, borderColor: `${w.accent}28` }}
+              >
+                <div
+                  className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: `${w.accent}16` }}
+                >
+                  {w.icon}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="[font-family:'Inter',Helvetica] font-semibold text-[#d4e9f3] text-sm leading-snug">
+                    {w.name}
+                  </div>
+                  <div className="[font-family:'Inter',Helvetica] text-[#d4e9f348] text-xs mt-0.5">
+                    {w.desc}
+                  </div>
+                </div>
+                <ChevronRight color={`${w.accent}80`} />
+              </button>
+            ))}
+          </div>
+
+          {/* ── WalletConnect ── */}
+          <div className="mb-5">
+            <SectionDivider label="Mobile wallets" />
             <button
-              onClick={busy ? undefined : () => openPrivy("wc")}
-              disabled={busy}
+              onClick={openPrivy}
               data-testid="wallet-option-walletconnect"
-              className="flex items-center gap-3.5 w-full px-4 py-3.5 rounded-2xl border transition-all text-left disabled:opacity-60"
+              className="mt-2.5 flex items-center gap-3.5 w-full px-4 py-3.5 rounded-2xl border transition-all text-left hover:opacity-90 active:scale-[0.99]"
               style={{ background: "#3b99fc08", borderColor: "#3b99fc28" }}
             >
-              {/* Icon */}
               <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "#3b99fc16" }}>
-                {connectingWC
-                  ? <Loader2 size={24} className="animate-spin text-[#83eef0]" />
-                  : <WalletConnectIcon />
-                }
+                <WalletConnectIcon />
               </div>
-              {/* Label */}
               <div className="flex-1 min-w-0">
                 <div className="[font-family:'Inter',Helvetica] font-semibold text-[#d4e9f3] text-sm leading-snug">
                   WalletConnect
                 </div>
                 <div className="[font-family:'Inter',Helvetica] text-[#d4e9f348] text-xs mt-0.5">
-                  {connectingWC
-                    ? <span style={{ color: "#3b99fccc" }}>Opening wallet selector…</span>
-                    : "Connect any compatible Web3 wallet"
-                  }
+                  Scan QR with Trust, Rainbow & more
                 </div>
               </div>
-              {!connectingWC && <ChevronRight color="#3b99fc80" />}
+              <ChevronRight color="#3b99fc80" />
             </button>
           </div>
 
@@ -115,10 +203,9 @@ export function WalletPickerModal({ onClose }: WalletPickerModalProps) {
           <div className="mb-5">
             <SectionDivider label="Research identity" />
             <button
-              onClick={busy ? undefined : () => { window.location.href = "/api/auth/orcid"; }}
-              disabled={busy}
+              onClick={() => { window.location.href = "/api/auth/orcid"; }}
               data-testid="wallet-option-orcid"
-              className="mt-2.5 flex items-center gap-3 w-full px-4 py-3 rounded-2xl border border-[#A6CE3922] bg-[#A6CE3908] hover:bg-[#A6CE3914] transition-colors text-left disabled:opacity-50"
+              className="mt-2.5 flex items-center gap-3 w-full px-4 py-3 rounded-2xl border border-[#A6CE3922] bg-[#A6CE3908] hover:bg-[#A6CE3914] transition-colors text-left"
             >
               <div className="w-11 h-11 rounded-xl bg-[#A6CE3918] flex items-center justify-center flex-shrink-0">
                 <OrcidIcon size={28} />
@@ -131,16 +218,15 @@ export function WalletPickerModal({ onClose }: WalletPickerModalProps) {
             </button>
           </div>
 
-          {/* ── Social / email options ── */}
+          {/* ── Social / email ── */}
           <div>
             <div className="grid grid-cols-2 gap-2 mt-2.5">
               {OTHER_OPTIONS.map((opt) => (
                 <button
                   key={opt.id}
-                  onClick={busy ? undefined : () => openPrivy(opt.id)}
-                  disabled={busy}
+                  onClick={openPrivy}
                   data-testid={`wallet-option-${opt.id}`}
-                  className="flex flex-col items-center gap-1.5 px-2 py-3 rounded-xl border border-[#ffffff0a] bg-[#ffffff04] hover:bg-[#ffffff0a] transition-colors disabled:opacity-50"
+                  className="flex flex-col items-center gap-1.5 px-2 py-3 rounded-xl border border-[#ffffff0a] bg-[#ffffff04] hover:bg-[#ffffff0a] transition-colors"
                 >
                   <span style={{ color: opt.color }}>{opt.icon}</span>
                   <span className="[font-family:'Inter',Helvetica] text-[#d4e9f370] text-[10px] font-medium">
@@ -164,7 +250,7 @@ export function WalletPickerModal({ onClose }: WalletPickerModalProps) {
   );
 }
 
-// ─── Tiny helpers ─────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function ChevronRight({ color = "#d4e9f320" }: { color?: string }) {
   return (
