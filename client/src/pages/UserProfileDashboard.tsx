@@ -286,10 +286,36 @@ const inputCls = "w-full bg-[#00000050] border border-[#83eef020] rounded-2xl px
 
 // ─── Connected Accounts mini-panel ────────────────────────────────────────────
 function LinkedAccountsRow({ user }: { user: any }) {
-  const { linkGoogle, linkTwitter, linkLinkedIn, linkEmail, linkWallet } = usePrivy();
-  const linked = user?.linkedAccounts ?? [];
+  const { linkGoogle, linkTwitter, linkLinkedIn, linkEmail, linkWallet,
+          unlinkGoogle, unlinkTwitter, unlinkLinkedIn, unlinkEmail } = usePrivy();
+  const linked: any[] = user?.linkedAccounts ?? [];
+  const [unlinking, setUnlinking] = useState<string | null>(null);
+  const [unlinkError, setUnlinkError] = useState<string | null>(null);
 
   const has = (type: string) => linked.some((a: any) => a.type === type);
+  const get = (type: string) => linked.find((a: any) => a.type === type);
+
+  // Only show unlink when user has 2+ linked accounts (prevent lockout)
+  const linkedSocialCount = ["email", "google_oauth", "twitter_oauth", "linkedin_oauth"]
+    .filter(has).length;
+  const canUnlink = linkedSocialCount > 1;
+
+  async function handleUnlink(type: string) {
+    const acct = get(type);
+    if (!acct) return;
+    setUnlinking(type);
+    setUnlinkError(null);
+    try {
+      if (type === "email") await unlinkEmail(acct.address);
+      else if (type === "google_oauth") await unlinkGoogle(acct.subject);
+      else if (type === "twitter_oauth") await unlinkTwitter(acct.subject);
+      else if (type === "linkedin_oauth") await unlinkLinkedIn(acct.subject);
+    } catch (e: any) {
+      setUnlinkError(e?.message ?? "Could not unlink — try again.");
+    } finally {
+      setUnlinking(null);
+    }
+  }
 
   const accounts = [
     { type: "email", icon: <span className="text-[#83eef0] text-[9px] font-bold">@</span>, label: "Email", onLink: linkEmail },
@@ -301,21 +327,42 @@ function LinkedAccountsRow({ user }: { user: any }) {
 
   return (
     <div className="flex flex-col gap-2">
-      <label className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-semibold text-[#d4e9f3b2] text-xs uppercase tracking-wider">
-        Linked Accounts
-      </label>
+      <div className="flex items-center justify-between">
+        <label className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-semibold text-[#d4e9f3b2] text-xs uppercase tracking-wider">
+          Linked Accounts
+        </label>
+        {canUnlink && (
+          <span className="[font-family:'Inter',Helvetica] text-[9px] text-[#d4e9f340]">
+            Click × to unlink
+          </span>
+        )}
+      </div>
       <div className="flex flex-wrap gap-2">
-        {accounts.map((a) => (
+        {accounts.map((a) =>
           has(a.type) ? (
             <div
               key={a.type}
               data-testid={`status-linked-${a.type}`}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#83eef015] border border-[#83eef033] text-[#83eef0]"
+              className="flex items-center gap-1.5 pl-3 pr-1.5 py-1.5 rounded-full bg-[#83eef015] border border-[#83eef033] text-[#83eef0]"
               title={`${a.label} connected`}
             >
               {a.icon}
               <span className="[font-family:'Inter',Helvetica] text-[10px]">{a.label}</span>
               <CheckIcon />
+              {canUnlink && a.type !== "wallet" && (
+                <button
+                  onClick={() => handleUnlink(a.type)}
+                  disabled={unlinking === a.type}
+                  data-testid={`button-unlink-${a.type}`}
+                  title={`Unlink ${a.label}`}
+                  className="ml-0.5 w-4 h-4 rounded-full flex items-center justify-center bg-[#ff6b6b20] hover:bg-[#ff6b6b40] text-[#ff6b6b99] hover:text-[#ff6b6b] transition-colors disabled:opacity-40"
+                >
+                  {unlinking === a.type
+                    ? <div className="w-2 h-2 rounded-full border border-current border-t-transparent animate-spin" />
+                    : <svg width="6" height="6" viewBox="0 0 10 10" fill="none"><path d="M1 1l8 8M9 1L1 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                  }
+                </button>
+              )}
             </div>
           ) : (
             <button
@@ -330,8 +377,16 @@ function LinkedAccountsRow({ user }: { user: any }) {
               <PlusIcon />
             </button>
           )
-        ))}
+        )}
       </div>
+      {unlinkError && (
+        <p className="[font-family:'Inter',Helvetica] text-red-400 text-[10px]">{unlinkError}</p>
+      )}
+      {!canUnlink && linkedSocialCount === 1 && (
+        <p className="[font-family:'Inter',Helvetica] text-[#d4e9f333] text-[10px]">
+          Link another account before unlinking this one.
+        </p>
+      )}
     </div>
   );
 }
@@ -477,16 +532,10 @@ function WalletsRow({ wallets }: { wallets: any[] }) {
 
 // ─── Main dashboard ───────────────────────────────────────────────────────────
 export function UserProfileDashboard() {
-  const { ready, authenticated: privyAuthenticated, user, login, logout: privyLogout, getAccessToken } = PRIVY_ENABLED
-    ? usePrivy()
-    : { ready: true, authenticated: false, user: null, login: () => {}, logout: () => {}, getAccessToken: async () => null };
-  const { wallets } = PRIVY_ENABLED
-    ? useWallets()
-    : { wallets: [] as any[] };
+  const { ready, authenticated: privyAuthenticated, user, login, logout: privyLogout, getAccessToken } = usePrivy();
+  const { wallets } = useWallets();
 
-  const ceramic = PRIVY_ENABLED
-    ? useCeramicProfile()
-    : { did: null, isAuthenticated: false, authenticate: async () => null, saveProfile: async () => null, loadProfile: async () => null, authLoading: false, syncLoading: false, error: null };
+  const ceramic = useCeramicProfile();
 
   const {
     orcidAuthenticated,
@@ -553,11 +602,29 @@ export function UserProfileDashboard() {
     }
   }, [savedProfile]);
 
-  // Hydrate from ORCID session (standalone ORCID login)
+  // Hydrate from ORCID session; if Privy user just connected ORCID, also persist it to their profile
   useEffect(() => {
     if (sessionOrcidId && !orcidId) {
       setOrcidId(sessionOrcidId);
       setOrcidName(sessionOrcidName || null);
+      // Privy user connected ORCID via the full auth flow — save it to their Privy profile too
+      if (privyAuthenticated) {
+        (async () => {
+          try {
+            const token = await getAccessToken();
+            if (!token) return;
+            await fetch("/api/profiles/orcid", {
+              method: "POST",
+              headers: { "Content-Type": "application/json", "x-privy-token": token },
+              body: JSON.stringify({ orcidId: sessionOrcidId, orcidName: sessionOrcidName || "" }),
+            });
+            queryClient.invalidateQueries({ queryKey: ["/api/profiles"] });
+            queryClient.invalidateQueries({ queryKey: ["/api/leaderboard"] });
+          } catch {
+            // non-blocking
+          }
+        })();
+      }
     }
   }, [sessionOrcidId, sessionOrcidName]);
 
@@ -610,6 +677,30 @@ export function UserProfileDashboard() {
     }
     if (err) { setOrcidError(err); window.history.replaceState({}, "", "/profile"); }
   }, [searchStr]);
+
+  async function handleOrcidDisconnect() {
+    // Clear session
+    if (orcidAuthenticated) orcidLogout();
+    // Clear local state immediately
+    setOrcidId(null);
+    setOrcidName(null);
+    // Clear from DB (Privy-authenticated users only)
+    if (privyAuthenticated) {
+      try {
+        const token = await getAccessToken();
+        if (token) {
+          await fetch("/api/profiles/orcid", {
+            method: "DELETE",
+            headers: { "x-privy-token": token },
+          });
+          queryClient.invalidateQueries({ queryKey: ["/api/profiles"] });
+          queryClient.invalidateQueries({ queryKey: ["/api/leaderboard"] });
+        }
+      } catch {
+        // non-blocking
+      }
+    }
+  }
 
   // Derive identity
   const linked = user?.linkedAccounts ?? [];
@@ -741,7 +832,7 @@ export function UserProfileDashboard() {
             <BackIcon />
             <span className="[font-family:'Inter',Helvetica] text-sm">Back</span>
           </Link>
-          <img src="/figmaAssets/mesoreef-dao-logo-new.png" alt="MesoReef DAO" className="h-8 w-auto object-contain" />
+          <img src="/figmaAssets/mesoreef-dao-logo-new.png" alt="MesoReef DAO" className="h-11 w-auto object-contain" />
           {authenticated ? (
             <button
               onClick={logout}
@@ -1013,15 +1104,31 @@ export function UserProfileDashboard() {
                     <div className="flex flex-col gap-2">
                       <label className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-semibold text-[#d4e9f3b2] text-xs uppercase tracking-wider">ORCID iD</label>
                       {orcidId ? (
-                        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#a6ce3910] border border-[#a6ce3930]">
-                          <span className="text-[#a6ce39] font-bold text-sm [font-family:'Inter',Helvetica]">iD</span>
-                          {orcidName && <span className="text-[#d4e9f3] text-xs [font-family:'Inter',Helvetica]">{orcidName}</span>}
-                          <span className="text-[#d4e9f366] text-[10px] font-mono [font-family:'Inter',Helvetica]">{orcidId}</span>
-                          <span className="ml-auto text-[#a6ce39] text-[10px] [font-family:'Inter',Helvetica]">Verified</span>
+                        <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-[#a6ce3910] border border-[#a6ce3930]">
+                          <svg width="22" height="22" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
+                            <circle cx="128" cy="128" r="128" fill="#A6CE39"/>
+                            <path d="M86.3 186.2H70.9V79.1h15.4v107.1zM108.9 79.1h41.6c39.6 0 57 28.3 57 53.6 0 27.5-21.5 53.6-56.8 53.6h-41.8V79.1zm15.4 93.3h24.5c34.9 0 42.9-26.5 42.9-39.7C191.7 111.2 178 93 148 93h-23.7v79.4zM88.7 56.8c0 5.5-4.5 10.1-10.1 10.1s-10.1-4.6-10.1-10.1c0-5.6 4.5-10.1 10.1-10.1s10.1 4.5 10.1 10.1z" fill="white"/>
+                          </svg>
+                          <div className="flex flex-col flex-1 min-w-0">
+                            {orcidName && <span className="text-[#d4e9f3] text-xs [font-family:'Inter',Helvetica] font-medium truncate">{orcidName}</span>}
+                            <span className="text-[#d4e9f366] text-[10px] font-mono [font-family:'Inter',Helvetica] truncate">{orcidId}</span>
+                          </div>
+                          <span className="flex-shrink-0 px-2 py-0.5 rounded-full bg-[#a6ce3920] text-[#a6ce39] text-[9px] font-semibold [font-family:'Inter',Helvetica]">
+                            Verified
+                          </span>
+                          <button
+                            onClick={handleOrcidDisconnect}
+                            data-testid="button-disconnect-orcid"
+                            title="Disconnect ORCID iD (set to Unverified)"
+                            className="flex-shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg bg-[#ff6b6b10] hover:bg-[#ff6b6b25] border border-[#ff6b6b20] hover:border-[#ff6b6b40] text-[#ff6b6b80] hover:text-[#ff6b6b] transition-all text-[9px] [font-family:'Inter',Helvetica]"
+                          >
+                            <svg width="8" height="8" viewBox="0 0 10 10" fill="none"><path d="M1 1l8 8M9 1L1 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                            Unverify
+                          </button>
                         </div>
                       ) : (
                         <a
-                          href="/api/auth/orcid?link=1"
+                          href="/api/auth/orcid"
                           data-testid="link-connect-orcid"
                           className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#a6ce3908] border border-[#a6ce3920] hover:bg-[#a6ce3915] hover:border-[#a6ce3933] transition-colors no-underline"
                         >

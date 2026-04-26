@@ -99,7 +99,7 @@ function CleanCoralPanel() {
   const [sparkle, setSparkle] = useState(false);
   const [ptsFlash, setPtsFlash] = useState(false);
 
-  const { getAccessToken, authenticated: privyAuthenticated, login } = usePrivy();
+  const { getAccessToken, login, authenticated: privyAuthenticated } = usePrivy();
   const { orcidAuthenticated } = useOrcidAuth();
   const isAuthenticated = privyAuthenticated || orcidAuthenticated;
   const queryClient = useQueryClient();
@@ -257,7 +257,7 @@ function CleanCoralPanel() {
           </button>
         ) : (
           <button
-            onClick={login}
+            onClick={() => { try { login(); } catch { /* ignore */ } }}
             data-testid="button-sign-in-to-clean"
             className="px-8 py-3.5 rounded-2xl [font-family:'Plus_Jakarta_Sans',Helvetica] font-bold text-sm bg-[linear-gradient(160deg,rgba(131,238,240,1)_0%,rgba(63,176,179,1)_100%)] text-[#003c3e] hover:opacity-90 active:scale-95 shadow-[0_4px_20px_rgba(131,238,240,0.3)] transition-all duration-300"
           >

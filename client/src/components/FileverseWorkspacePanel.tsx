@@ -59,6 +59,7 @@ export function FileverseWorkspacePanel({
   const { authenticated, login, user } = usePrivy();
   const { wallets } = useWallets();
   const [copied, setCopied] = useState(false);
+  const doLogin = () => { try { login(); } catch { /* ignore */ } };
 
   const primaryWallet = wallets[0];
   const walletAddr = primaryWallet?.address ?? user?.wallet?.address;
@@ -77,50 +78,52 @@ export function FileverseWorkspacePanel({
   if (variant === "sidebar") {
     if (!PRIVY_ENABLED || !authenticated) {
       return (
-        <div className="flex gap-1.5">
-          <a
-            href="https://ddocs.new"
-            target="_blank"
-            rel="noopener noreferrer"
-            data-testid="link-ddocs-sidebar"
-            className="flex-1 flex flex-col items-center gap-1 py-2 rounded-[10px] no-underline transition-colors"
-            style={{ background: "rgba(72,219,251,0.06)", border: "1px solid rgba(72,219,251,0.2)" }}
-          >
-            {dDocsIcon(15)}
-            <span style={{ fontSize: 9, fontWeight: 700, color: "#48dbfbbb", fontFamily: "Inter,sans-serif", letterSpacing: "0.04em" }}>dDocs</span>
-          </a>
-          <a
-            href="https://dsheets.new"
-            target="_blank"
-            rel="noopener noreferrer"
-            data-testid="link-dsheets-sidebar"
-            className="flex-1 flex flex-col items-center gap-1 py-2 rounded-[10px] no-underline transition-colors"
-            style={{ background: "rgba(29,209,161,0.06)", border: "1px solid rgba(29,209,161,0.2)" }}
-          >
-            {dSheetsIcon(15)}
-            <span style={{ fontSize: 9, fontWeight: 700, color: "#1dd1a1bb", fontFamily: "Inter,sans-serif", letterSpacing: "0.04em" }}>dSheets</span>
-          </a>
-          <a
-            href="/workspace"
-            data-testid="link-reef-image-repo-sidebar"
-            className="flex-1 flex flex-col items-center gap-1 py-2 rounded-[10px] no-underline transition-colors"
-            style={{ background: "rgba(255,159,67,0.06)", border: "1px solid rgba(255,159,67,0.2)" }}
-          >
-            <Images size={15} color="#ff9f43bb" strokeWidth={1.8} />
-            <span style={{ fontSize: 9, fontWeight: 700, color: "#ff9f43bb", fontFamily: "Inter,sans-serif", letterSpacing: "0.04em" }}>Reef Imgs</span>
-          </a>
-          <button
-            onClick={onLogin ?? (() => { try { login(); } catch {} })}
-            data-testid="button-workspace-login-sidebar"
-            className="flex-1 flex flex-col items-center gap-1 py-2 rounded-[10px] transition-colors cursor-pointer"
-            style={{ background: "rgba(131,238,240,0.05)", border: "1px solid rgba(131,238,240,0.14)", outline: "none" }}
-          >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-              <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3" stroke="#83eef066" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            <span style={{ fontSize: 9, fontWeight: 700, color: "#83eef055", fontFamily: "Inter,sans-serif", letterSpacing: "0.04em" }}>Log in</span>
-          </button>
-        </div>
+        <>
+          <div className="flex gap-1.5">
+            <a
+              href="https://ddocs.new"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-testid="link-ddocs-sidebar"
+              className="flex-1 flex flex-col items-center gap-1 py-2 rounded-[10px] no-underline transition-colors"
+              style={{ background: "rgba(72,219,251,0.06)", border: "1px solid rgba(72,219,251,0.2)" }}
+            >
+              {dDocsIcon(15)}
+              <span style={{ fontSize: 9, fontWeight: 700, color: "#48dbfbbb", fontFamily: "Inter,sans-serif", letterSpacing: "0.04em" }}>dDocs</span>
+            </a>
+            <a
+              href="https://dsheets.new"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-testid="link-dsheets-sidebar"
+              className="flex-1 flex flex-col items-center gap-1 py-2 rounded-[10px] no-underline transition-colors"
+              style={{ background: "rgba(29,209,161,0.06)", border: "1px solid rgba(29,209,161,0.2)" }}
+            >
+              {dSheetsIcon(15)}
+              <span style={{ fontSize: 9, fontWeight: 700, color: "#1dd1a1bb", fontFamily: "Inter,sans-serif", letterSpacing: "0.04em" }}>dSheets</span>
+            </a>
+            <a
+              href="/workspace"
+              data-testid="link-reef-image-repo-sidebar"
+              className="flex-1 flex flex-col items-center gap-1 py-2 rounded-[10px] no-underline transition-colors"
+              style={{ background: "rgba(255,159,67,0.06)", border: "1px solid rgba(255,159,67,0.2)" }}
+            >
+              <Images size={15} color="#ff9f43bb" strokeWidth={1.8} />
+              <span style={{ fontSize: 9, fontWeight: 700, color: "#ff9f43bb", fontFamily: "Inter,sans-serif", letterSpacing: "0.04em" }}>Reef Imgs</span>
+            </a>
+            <button
+              onClick={onLogin ?? doLogin}
+              data-testid="button-workspace-login-sidebar"
+              className="flex-1 flex flex-col items-center gap-1 py-2 rounded-[10px] transition-colors cursor-pointer"
+              style={{ background: "rgba(131,238,240,0.05)", border: "1px solid rgba(131,238,240,0.14)", outline: "none" }}
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+                <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3" stroke="#83eef066" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              <span style={{ fontSize: 9, fontWeight: 700, color: "#83eef055", fontFamily: "Inter,sans-serif", letterSpacing: "0.04em" }}>Log in</span>
+            </button>
+          </div>
+        </>
       );
     }
 

@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { PrivyLoginButton } from "@/components/PrivyLoginButton";
 import { OrcidLoginButton } from "@/components/OrcidLoginButton";
+import { PrivyLoginButton } from "@/components/PrivyLoginButton";
 import { FileverseWorkspacePanel } from "@/components/FileverseWorkspacePanel";
 import { PRIVY_ENABLED } from "@/lib/privy";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
@@ -12,6 +12,7 @@ const navLinks = [
   { label: "MesoReef DAO", href: "https://mesoreefdao.org/" },
   { label: "ReefRegen", href: "https://reefregen.org/" },
   { label: "Workspace", href: "/workspace", internal: true },
+  { label: "bio", href: "https://app.bio.xyz/launchpad", badge: "soon" },
   { label: "Join", href: "https://linktr.ee/mesoreefdao" },
 ];
 
@@ -113,23 +114,49 @@ function MobileWalletSection() {
               External
             </span>
             {externalWallets.map((w) => {
-              const isMM = w.walletClientType === "metamask";
+              const wct = w.walletClientType;
+              const isMM       = wct === "metamask";
+              const isCoinbase = wct === "coinbase_wallet";
+              const isBinance  = wct === "binance";
+              const isWC       = (w as any).connectorType === "wallet_connect";
+
+              const bgClass = isMM       ? "bg-[#E2761B0a] border-[#E2761B25] active:bg-[#E2761B18]"
+                            : isCoinbase ? "bg-[#0052FF0a] border-[#0052FF25] active:bg-[#0052FF18]"
+                            : isBinance  ? "bg-[#F3BA2F0a] border-[#F3BA2F25] active:bg-[#F3BA2F18]"
+                            : isWC       ? "bg-[#3B99FC0a] border-[#3B99FC25] active:bg-[#3B99FC18]"
+                            :              "bg-[#ffffff08] border-[#ffffff12] active:bg-[#ffffff10]";
+
+              const WalletIcon = () => {
+                if (isMM)       return <MetaMaskIcon size={14} />;
+                if (isCoinbase) return (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect width="24" height="24" rx="6" fill="#0052FF"/><path d="M12 4.5A7.5 7.5 0 104.5 12 7.51 7.51 0 0012 4.5zm0 13.5A6 6 0 1118 12a6 6 0 01-6 6zm-2.25-6a2.25 2.25 0 104.5 0 2.25 2.25 0 00-4.5 0z" fill="white"/></svg>
+                );
+                if (isBinance)  return (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect width="24" height="24" rx="12" fill="#F3BA2F"/><path d="M12 7.5l1.2 1.2-3.45 3.3 3.45 3.3L12 16.5l-4.5-4.5 4.5-4.5zm0 0l-1.2 1.2 3.45 3.3-3.45 3.3L12 16.5l4.5-4.5-4.5-4.5z" fill="#1A1A1A"/></svg>
+                );
+                if (isWC)       return (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M4.91 7.52C9.86 2.67 17.58 2.67 22.52 7.52L23.1 8.09a.5.5 0 010 .71l-2.06 2.02a.27.27 0 01-.37 0l-.82-.8c-3.47-3.39-9.09-3.39-12.56 0l-.88.86a.27.27 0 01-.37 0L4.01 8.87a.5.5 0 010-.71l.9-.64z" fill="#3B99FC"/></svg>
+                );
+                return null;
+              };
+
+              const label = isMM ? "MetaMask" : isCoinbase ? "Coinbase" : isBinance ? "Binance" : isWC ? "WalletConnect" : "Wallet";
+
               return (
                 <button
                   key={w.address}
                   onClick={() => copyAddr(w.address)}
                   data-testid={`wallet-external-mobile-${w.address.slice(-4)}`}
-                  className={`flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl border transition-colors text-left w-full ${
-                    isMM
-                      ? "bg-[#E2761B0a] border-[#E2761B25] active:bg-[#E2761B18]"
-                      : "bg-[#ffffff08] border-[#ffffff12] active:bg-[#ffffff10]"
-                  }`}
+                  className={`flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl border transition-colors text-left w-full ${bgClass}`}
                 >
                   <div className="flex items-center gap-2">
-                    {isMM && <MetaMaskIcon size={14} />}
-                    <span className="[font-family:'Inter',Helvetica] text-[#d4e9f3b2] text-sm font-mono tracking-tight">
-                      {w.address.slice(0, 8)}…{w.address.slice(-6)}
-                    </span>
+                    <WalletIcon />
+                    <div className="flex flex-col">
+                      <span className="[font-family:'Inter',Helvetica] text-[#d4e9f380] text-[9px] uppercase tracking-wider leading-none mb-0.5">{label}</span>
+                      <span className="[font-family:'Inter',Helvetica] text-[#d4e9f3b2] text-sm font-mono tracking-tight">
+                        {w.address.slice(0, 6)}…{w.address.slice(-4)}
+                      </span>
+                    </div>
                   </div>
                   <span className="text-[#d4e9f380] flex-shrink-0">
                     {copied === w.address ? (
@@ -274,7 +301,7 @@ export const ApplicationHeaderSection = (): JSX.Element => {
         <img
           src="/figmaAssets/mesoreef-dao-logo-new.png"
           alt="MesoReef DAO"
-          className="h-8 md:h-10 w-auto flex-shrink-0 object-contain"
+          className="h-11 md:h-14 w-auto flex-shrink-0 object-contain"
         />
 
         {/* Desktop navigation links */}
@@ -292,18 +319,24 @@ export const ApplicationHeaderSection = (): JSX.Element => {
             ) : (
               <a
                 key={link.label}
-                className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-normal text-[#d4e9f3b2] text-base tracking-[-0.40px] leading-6 whitespace-nowrap hover:text-[#d4e9f3] transition-colors"
+                data-testid={`nav-header-${link.label.toLowerCase()}`}
+                className="relative flex items-center gap-1.5 [font-family:'Plus_Jakarta_Sans',Helvetica] font-normal text-[#d4e9f3b2] text-base tracking-[-0.40px] leading-6 whitespace-nowrap hover:text-[#d4e9f3] transition-colors no-underline"
                 href={link.href}
                 rel="noopener noreferrer"
                 target="_blank"
               >
                 {link.label}
+                {link.badge && (
+                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-[#83eef020] border border-[#83eef040] text-[#83eef0] text-[9px] font-semibold [font-family:'Inter',Helvetica] leading-none uppercase tracking-wide">
+                    {link.badge}
+                  </span>
+                )}
               </a>
             )
           )}
         </nav>
 
-        {/* Right side: auth (desktop) + compact auth + hamburger (mobile) */}
+        {/* Right side: auth button (desktop) + compact auth + hamburger (mobile) */}
         <div className="flex items-center gap-2">
           {/* Full auth button — desktop only */}
           <div className="hidden md:block">
@@ -350,7 +383,7 @@ export const ApplicationHeaderSection = (): JSX.Element => {
             <img
               src="/figmaAssets/mesoreef-dao-logo-new.png"
               alt="MesoReef DAO"
-              className="h-8 w-auto object-contain"
+              className="h-11 w-auto object-contain"
             />
             <button
               onClick={() => setMobileMenuOpen(false)}
@@ -390,8 +423,13 @@ export const ApplicationHeaderSection = (): JSX.Element => {
                   onClick={() => setMobileMenuOpen(false)}
                   className="flex items-center justify-between px-5 py-4 min-h-[56px] rounded-2xl bg-[#ffffff06] border border-[#ffffff0d] text-[#d4e9f3b2] hover:bg-[#83eef00a] hover:border-[#83eef01a] hover:text-[#d4e9f3] active:bg-[#83eef00f] transition-colors no-underline"
                 >
-                  <span className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-semibold text-base">
+                  <span className="flex items-center gap-2 [font-family:'Plus_Jakarta_Sans',Helvetica] font-semibold text-base">
                     {link.label}
+                    {link.badge && (
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-[#83eef020] border border-[#83eef040] text-[#83eef0] text-[9px] font-semibold [font-family:'Inter',Helvetica] leading-none uppercase tracking-wide">
+                        {link.badge}
+                      </span>
+                    )}
                   </span>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                     <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
