@@ -6,6 +6,7 @@ import coralBg from "@assets/coral_textures_1776303814463.jpg";
 import { usePrivy } from "@privy-io/react-auth";
 import { useOrcidAuth } from "@/hooks/use-orcid-auth";
 import { useQueryClient } from "@tanstack/react-query";
+import { WalletPickerModal } from "@/components/WalletPickerModal";
 
 const TELEGRAM_BOT_URL = "https://t.me/PepothePolyp_bot";
 const BONFIRES_GRAPH_URL = "https://pepo.app.bonfires.ai/graph";
@@ -99,7 +100,9 @@ function CleanCoralPanel() {
   const [sparkle, setSparkle] = useState(false);
   const [ptsFlash, setPtsFlash] = useState(false);
 
-  const { getAccessToken, authenticated: privyAuthenticated, login } = usePrivy();
+  const [showPicker, setShowPicker] = useState(false);
+
+  const { getAccessToken, authenticated: privyAuthenticated } = usePrivy();
   const { orcidAuthenticated } = useOrcidAuth();
   const isAuthenticated = privyAuthenticated || orcidAuthenticated;
   const queryClient = useQueryClient();
@@ -257,13 +260,14 @@ function CleanCoralPanel() {
           </button>
         ) : (
           <button
-            onClick={login}
+            onClick={() => setShowPicker(true)}
             data-testid="button-sign-in-to-clean"
             className="px-8 py-3.5 rounded-2xl [font-family:'Plus_Jakarta_Sans',Helvetica] font-bold text-sm bg-[linear-gradient(160deg,rgba(131,238,240,1)_0%,rgba(63,176,179,1)_100%)] text-[#003c3e] hover:opacity-90 active:scale-95 shadow-[0_4px_20px_rgba(131,238,240,0.3)] transition-all duration-300"
           >
             Sign in to clean
           </button>
         )}
+        {showPicker && <WalletPickerModal onClose={() => setShowPicker(false)} />}
 
         {claimed && (
           <p className="[font-family:'Inter',Helvetica] text-[#d4e9f330] text-[10px]">Resets at midnight UTC</p>
