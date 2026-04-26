@@ -106,33 +106,6 @@ function LoginGate() {
           </span>
         </button>
 
-        {/* Divider */}
-        <div className="flex items-center gap-3 w-64 my-4">
-          <div className="flex-1 h-px" style={{ background: "rgba(255,255,255,0.12)" }} />
-          <span className="[font-family:'Inter',Helvetica] text-xs" style={{ color: "rgba(255,255,255,0.3)" }}>or</span>
-          <div className="flex-1 h-px" style={{ background: "rgba(255,255,255,0.12)" }} />
-        </div>
-
-        {/* Alternative: ORCID */}
-        <a
-          href="/api/auth/orcid"
-          data-testid="link-orcid-gate"
-          className="inline-flex items-center justify-center gap-2.5 px-8 py-3.5 rounded-full w-64 transition-all hover:opacity-90 active:scale-[0.98]"
-          style={{
-            background: "rgba(166,206,57,0.10)",
-            border: "1px solid rgba(166,206,57,0.35)",
-            boxShadow: "0 2px 16px rgba(166,206,57,0.10)",
-          }}
-        >
-          {/* ORCID logo */}
-          <svg width="18" height="18" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="128" cy="128" r="128" fill="#A6CE39"/>
-            <path d="M86.3 186.2H70.9V79.1h15.4v107.1zM108.9 79.1h41.6c39.6 0 57 28.3 57 53.6 0 27.5-21.5 53.6-56.8 53.6h-41.8V79.1zm15.4 93.3h24.5c34.9 0 42.9-26.5 42.9-39.7C191.7 111.2 178 93 148 93h-23.7v79.4zM88.7 56.8c0 5.5-4.5 10.1-10.1 10.1s-10.1-4.6-10.1-10.1c0-5.6 4.5-10.1 10.1-10.1s10.1 4.5 10.1 10.1z" fill="white"/>
-          </svg>
-          <span className="[font-family:'Inter',Helvetica] font-semibold text-sm leading-none" style={{ color: "#A6CE39" }}>
-            Sign in with ORCID iD
-          </span>
-        </a>
       </div>
     </div>
   );
