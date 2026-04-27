@@ -98,17 +98,20 @@ export function MobileBottomNav() {
         <span className={`text-[9px] font-medium ${active("/") ? "text-[#83eef0]" : "text-[#d4e9f380]"}`}>Chat</span>
       </Link>
 
-      {/* Knowledge Graph */}
-      <a
-        href="https://pepo.app.bonfires.ai/graph"
-        target="_blank"
-        rel="noopener noreferrer"
-        data-testid="nav-mobile-graph"
-        className="flex flex-col items-center justify-center gap-1 flex-1 py-3 min-h-[56px] no-underline opacity-50 hover:opacity-75 transition-opacity"
+      {/* Governance */}
+      <Link
+        href="/governance"
+        data-testid="nav-mobile-governance"
+        className={`flex flex-col items-center justify-center gap-1 flex-1 py-3 min-h-[56px] no-underline transition-opacity ${active("/governance") ? "opacity-100" : "opacity-50"}`}
       >
-        <img src="/figmaAssets/container-1.svg" className="w-[22px] h-[22px]" alt="Graph" />
-        <span className="text-[9px] text-[#d4e9f380]">Graph</span>
-      </a>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path d="M12 2L3 7v4c0 5.25 3.75 10.15 9 11.35C17.25 21.15 21 16.25 21 11V7L12 2z"
+            stroke={active("/governance") ? "#83eef0" : "#d4e9f380"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M9 12l2 2 4-4"
+            stroke={active("/governance") ? "#83eef0" : "#d4e9f380"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+        <span className={`text-[9px] ${active("/governance") ? "text-[#83eef0] font-medium" : "text-[#d4e9f380]"}`}>Govern</span>
+      </Link>
 
       {/* Profile */}
       <Link
