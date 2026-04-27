@@ -2,10 +2,11 @@ import { useState, useEffect, useCallback } from "react";
 import { Link } from "wouter";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { useOrcidAuth } from "@/hooks/use-orcid-auth";
+import { OrcidLoginButton } from "@/components/OrcidLoginButton";
 import {
-  ArrowLeft, Vote, Plus, Clock, CheckCircle2, XCircle, Loader2, Users, BarChart2,
+  ArrowLeft, Vote, Plus, CheckCircle2, XCircle, Loader2, Users, BarChart2,
   Calendar, ChevronDown, ChevronUp, AlertCircle, ExternalLink, Github, GitPullRequest,
-  CircleDot, Zap, CheckSquare, BarChart, RefreshCw, Info,
+  CircleDot, CheckSquare, BarChart, RefreshCw, Info,
 } from "lucide-react";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import coralBg from "@assets/coral_micro_1777060394505.jpg";
@@ -357,13 +358,14 @@ function VoteModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6 overflow-y-auto" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:px-4 sm:py-6 overflow-y-auto" onClick={onClose}>
       <div className="absolute inset-0" style={{ background: "rgba(0,8,12,0.85)" }} />
       <div
-        className="relative w-full max-w-md rounded-[28px] border p-6 flex flex-col gap-5 my-auto"
-        style={{ background: "#00131a", borderColor: "#83eef030", backdropFilter: "blur(20px)" }}
+        className="relative w-full sm:max-w-md rounded-t-[28px] sm:rounded-[28px] border-t sm:border border-[#83eef030] p-5 sm:p-6 flex flex-col gap-5 max-h-[90vh] overflow-y-auto"
+        style={{ background: "#00131a", backdropFilter: "blur(20px)" }}
         onClick={e => e.stopPropagation()}
       >
+        <div className="sm:hidden w-10 h-1 rounded-full bg-[#ffffff20] mx-auto mb-1" />
         <div className="flex items-start justify-between gap-3">
           <div>
             <div className="flex items-center gap-2 mb-1">
@@ -655,13 +657,14 @@ function CreateModal({
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-8 overflow-y-auto" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:px-4 sm:py-8 overflow-y-auto" onClick={onClose}>
       <div className="absolute inset-0" style={{ background: "rgba(0,8,12,0.85)" }} />
       <div
-        className="relative w-full max-w-lg rounded-[28px] border p-6 flex flex-col gap-5 my-auto"
-        style={{ background: "#00131a", borderColor: "#83eef030" }}
+        className="relative w-full sm:max-w-lg rounded-t-[28px] sm:rounded-[28px] border-t sm:border border-[#83eef030] p-5 sm:p-6 flex flex-col gap-5 max-h-[92vh] overflow-y-auto"
+        style={{ background: "#00131a" }}
         onClick={e => e.stopPropagation()}
       >
+        <div className="sm:hidden w-10 h-1 rounded-full bg-[#ffffff20] mx-auto mb-1" />
         <div className="flex items-center justify-between">
           <h2 className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-bold text-[#d4e9f3] text-lg">New Proposal</h2>
           <button onClick={onClose} className="text-[#d4e9f344] hover:text-[#d4e9f3] transition-colors">
@@ -893,7 +896,7 @@ function CreateModal({
               : strategy === "approval"
               ? "Approval voting: voters approve as many options as they like."
               : "Standard voting: each voter picks one option."}
-            {censusMode === "base-members" && " Census uses Base network wallets — dynamic, so members can join after creation."}
+            {censusMode === "base-members" && " Census uses Base network wallets (dynamic, so members can join after creation)."}
             {" "}{VOCDONI_ENV !== "prod" && "Tokens dispensed from the staging faucet automatically."}
           </span>
         </div>
@@ -927,7 +930,7 @@ function CreateModal({
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 export function Governance() {
-  const { authenticated } = usePrivy();
+  const { authenticated, login } = usePrivy();
   const { orcidAuthenticated } = useOrcidAuth();
   const { wallets } = useWallets();
   const isAuthed = authenticated || orcidAuthenticated;
@@ -1014,30 +1017,49 @@ export function Governance() {
           {authenticated && wallets.length > 0 && (
             <button
               onClick={() => setCreateOpen(true)} data-testid="button-new-proposal"
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs [font-family:'Inter',Helvetica] font-semibold transition-all hover:opacity-90"
+              className="flex items-center gap-1.5 px-3 sm:px-3.5 py-2 rounded-full text-xs [font-family:'Inter',Helvetica] font-semibold transition-all hover:opacity-90"
               style={{ background: "linear-gradient(135deg, #83eef0 0%, #3fb0b3 100%)", color: "#00585a" }}
             >
-              <Plus size={13} /> New Proposal
+              <Plus size={13} />
+              <span className="hidden sm:inline">New Proposal</span>
             </button>
           )}
         </div>
 
         {/* Hero */}
-        <div className="flex flex-col items-center gap-2 px-6 pt-8 pb-5 text-center">
-          <div className="flex items-center gap-2.5">
-            <Vote size={22} className="text-[#83eef0]" />
-            <h1 className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-extrabold text-[#d4e9f3] text-2xl">
+        <div className="flex flex-col items-center gap-2 px-4 pt-6 pb-5 text-center">
+          <div className="flex items-center gap-2">
+            <Vote size={18} className="text-[#83eef0] sm:hidden" />
+            <Vote size={22} className="text-[#83eef0] hidden sm:block" />
+            <h1 className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-extrabold text-[#d4e9f3] text-xl sm:text-2xl">
               MesoReef DAO Governance
             </h1>
           </div>
           <p className="[font-family:'Inter',Helvetica] text-[#9aaeb8] text-sm max-w-md">
-            Vote on proposals shaping reef conservation. Powered by Vocdoni — supporting standard, approval, and quadratic voting.
+            Vote on proposals shaping reef conservation. Powered by Vocdoni with standard, approval, and quadratic voting.
           </p>
           {!isAuthed && (
-            <div className="mt-2 px-4 py-2 rounded-full bg-[#83eef010] border border-[#83eef033]">
-              <span className="[font-family:'Inter',Helvetica] text-[#83eef0] text-xs">
-                Sign in and connect a wallet to participate in governance
+            <div className="mt-3 flex flex-col items-center gap-3 w-full max-w-xs">
+              <span className="[font-family:'Inter',Helvetica] text-[#d4e9f366] text-xs text-center">
+                Sign in to participate in governance
               </span>
+              <button
+                onClick={() => { try { login(); } catch { } }}
+                data-testid="button-login-governance"
+                className="flex items-center justify-center gap-2 w-full px-5 py-3 rounded-2xl text-sm [font-family:'Inter',Helvetica] font-semibold transition-all active:opacity-80"
+                style={{ background: "linear-gradient(170deg, #83eef0 0%, #3fb0b3 100%)", color: "#00585a" }}
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+                  <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3" stroke="#00585a" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Log in with wallet
+              </button>
+              <div className="flex items-center gap-3 w-full">
+                <div className="flex-1 h-px bg-[#ffffff10]" />
+                <span className="[font-family:'Inter',Helvetica] text-[#d4e9f330] text-xs">or</span>
+                <div className="flex-1 h-px bg-[#ffffff10]" />
+              </div>
+              <OrcidLoginButton className="w-full" label="Sign in with ORCID iD" size="md" />
             </div>
           )}
         </div>
