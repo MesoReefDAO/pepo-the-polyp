@@ -998,12 +998,31 @@ export function Governance() {
       className="min-h-screen w-full"
       style={{ backgroundImage: `url(${coralBg})`, backgroundSize: "cover", backgroundPosition: "center", backgroundAttachment: "fixed", position: "relative" }}
     >
-      <div style={{ position: "fixed", inset: 0, background: "linear-gradient(180deg, rgba(0,8,12,0.86) 0%, rgba(0,19,28,0.78) 40%, rgba(0,8,12,0.92) 100%)", zIndex: 0, pointerEvents: "none" }} />
+      {/* Overlay */}
+      <div style={{ position: "fixed", inset: 0, background: "linear-gradient(180deg, rgba(0,8,12,0.88) 0%, rgba(0,19,28,0.80) 40%, rgba(0,8,12,0.94) 100%)", zIndex: 0, pointerEvents: "none" }} />
 
       <div style={{ position: "relative", zIndex: 1 }}>
-        {/* Top bar */}
-        <div className="flex items-center gap-4 px-4 md:px-6 py-3 md:py-4 border-b border-[#ffffff08]">
-          <Link href="/" data-testid="link-back-home-governance" className="flex items-center gap-2 text-[#d4e9f380] hover:text-[#d4e9f3] transition-colors no-underline min-h-[44px] px-1">
+
+        {/* ── Mobile top bar ───────────────────────────────────────────── */}
+        <div className="flex items-center px-3 py-2 border-b border-[#ffffff08] md:hidden">
+          <Link
+            href="/"
+            data-testid="link-back-home-governance"
+            className="flex items-center justify-center w-10 h-10 rounded-full bg-[#ffffff06] border border-[#ffffff0d] text-[#d4e9f380] no-underline active:bg-[#ffffff10] transition-colors"
+          >
+            <ArrowLeft size={16} />
+          </Link>
+          <div className="flex-1 flex items-center justify-center gap-1.5">
+            <Vote size={15} className="text-[#83eef0]" />
+            <span className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-bold text-[#d4e9f3] text-[15px]">Governance</span>
+          </div>
+          {/* Spacer to balance the back button */}
+          <div className="w-10" />
+        </div>
+
+        {/* ── Desktop top bar ──────────────────────────────────────────── */}
+        <div className="hidden md:flex items-center gap-4 px-6 py-4 border-b border-[#ffffff08]">
+          <Link href="/" data-testid="link-back-home-governance-desktop" className="flex items-center gap-2 text-[#d4e9f380] hover:text-[#d4e9f3] transition-colors no-underline">
             <ArrowLeft size={16} />
             <span className="[font-family:'Inter',Helvetica] text-sm">Back</span>
           </Link>
@@ -1015,22 +1034,41 @@ export function Governance() {
           <div className="flex-1" />
           {authenticated && wallets.length > 0 && (
             <button
-              onClick={() => setCreateOpen(true)} data-testid="button-new-proposal"
-              className="flex items-center gap-1.5 px-3 sm:px-3.5 py-2 rounded-full text-xs [font-family:'Inter',Helvetica] font-semibold transition-all hover:opacity-90"
+              onClick={() => setCreateOpen(true)} data-testid="button-new-proposal-desktop"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs [font-family:'Inter',Helvetica] font-semibold transition-all hover:opacity-90"
               style={{ background: "linear-gradient(135deg, #83eef0 0%, #3fb0b3 100%)", color: "#00585a" }}
             >
-              <Plus size={13} />
-              <span className="hidden sm:inline">New Proposal</span>
+              <Plus size={13} /> New Proposal
             </button>
           )}
         </div>
 
-        {/* Hero */}
-        <div className="flex flex-col items-center gap-2 px-4 pt-6 pb-5 text-center">
-          <div className="flex items-center gap-2">
-            <Vote size={18} className="text-[#83eef0] sm:hidden" />
-            <Vote size={22} className="text-[#83eef0] hidden sm:block" />
-            <h1 className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-extrabold text-[#d4e9f3] text-xl sm:text-2xl">
+        {/* ── Hero ─────────────────────────────────────────────────────── */}
+        {/* Mobile: minimal compact strip */}
+        <div className="md:hidden px-4 pt-4 pb-3 text-center">
+          <p className="[font-family:'Inter',Helvetica] text-[#9aaeb880] text-xs leading-relaxed">
+            Vote on proposals that shape reef conservation.
+          </p>
+          {!isAuthed && (
+            <button
+              onClick={() => { try { login(); } catch { } }}
+              data-testid="button-login-governance"
+              className="mt-3 flex items-center justify-center gap-2 w-full px-5 py-3 rounded-2xl text-sm [font-family:'Inter',Helvetica] font-semibold active:opacity-80"
+              style={{ background: "linear-gradient(170deg, #83eef0 0%, #3fb0b3 100%)", color: "#00585a" }}
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+                <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3" stroke="#00585a" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              Sign in to participate
+            </button>
+          )}
+        </div>
+
+        {/* Desktop: full hero */}
+        <div className="hidden md:flex flex-col items-center gap-2 px-6 pt-8 pb-6 text-center">
+          <div className="flex items-center gap-2.5">
+            <Vote size={22} className="text-[#83eef0]" />
+            <h1 className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-extrabold text-[#d4e9f3] text-2xl">
               MesoReef DAO Governance
             </h1>
           </div>
@@ -1038,27 +1076,16 @@ export function Governance() {
             Vote on proposals shaping reef conservation. Powered by Vocdoni with standard, approval, and quadratic voting.
           </p>
           {!isAuthed && (
-            <div className="mt-3 flex flex-col items-center gap-3 w-full max-w-xs">
-              <span className="[font-family:'Inter',Helvetica] text-[#d4e9f366] text-xs text-center">
-                Sign in to participate in governance
+            <div className="mt-2 px-4 py-2 rounded-full" style={{ background: "#83eef010", border: "1px solid #83eef033" }}>
+              <span className="[font-family:'Inter',Helvetica] text-[#83eef0] text-xs">
+                Sign in and connect a wallet to participate in governance
               </span>
-              <button
-                onClick={() => { try { login(); } catch { } }}
-                data-testid="button-login-governance"
-                className="flex items-center justify-center gap-2 w-full px-5 py-3 rounded-2xl text-sm [font-family:'Inter',Helvetica] font-semibold transition-all active:opacity-80"
-                style={{ background: "linear-gradient(170deg, #83eef0 0%, #3fb0b3 100%)", color: "#00585a" }}
-              >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-                  <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3" stroke="#00585a" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                Log in with wallet
-              </button>
             </div>
           )}
         </div>
 
-        {/* Content */}
-        <div className="max-w-3xl mx-auto px-4 pb-28 md:pb-16">
+        {/* ── Content ──────────────────────────────────────────────────── */}
+        <div className="max-w-3xl mx-auto px-3 md:px-4 pb-32 md:pb-16">
           {!orgAddress ? (
             <div className="flex flex-col items-center gap-4 py-20 text-center">
               <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ background: "#83eef015", border: "1px solid #83eef030" }}>
@@ -1074,40 +1101,48 @@ export function Governance() {
             </div>
           ) : (
             <>
-              {/* Status filter */}
-              <div className="flex items-center gap-2 mb-3 flex-wrap">
+              {/* ── Filter bar: horizontally scrollable on mobile ── */}
+              <div className="flex gap-2 overflow-x-auto pb-1 mb-2" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
                 {FILTER_TABS.map(tab => (
-                  <button key={tab.key} onClick={() => setFilter(tab.key)} data-testid={`button-filter-${tab.key}`}
-                    className="px-4 py-1.5 rounded-full text-xs [font-family:'Inter',Helvetica] font-semibold transition-all"
+                  <button
+                    key={tab.key}
+                    onClick={() => setFilter(tab.key)}
+                    data-testid={`button-filter-${tab.key}`}
+                    className="flex-none px-4 py-2 rounded-full text-xs [font-family:'Inter',Helvetica] font-semibold transition-all"
                     style={{ background: filter === tab.key ? "#83eef020" : "transparent", border: `1px solid ${filter === tab.key ? "#83eef050" : "#ffffff15"}`, color: filter === tab.key ? "#83eef0" : "#d4e9f366" }}
                   >
                     {tab.label}
                   </button>
                 ))}
-              </div>
-              {/* Strategy filter */}
-              <div className="flex items-center gap-2 mb-6 flex-wrap">
-                <span className="[font-family:'Inter',Helvetica] text-[10px] text-[#d4e9f333] mr-1">Type:</span>
+                <div className="flex-none w-px mx-1 self-stretch bg-[#ffffff10]" />
                 {STRAT_TABS.map(tab => (
-                  <button key={tab.key} onClick={() => setStratFilter(tab.key)} data-testid={`button-strat-filter-${tab.key}`}
-                    className="px-3 py-1 rounded-full text-[10px] [font-family:'Inter',Helvetica] font-semibold transition-all"
+                  <button
+                    key={tab.key}
+                    onClick={() => setStratFilter(tab.key)}
+                    data-testid={`button-strat-filter-${tab.key}`}
+                    className="flex-none px-3 py-2 rounded-full text-[10px] [font-family:'Inter',Helvetica] font-semibold transition-all"
                     style={{ background: stratFilter === tab.key ? "#ffffff15" : "transparent", border: `1px solid ${stratFilter === tab.key ? "#ffffff30" : "#ffffff10"}`, color: stratFilter === tab.key ? "#d4e9f3" : "#d4e9f344" }}
                   >
                     {tab.label}
                   </button>
                 ))}
-                <div className="flex-1" />
-                {!loading && <span className="[font-family:'Inter',Helvetica] text-[#d4e9f344] text-xs">{filtered.length} proposal{filtered.length !== 1 ? "s" : ""}</span>}
+                {!loading && (
+                  <span className="flex-none self-center ml-auto pl-2 [font-family:'Inter',Helvetica] text-[#d4e9f333] text-[10px] whitespace-nowrap">
+                    {filtered.length} proposal{filtered.length !== 1 ? "s" : ""}
+                  </span>
+                )}
               </div>
 
+              {/* ── Loading skeletons ── */}
               {loading && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mt-3">
                   {Array.from({ length: 4 }).map((_, i) => (
-                    <div key={i} className="h-52 rounded-[24px] animate-pulse" style={{ background: "#00080c80", border: "1px solid #ffffff06" }} />
+                    <div key={i} className="h-44 rounded-[20px] animate-pulse" style={{ background: "#00080c80", border: "1px solid #ffffff06" }} />
                   ))}
                 </div>
               )}
 
+              {/* ── Error state ── */}
               {!loading && error && (
                 <div className="flex flex-col items-center gap-3 py-16 text-center">
                   <AlertCircle size={32} className="text-[#ff4a4a50]" />
@@ -1116,32 +1151,35 @@ export function Governance() {
                 </div>
               )}
 
+              {/* ── Empty state ── */}
               {!loading && !error && filtered.length === 0 && (
-                <div className="flex flex-col items-center gap-3 py-20 text-center">
-                  <BarChart2 size={40} className="text-[#d4e9f322]" />
-                  <span className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-bold text-[#d4e9f366] text-lg">No proposals yet</span>
+                <div className="flex flex-col items-center gap-3 py-16 text-center">
+                  <BarChart2 size={36} className="text-[#d4e9f322]" />
+                  <span className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-bold text-[#d4e9f366] text-base">No proposals yet</span>
                   <span className="[font-family:'Inter',Helvetica] text-[#d4e9f344] text-sm max-w-xs">
                     {authenticated && wallets.length > 0
-                      ? "Connect your wallet and create the first governance proposal."
-                      : "No proposals match this filter. Connect a wallet to create one."}
+                      ? "Create the first governance proposal."
+                      : "Connect a wallet to create one."}
                   </span>
                 </div>
               )}
 
+              {/* ── Proposal cards ── */}
               {!loading && !error && filtered.length > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mt-3">
                   {filtered.map(e => (
                     <ProposalCard key={e.electionId} election={e} onVote={setVoteTarget} voted={!!voted[e.electionId]} />
                   ))}
                 </div>
               )}
 
+              {/* ── Load more ── */}
               {hasMore && !loading && (
-                <div className="flex justify-center mt-6">
+                <div className="flex justify-center mt-5">
                   <button
                     onClick={() => { const next = page + 1; setPage(next); fetchElections(next); }}
                     data-testid="button-load-more"
-                    className="px-6 py-2 rounded-full text-xs [font-family:'Inter',Helvetica] font-semibold transition-all"
+                    className="px-6 py-2.5 rounded-full text-xs [font-family:'Inter',Helvetica] font-semibold transition-all"
                     style={{ border: "1px solid #83eef030", color: "#83eef0", background: "#83eef010" }}
                   >
                     Load more
@@ -1149,11 +1187,12 @@ export function Governance() {
                 </div>
               )}
 
-              <div className="flex items-center justify-center gap-4 mt-8 opacity-40">
+              {/* ── Footer ── */}
+              <div className="flex items-center justify-center gap-3 mt-8 pb-2 opacity-40">
                 <span className="[font-family:'Inter',Helvetica] text-[#d4e9f3] text-[10px]">Powered by</span>
-                <a href="https://vocdoni.io" target="_blank" rel="noopener noreferrer" className="[font-family:'Inter',Helvetica] text-[#83eef0] text-[10px] font-semibold no-underline hover:opacity-80">Vocdoni</a>
-                <span className="text-[#ffffff15]">·</span>
-                <a href={`https://github.com/${DEFAULT_GH_OWNER}/${DEFAULT_GH_REPO}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 [font-family:'Inter',Helvetica] text-[#d4e9f380] text-[10px] no-underline hover:opacity-80">
+                <a href="https://vocdoni.io" target="_blank" rel="noopener noreferrer" className="[font-family:'Inter',Helvetica] text-[#83eef0] text-[10px] font-semibold no-underline">Vocdoni</a>
+                <span className="text-[#ffffff20]">·</span>
+                <a href={`https://github.com/${DEFAULT_GH_OWNER}/${DEFAULT_GH_REPO}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 [font-family:'Inter',Helvetica] text-[#d4e9f380] text-[10px] no-underline">
                   <Github size={9} /> {DEFAULT_GH_OWNER}/{DEFAULT_GH_REPO}
                 </a>
               </div>
@@ -1162,6 +1201,20 @@ export function Governance() {
         </div>
       </div>
 
+      {/* ── Mobile FAB: New Proposal ─────────────────────────────────── */}
+      {authenticated && wallets.length > 0 && (
+        <button
+          onClick={() => setCreateOpen(true)}
+          data-testid="button-new-proposal"
+          aria-label="New Proposal"
+          className="md:hidden fixed bottom-[88px] right-4 z-20 w-14 h-14 rounded-full flex items-center justify-center shadow-[0_4px_24px_rgba(131,238,240,0.35)] active:opacity-80 transition-all"
+          style={{ background: "linear-gradient(135deg, #83eef0 0%, #3fb0b3 100%)" }}
+        >
+          <Plus size={22} style={{ color: "#00585a" }} />
+        </button>
+      )}
+
+      {/* ── Modals ───────────────────────────────────────────────────── */}
       {voteTarget && (
         <VoteModal
           election={voteTarget} onClose={() => setVoteTarget(null)}
