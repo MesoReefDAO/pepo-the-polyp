@@ -1140,12 +1140,12 @@ export function UserProfileDashboard() {
                       {orcidError && <p className="text-red-400 text-[10px] [font-family:'Inter',Helvetica]">Error: {orcidError}</p>}
                     </div>
 
-                    {/* ── Ceramic + IDX Storage ─────────────────────────────── */}
+                    {/* ── IPFS Storage ──────────────────────────────────────── */}
                     <div className="flex flex-col gap-3 pt-3 border-t border-[#ffffff08]">
                       <div className="flex items-center justify-between">
                         <label className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-semibold text-[#d4e9f3b2] text-xs uppercase tracking-wider flex items-center gap-2">
                           <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#83eef0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                          Ceramic Storage
+                          IPFS Storage
                         </label>
                         {ceramicStreamId && (
                           <span className="px-2 py-0.5 rounded-full bg-[#83eef015] border border-[#83eef033] text-[#83eef0] [font-family:'Inter',Helvetica] text-[9px] font-semibold">
@@ -1185,7 +1185,7 @@ export function UserProfileDashboard() {
                         </div>
                       ) : (
                         <p className="[font-family:'Inter',Helvetica] text-[#d4e9f340] text-[10px] leading-4">
-                          Sync your profile to Ceramic to store it on a decentralised network that you own and control.
+                          Sync your profile to IPFS to store it on a decentralised network that you own and control.
                         </p>
                       )}
 
@@ -1210,9 +1210,9 @@ export function UserProfileDashboard() {
                         ) : ceramic.syncLoading ? (
                           <><div className="w-3 h-3 rounded-full border border-[#83eef0] border-t-transparent animate-spin" />Syncing…</>
                         ) : ceramicSynced ? (
-                          <><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>Synced to Ceramic!</>
+                          <><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>Synced to IPFS!</>
                         ) : (
-                          <><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>{ceramicStreamId ? "Re-sync to Ceramic" : "Sync to Ceramic"}</>
+                          <><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>{ceramicStreamId ? "Re-sync to IPFS" : "Sync to IPFS"}</>
                         )}
                       </button>
                     </div>

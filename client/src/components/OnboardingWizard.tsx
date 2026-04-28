@@ -212,22 +212,27 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                       Welcome to MesoReef DAO
                     </h2>
                     <p className="text-[#d4e9f380] text-sm [font-family:'Inter',Helvetica] leading-relaxed">
-                      I'm Pepo, your guide to the MesoAmerican Reef knowledge network. We use blockchain, decentralized science, and community governance to protect one of the world's most vital coral ecosystems.
+                      I'm Pepo, your guide. MesoReef DAO is a{" "}
+                      <span className="text-[#83eef0] font-semibold">Decentralized Science (DeSci)</span>{" "}
+                      initiative dedicated to{" "}
+                      <span className="text-[#A6CE39] font-semibold">Regenerating Coral Reef Conservation</span>{" "}
+                      in Mesoamerica and Worldwide — combining open science, blockchain governance, and community action to protect one of Earth's most vital marine ecosystems.
                     </p>
                   </div>
                   <div className="grid grid-cols-3 gap-3 w-full">
                     {[
-                      { icon: "🔬", label: "DeSci" },
-                      { icon: "🗳️", label: "Governance" },
-                      { icon: "🪸", label: "Conservation" },
+                      { icon: "🔬", label: "DeSci", sub: "Open science" },
+                      { icon: "🪸", label: "Mesoamerica", sub: "& Worldwide" },
+                      { icon: "🗳️", label: "Governance", sub: "DAO voting" },
                     ].map((item) => (
                       <div
                         key={item.label}
-                        className="flex flex-col items-center gap-1.5 py-3 rounded-xl border border-[#83eef015]"
+                        className="flex flex-col items-center gap-1 py-3 rounded-xl border border-[#83eef015]"
                         style={{ background: "rgba(131,238,240,0.04)" }}
                       >
                         <span className="text-xl">{item.icon}</span>
-                        <span className="text-[#d4e9f366] text-[10px] [font-family:'Inter',Helvetica] font-medium">{item.label}</span>
+                        <span className="text-[#d4e9f3aa] text-[10px] [font-family:'Inter',Helvetica] font-semibold">{item.label}</span>
+                        <span className="text-[#d4e9f344] text-[9px] [font-family:'Inter',Helvetica]">{item.sub}</span>
                       </div>
                     ))}
                   </div>
