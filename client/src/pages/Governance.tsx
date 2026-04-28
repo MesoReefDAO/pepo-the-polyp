@@ -347,7 +347,9 @@ function VoteModal({
 
     try {
       const { VocdoniSDKClient, EnvOptions, Vote } = await import("@vocdoni/sdk");
-      const provider = await (wallet as any).getEthersProvider();
+      const eip1193 = await wallet.getEthereumProvider();
+      const { ethers } = await import("ethers");
+      const provider = new ethers.providers.Web3Provider(eip1193 as any);
       const signer = provider.getSigner();
       const env =
         VOCDONI_ENV === "prod" ? EnvOptions.PROD :
@@ -693,7 +695,9 @@ function CreateModal({
     try {
       const { VocdoniSDKClient, EnvOptions, Election, ApprovalElection, PlainCensus } = await import("@vocdoni/sdk");
 
-      const provider = await (wallet as any).getEthersProvider();
+      const eip1193 = await wallet.getEthereumProvider();
+      const { ethers } = await import("ethers");
+      const provider = new ethers.providers.Web3Provider(eip1193 as any);
       const signer = provider.getSigner();
       const myAddress = await signer.getAddress();
       const env =
@@ -1330,9 +1334,6 @@ export function Governance() {
                 <Vote size={28} className="text-[#83eef050]" />
               </div>
               <h2 className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-bold text-[#d4e9f3] text-lg">Governance Not Configured</h2>
-              <p className="[font-family:'Inter',Helvetica] text-[#9aaeb8] text-sm max-w-sm">
-                Set <code className="px-1 rounded" style={{ background: "#ffffff10", color: "#83eef0" }}>VITE_VOCDONI_ORG_ADDRESS</code> to your Vocdoni organization address.
-              </p>
               <a href="https://developer.vocdoni.io" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs [font-family:'Inter',Helvetica] font-semibold no-underline" style={{ color: "#83eef0" }}>
                 <ExternalLink size={12} /> Vocdoni Developer Docs
               </a>
