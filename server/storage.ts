@@ -46,7 +46,7 @@ export interface IStorage {
   createReefImage(data: InsertReefImage): Promise<ReefImage>;
   getReefImages(status?: string): Promise<ReefImage[]>;
   getCurationQueue(): Promise<ReefImage[]>;
-  curateReefImage(id: string, status: "approved" | "rejected", curatedBy: string): Promise<ReefImage | undefined>;
+  curateReefImage(id: string, status: "approved" | "rejected", curatedBy: string, curatorNote?: string): Promise<ReefImage | undefined>;
 
   // IPFS Blocks (DB-persisted content store)
   saveIpfsBlock(cid: string, data: string, mimeType: string): Promise<IpfsBlock>;
@@ -244,11 +244,11 @@ export class DbStorage implements IStorage {
       .orderBy(reefImages.createdAt);
   }
 
-  async curateReefImage(id: string, status: "approved" | "rejected", curatedBy: string): Promise<ReefImage | undefined> {
+  async curateReefImage(id: string, status: "approved" | "rejected", curatedBy: string, curatorNote?: string): Promise<ReefImage | undefined> {
     const now = Math.floor(Date.now() / 1000);
     const [row] = await db
       .update(reefImages)
-      .set({ status, curatedBy, curatedAt: now })
+      .set({ status, curatedBy, curatedAt: now, curatorNote: curatorNote ?? "" })
       .where(eq(reefImages.id, id))
       .returning();
     return row;

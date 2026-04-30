@@ -763,7 +763,7 @@ export async function registerRoutes(
   // POST /api/curation/:id — approve or reject a pending reef image
   app.post("/api/curation/:id", async (req: Request, res: Response) => {
     const { id } = req.params;
-    const { decision } = req.body; // 'approved' | 'rejected'
+    const { decision, curatorNote } = req.body; // 'approved' | 'rejected', optional note
     if (decision !== "approved" && decision !== "rejected") {
       return res.status(400).json({ error: "decision must be 'approved' or 'rejected'" });
     }
@@ -784,7 +784,7 @@ export async function registerRoutes(
     }
 
     try {
-      const updated = await storage.curateReefImage(id, decision, profileId);
+      const updated = await storage.curateReefImage(id, decision, profileId, typeof curatorNote === "string" ? curatorNote.slice(0, 500) : "");
       if (!updated) return res.status(404).json({ error: "Image not found" });
 
       // Award points for curation activity (5 pts per decision)

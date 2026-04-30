@@ -79,6 +79,7 @@ export const reefImages = pgTable("reef_images", {
   status: text("status").notNull().default("pending"),
   curatedBy: varchar("curated_by"),   // profileId of the ORCID-verified curator
   curatedAt: integer("curated_at"),
+  curatorNote: text("curator_note").notNull().default(""),
   profileId: varchar("profile_id"),
   createdAt: integer("created_at").notNull().default(sql`extract(epoch from now())::int`),
 });
