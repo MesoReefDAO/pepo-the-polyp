@@ -274,6 +274,7 @@ export const ExplorerNavigationSidebarSection = (): JSX.Element => {
   const isProfile = location === "/profile";
   const isCommunity = location === "/community";
   const isGovernance = location === "/governance";
+  const isCuration = location === "/curation";
   const { isComplete: profileComplete, completedCount, totalCount } = useProfileStatus();
 
   return (
@@ -333,6 +334,26 @@ export const ExplorerNavigationSidebarSection = (): JSX.Element => {
           </div>
           <span className={`${TEXT_BASE} ${isGovernance ? "font-bold text-[#83eef0]" : "font-medium text-[#d4e9f380]"}`}>
             Governance
+          </span>
+        </Link>
+
+        {/* Curation */}
+        <Link
+          href="/curation"
+          data-testid="link-curation"
+          className={`${PILL_BASE} ${isCuration ? PILL_ACTIVE : PILL_INACTIVE}`}
+          style={isCuration ? EMBOSS : {}}
+        >
+          <div className="w-5 h-5 flex-shrink-0 flex items-center justify-center">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke={isCuration ? "#83eef0" : "#d4e9f380"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+          <span className={`${TEXT_BASE} ${isCuration ? "font-bold text-[#83eef0]" : "font-medium text-[#d4e9f380]"}`}>
+            Curation
+          </span>
+          <span className="ml-auto text-[8px] [font-family:'Inter',Helvetica] px-1.5 py-0.5 rounded-full bg-[#a6ce3918] border border-[#a6ce3933] text-[#a6ce39cc]">
+            ORCID
           </span>
         </Link>
 

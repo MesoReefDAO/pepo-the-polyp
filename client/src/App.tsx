@@ -14,6 +14,7 @@ import { Governance } from "@/pages/Governance";
 import { PublicProfile } from "@/pages/PublicProfile";
 import { MobileMapPage } from "@/pages/MobileMapPage";
 import { WorkspacePage } from "@/pages/WorkspacePage";
+import { CurationPage } from "@/pages/CurationPage";
 import { PRIVY_ENABLED, PRIVY_APP_ID } from "@/lib/privy";
 import { useProfileSync } from "@/hooks/use-profile-sync";
 import { useGeolocation } from "@/hooks/use-geolocation";
@@ -46,6 +47,7 @@ function Router() {
       <Route path="/members/:id" component={PublicProfile} />
       <Route path="/map" component={MobileMapPage} />
       <Route path="/workspace" component={WorkspacePage} />
+      <Route path="/curation" component={CurationPage} />
       <Route component={NotFound} />
     </Switch>
   );

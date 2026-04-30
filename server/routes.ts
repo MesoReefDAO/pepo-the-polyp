@@ -679,10 +679,10 @@ export async function registerRoutes(
     }
   });
 
-  // GET /api/reef-images — public; returns all geo-tagged IPFS images for the map
+  // GET /api/reef-images — public; returns approved geo-tagged IPFS images for the map
   app.get("/api/reef-images", async (_req: Request, res: Response) => {
     try {
-      const images = await storage.getReefImages();
+      const images = await storage.getReefImages("approved");
       return res.json(images);
     } catch (err) {
       console.error("[reefImages GET]", err);
@@ -690,9 +690,9 @@ export async function registerRoutes(
     }
   });
 
-  // POST /api/reef-images — pin an IPFS image with coordinates (auth optional for attribution)
+  // POST /api/reef-images — submit an IPFS image with coordinates (goes into pending queue)
   app.post("/api/reef-images", generalLimiter, async (req: Request, res: Response) => {
-    const { cid, latitude, longitude, title = "", author = "" } = req.body;
+    const { cid, latitude, longitude, title = "", author = "", description = "" } = req.body;
     if (!cid || typeof cid !== "string" || cid.trim().length === 0) {
       return res.status(400).json({ error: "cid is required" });
     }
@@ -722,12 +722,83 @@ export async function registerRoutes(
         longitude: lon,
         title: String(title).slice(0, 120),
         author: String(author).slice(0, 120),
+        description: String(description).slice(0, 500),
         profileId: profileId ?? undefined,
       });
       return res.status(201).json(img);
     } catch (err) {
       console.error("[reefImages POST]", err);
       return res.status(500).json({ error: "Failed to save reef image" });
+    }
+  });
+
+  // GET /api/curation/queue — returns pending reef images for ORCID-verified curators
+  app.get("/api/curation/queue", async (req: Request, res: Response) => {
+    // Accept either Privy token or ORCID session
+    let profileId: string | null = null;
+    const token = (req.headers["x-privy-token"] as string) || "";
+    if (token) {
+      const verify = await verifyPrivyToken(token);
+      if (verify.valid) profileId = verify.userId!;
+    } else if ((req as any).session?.orcid?.profileId) {
+      profileId = (req as any).session.orcid.profileId;
+    }
+    if (!profileId) return res.status(401).json({ error: "Authentication required" });
+
+    // Must have an ORCID iD linked
+    const profile = await storage.getProfile(profileId);
+    if (!profile?.orcidId) {
+      return res.status(403).json({ error: "An ORCID iD is required to access the curation queue" });
+    }
+
+    try {
+      const queue = await storage.getCurationQueue();
+      return res.json(queue);
+    } catch (err) {
+      console.error("[curation queue]", err);
+      return res.status(500).json({ error: "Failed to fetch curation queue" });
+    }
+  });
+
+  // POST /api/curation/:id — approve or reject a pending reef image
+  app.post("/api/curation/:id", async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { decision } = req.body; // 'approved' | 'rejected'
+    if (decision !== "approved" && decision !== "rejected") {
+      return res.status(400).json({ error: "decision must be 'approved' or 'rejected'" });
+    }
+
+    let profileId: string | null = null;
+    const token = (req.headers["x-privy-token"] as string) || "";
+    if (token) {
+      const verify = await verifyPrivyToken(token);
+      if (verify.valid) profileId = verify.userId!;
+    } else if ((req as any).session?.orcid?.profileId) {
+      profileId = (req as any).session.orcid.profileId;
+    }
+    if (!profileId) return res.status(401).json({ error: "Authentication required" });
+
+    const profile = await storage.getProfile(profileId);
+    if (!profile?.orcidId) {
+      return res.status(403).json({ error: "An ORCID iD is required to curate images" });
+    }
+
+    try {
+      const updated = await storage.curateReefImage(id, decision, profileId);
+      if (!updated) return res.status(404).json({ error: "Image not found" });
+
+      // Award points for curation activity (5 pts per decision)
+      await storage.addContribution({
+        profileId,
+        type: "resource",
+        description: `Curated reef image ${id}: ${decision}`,
+        points: 5,
+      });
+
+      return res.json(updated);
+    } catch (err) {
+      console.error("[curation vote]", err);
+      return res.status(500).json({ error: "Failed to update image status" });
     }
   });
 

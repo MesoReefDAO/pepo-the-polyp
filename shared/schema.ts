@@ -74,6 +74,11 @@ export const reefImages = pgTable("reef_images", {
   longitude: real("longitude").notNull(),
   title: text("title").notNull().default(""),
   author: text("author").notNull().default(""),
+  description: text("description").notNull().default(""),
+  // curation: 'pending' | 'approved' | 'rejected'
+  status: text("status").notNull().default("pending"),
+  curatedBy: varchar("curated_by"),   // profileId of the ORCID-verified curator
+  curatedAt: integer("curated_at"),
   profileId: varchar("profile_id"),
   createdAt: integer("created_at").notNull().default(sql`extract(epoch from now())::int`),
 });
@@ -81,6 +86,9 @@ export const reefImages = pgTable("reef_images", {
 export const insertReefImageSchema = createInsertSchema(reefImages).omit({
   id: true,
   createdAt: true,
+  status: true,
+  curatedBy: true,
+  curatedAt: true,
 });
 export type InsertReefImage = z.infer<typeof insertReefImageSchema>;
 export type ReefImage = typeof reefImages.$inferSelect;
