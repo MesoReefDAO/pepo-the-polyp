@@ -504,7 +504,7 @@ export async function registerRoutes(
     const verify = await verifyPrivyToken(token);
     if (!verify.valid) return res.status(401).json({ error: "Unauthorized" });
 
-    const { displayName, bio, location, website, avatarUrl, avatarCid, ipfsImages, tags, isPublic } = req.body;
+    const { displayName, bio, location, website, avatarUrl, avatarCid, ipfsImages, tags, isPublic, twitterHandle, linkedinUrl, githubHandle, instagramHandle } = req.body;
     try {
       const profile = await storage.upsertProfile({
         id: verify.userId!,
@@ -518,6 +518,10 @@ export async function registerRoutes(
         tags: Array.isArray(tags) ? tags.slice(0, 10).map(String) : [],
         points: undefined, // preserved by DB default
         isPublic: isPublic !== false,
+        twitterHandle: sanitizeString(twitterHandle, 50) || "",
+        linkedinUrl: sanitizeString(linkedinUrl, 200) || "",
+        githubHandle: sanitizeString(githubHandle, 50) || "",
+        instagramHandle: sanitizeString(instagramHandle, 50) || "",
       });
       return res.json(profile);
     } catch (err) {
@@ -1194,7 +1198,7 @@ export async function registerRoutes(
       return res.status(401).json({ error: "No active ORCID session" });
     }
     const { profileId } = req.session.orcid;
-    const { displayName, bio, location, website, avatarUrl, avatarCid, ipfsImages, tags, isPublic } = req.body;
+    const { displayName, bio, location, website, avatarUrl, avatarCid, ipfsImages, tags, isPublic, twitterHandle, linkedinUrl, githubHandle, instagramHandle } = req.body;
     try {
       const existing = await storage.getProfile(profileId);
       const profile = await storage.upsertProfile({
@@ -1213,6 +1217,10 @@ export async function registerRoutes(
         orcidName: existing?.orcidName || req.session.orcid.orcidName,
         ceramicStreamId: existing?.ceramicStreamId || "",
         ceramicDid: existing?.ceramicDid || "",
+        twitterHandle: sanitizeString(twitterHandle, 50) || existing?.twitterHandle || "",
+        linkedinUrl: sanitizeString(linkedinUrl, 200) || existing?.linkedinUrl || "",
+        githubHandle: sanitizeString(githubHandle, 50) || existing?.githubHandle || "",
+        instagramHandle: sanitizeString(instagramHandle, 50) || existing?.instagramHandle || "",
       });
       return res.json(profile);
     } catch (err) {

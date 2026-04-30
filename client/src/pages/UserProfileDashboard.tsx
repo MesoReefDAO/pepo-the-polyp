@@ -639,6 +639,10 @@ export function UserProfileDashboard() {
   const [location, setLocation] = useState("");
   const [website, setWebsite] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [twitterHandle, setTwitterHandle] = useState("");
+  const [linkedinUrl, setLinkedinUrl] = useState("");
+  const [githubHandle, setGithubHandle] = useState("");
+  const [instagramHandle, setInstagramHandle] = useState("");
 
   // ORCID from URL callback, session, or persisted DB
   const [orcidId, setOrcidId] = useState<string | null>(null);
@@ -676,6 +680,10 @@ export function UserProfileDashboard() {
     if (savedProfile?.profile?.ipfsImages?.length) {
       setIpfsImages(savedProfile.profile.ipfsImages);
     }
+    if (savedProfile?.profile?.twitterHandle !== undefined) setTwitterHandle(savedProfile.profile.twitterHandle);
+    if (savedProfile?.profile?.linkedinUrl !== undefined) setLinkedinUrl(savedProfile.profile.linkedinUrl);
+    if (savedProfile?.profile?.githubHandle !== undefined) setGithubHandle(savedProfile.profile.githubHandle);
+    if (savedProfile?.profile?.instagramHandle !== undefined) setInstagramHandle(savedProfile.profile.instagramHandle);
   }, [savedProfile]);
 
   // Hydrate from ORCID session; if Privy user just connected ORCID, also persist it to their profile
@@ -714,6 +722,10 @@ export function UserProfileDashboard() {
     setWebsite(localStorage.getItem("pepo_website") || "");
     const tags = localStorage.getItem("pepo_tags");
     if (tags) setSelectedTags(JSON.parse(tags));
+    setTwitterHandle(localStorage.getItem("pepo_twitter") || "");
+    setLinkedinUrl(localStorage.getItem("pepo_linkedin") || "");
+    setGithubHandle(localStorage.getItem("pepo_github") || "");
+    setInstagramHandle(localStorage.getItem("pepo_instagram") || "");
   }, []);
 
   useEffect(() => {
@@ -824,6 +836,10 @@ export function UserProfileDashboard() {
     localStorage.setItem("pepo_location", location);
     localStorage.setItem("pepo_website", website);
     localStorage.setItem("pepo_tags", JSON.stringify(selectedTags));
+    localStorage.setItem("pepo_twitter", twitterHandle);
+    localStorage.setItem("pepo_linkedin", linkedinUrl);
+    localStorage.setItem("pepo_github", githubHandle);
+    localStorage.setItem("pepo_instagram", instagramHandle);
 
     if (orcidAuthenticated && !privyAuthenticated) {
       try {
@@ -840,6 +856,10 @@ export function UserProfileDashboard() {
             avatarCid: avatarCid || "",
             ipfsImages,
             isPublic: true,
+            twitterHandle,
+            linkedinUrl,
+            githubHandle,
+            instagramHandle,
           }),
         });
         queryClient.invalidateQueries({ queryKey: ["/api/profiles", activeProfileId] });
@@ -865,6 +885,10 @@ export function UserProfileDashboard() {
               avatarCid: avatarCid || "",
               ipfsImages,
               isPublic: true,
+              twitterHandle,
+              linkedinUrl,
+              githubHandle,
+              instagramHandle,
             }),
           });
           queryClient.invalidateQueries({ queryKey: ["/api/profiles", activeProfileId] });
@@ -1135,6 +1159,87 @@ export function UserProfileDashboard() {
                           placeholder="https://yoursite.org"
                           maxLength={120}
                           data-testid="input-website"
+                          className={`${inputCls} pl-9`}
+                        />
+                      </div>
+                    </Field>
+                  </div>
+
+                  {/* Social Links */}
+                  <div className="flex flex-col gap-4 p-5 md:p-6 rounded-3xl bg-[#ffffff08] border border-[#83eef01a] backdrop-blur-sm">
+                    <div className="flex items-center gap-2 pb-1 border-b border-[#ffffff08]">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" stroke="#83eef0aa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" stroke="#83eef0aa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      <span className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-semibold text-[#d4e9f3b2] text-xs uppercase tracking-wider">Social Links</span>
+                      <span className="[font-family:'Inter',Helvetica] text-[#d4e9f340] text-[10px] ml-1">Optional</span>
+                    </div>
+
+                    {/* Twitter / X */}
+                    <Field label="Twitter / X" hint="@handle">
+                      <div className="relative">
+                        <div className="absolute left-4 top-1/2 -translate-y-1/2">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="#d4e9f340"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                        </div>
+                        <input
+                          type="text"
+                          value={twitterHandle}
+                          onChange={e => setTwitterHandle(e.target.value.replace(/^@/, ""))}
+                          placeholder="yourhandle"
+                          maxLength={50}
+                          data-testid="input-twitter"
+                          className={`${inputCls} pl-9`}
+                        />
+                      </div>
+                    </Field>
+
+                    {/* LinkedIn */}
+                    <Field label="LinkedIn" hint="Profile URL">
+                      <div className="relative">
+                        <div className="absolute left-4 top-1/2 -translate-y-1/2">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="#d4e9f340"><path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg>
+                        </div>
+                        <input
+                          type="url"
+                          value={linkedinUrl}
+                          onChange={e => setLinkedinUrl(e.target.value)}
+                          placeholder="https://linkedin.com/in/yourprofile"
+                          maxLength={120}
+                          data-testid="input-linkedin"
+                          className={`${inputCls} pl-9`}
+                        />
+                      </div>
+                    </Field>
+
+                    {/* GitHub */}
+                    <Field label="GitHub" hint="@handle">
+                      <div className="relative">
+                        <div className="absolute left-4 top-1/2 -translate-y-1/2">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="#d4e9f340"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 00-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0020 4.77 5.07 5.07 0 0019.91 1S18.73.65 16 2.48a13.38 13.38 0 00-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 005 4.77a5.44 5.44 0 00-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 009 18.13V22"/></svg>
+                        </div>
+                        <input
+                          type="text"
+                          value={githubHandle}
+                          onChange={e => setGithubHandle(e.target.value.replace(/^@/, ""))}
+                          placeholder="yourhandle"
+                          maxLength={50}
+                          data-testid="input-github"
+                          className={`${inputCls} pl-9`}
+                        />
+                      </div>
+                    </Field>
+
+                    {/* Instagram */}
+                    <Field label="Instagram" hint="@handle">
+                      <div className="relative">
+                        <div className="absolute left-4 top-1/2 -translate-y-1/2">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d4e9f340" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="#d4e9f340" stroke="none"/></svg>
+                        </div>
+                        <input
+                          type="text"
+                          value={instagramHandle}
+                          onChange={e => setInstagramHandle(e.target.value.replace(/^@/, ""))}
+                          placeholder="yourhandle"
+                          maxLength={50}
+                          data-testid="input-instagram"
                           className={`${inputCls} pl-9`}
                         />
                       </div>
