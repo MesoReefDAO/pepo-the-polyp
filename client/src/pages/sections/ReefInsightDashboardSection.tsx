@@ -219,7 +219,7 @@ function CleanCoralPanel() {
             <>
               <p className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-semibold text-[#d4e9f3] text-base">A coral needs your help!</p>
               <p className="[font-family:'Inter',Helvetica] text-[#d4e9f366] text-xs leading-relaxed">
-                Clean a coral every day to earn reef points and protect the MesoAmerican Reef ecosystem.
+                Clean a coral every day to earn reef points and create better coordination for reefs
               </p>
             </>
           ) : (

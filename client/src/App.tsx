@@ -95,7 +95,7 @@ function LoginGate() {
           Pepo the Polyp
         </h1>
         <p className="[font-family:'Inter',Helvetica] text-[#d4e9f380] text-sm md:text-base text-center max-w-xs mb-8 leading-relaxed">
-          Sign in to access the MesoReef DAO Coral Knowledge Network
+          Sign in to access the MesoReef DAO Reef Knowledge Network
         </p>
 
         {/* Primary: Privy (wallets + socials) */}
