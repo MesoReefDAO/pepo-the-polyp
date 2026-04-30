@@ -167,7 +167,7 @@ export function JourneySection() {
         <span className="text-base">🗺️</span>
         <div className="flex flex-col flex-1 min-w-0">
           <span className="font-semibold text-[#d4e9f3] text-sm [font-family:'Plus_Jakarta_Sans',Helvetica] leading-5">
-            Your Reef Journey
+            Your Regen Reef Journey
           </span>
           <div className="flex items-center gap-2 mt-1">
             <ProgressBar value={completedCount} max={totalCount} />
