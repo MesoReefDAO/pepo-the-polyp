@@ -70,14 +70,20 @@ function CheckRow({ item }: { item: CheckItem }) {
 
 export function JourneySection() {
   const [collapsed, setCollapsed] = useState(false);
-  const { authenticated: privyAuthenticated } = usePrivy();
-  const { orcidAuthenticated } = useOrcidAuth();
+  const { authenticated: privyAuthenticated, user } = usePrivy();
+  const { orcidAuthenticated, orcidProfileId } = useOrcidAuth();
   const isAuthed = privyAuthenticated || orcidAuthenticated;
 
-  const { data: profile } = useQuery<Profile>({
-    queryKey: ["/api/profiles/me"],
-    enabled: isAuthed,
+  const activeProfileId = orcidAuthenticated && !privyAuthenticated
+    ? orcidProfileId
+    : user?.id;
+
+  const { data } = useQuery<any>({
+    queryKey: ["/api/profiles", activeProfileId],
+    enabled: isAuthed && !!activeProfileId,
   });
+
+  const profile: Profile | undefined = data?.profile;
 
   if (!isAuthed || !profile) return null;
 

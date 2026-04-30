@@ -516,6 +516,36 @@ export async function registerRoutes(
     }
   });
 
+  // GET /api/profiles/me — current authenticated user's own profile
+  // Must be registered BEFORE /:id to avoid being swallowed by the wildcard.
+  app.get("/api/profiles/me", async (req: Request, res: Response) => {
+    try {
+      // Privy token takes priority
+      const token = (req.headers["x-privy-token"] as string) || "";
+      if (token) {
+        const verify = await verifyPrivyToken(token);
+        if (verify.valid && verify.userId) {
+          const profile = await storage.getProfile(verify.userId);
+          if (!profile) return res.status(404).json({ error: "Profile not found" });
+          const contribs = await storage.getContributions(verify.userId);
+          return res.json({ profile, contributions: contribs });
+        }
+      }
+      // ORCID session fallback
+      if (req.session?.orcid?.profileId) {
+        const pid = req.session.orcid.profileId;
+        const profile = await storage.getProfile(pid);
+        if (!profile) return res.status(404).json({ error: "Profile not found" });
+        const contribs = await storage.getContributions(pid);
+        return res.json({ profile, contributions: contribs });
+      }
+      return res.status(401).json({ error: "Not authenticated" });
+    } catch (err) {
+      console.error("[profiles/me]", err);
+      return res.status(500).json({ error: "Failed to fetch profile" });
+    }
+  });
+
   // GET /api/profiles/:id — single profile with contributions
   app.get("/api/profiles/:id", async (req: Request, res: Response) => {
     try {
