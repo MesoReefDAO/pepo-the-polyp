@@ -1,28 +1,31 @@
-/** Frontend helpers for IPFS (powered by Helia on the server) */
+/** Frontend helpers for IPFS (powered by Pinata on the server) */
+
+const PINATA_GATEWAY = "teal-advisory-zebra-284.mypinata.cloud";
 
 export const IPFS_GATEWAYS = [
+  `https://${PINATA_GATEWAY}/ipfs`,
   "https://ipfs.io/ipfs",
   "https://cloudflare-ipfs.com/ipfs",
-  "https://dweb.link/ipfs",
 ];
 
 /** Resolve a CID to a displayable image URL.
- *  Tries local server first (fastest, always works), then public gateways. */
+ *  Tries local server cache first (fastest), then Pinata dedicated gateway. */
 export function ipfsImageUrl(cid: string): string {
   if (!cid) return "";
   return `/api/ipfs/cat/${cid}`;
 }
 
+/** Direct Pinata dedicated gateway URL — bypasses local server */
 export function ipfsPublicUrl(cid: string): string {
   if (!cid) return "";
-  return `https://ipfs.io/ipfs/${cid}`;
+  return `https://${PINATA_GATEWAY}/ipfs/${cid}`;
 }
 
 export function isIpfsCid(value: string): boolean {
   return value.startsWith("bafy") || value.startsWith("Qm") || value.startsWith("bafk");
 }
 
-/** Upload an image File to IPFS via the local server endpoint */
+/** Upload an image File to IPFS via the local server endpoint (pins to Pinata) */
 export async function uploadImageToIPFS(file: File): Promise<{
   cid: string;
   url: string;

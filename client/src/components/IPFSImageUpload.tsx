@@ -528,16 +528,20 @@ export function IPFSImageUpload({ onUpload, currentCid, label, compact, showMapP
           </div>
 
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            {["ipfs.io", "cloudflare", "dweb.link"].map((gw, i) => (
+            {[
+              { label: "pinata", href: `https://teal-advisory-zebra-284.mypinata.cloud/ipfs/${activeCid}` },
+              { label: "ipfs.io", href: `https://ipfs.io/ipfs/${activeCid}` },
+              { label: "cloudflare", href: `https://cloudflare-ipfs.com/ipfs/${activeCid}` },
+            ].map(({ label, href }) => (
               <a
-                key={gw}
-                href={`https://${i === 0 ? "ipfs.io" : i === 1 ? "cloudflare-ipfs.com" : "dweb.link"}/ipfs/${activeCid}`}
+                key={label}
+                href={href}
                 target="_blank"
                 rel="noopener noreferrer"
-                data-testid={`ipfs-gateway-${gw}`}
+                data-testid={`ipfs-gateway-${label}`}
                 style={{ fontSize: 9.5, color: "#83eef077", textDecoration: "none", display: "flex", alignItems: "center", gap: 3, background: "rgba(131,238,240,0.05)", border: "1px solid rgba(131,238,240,0.12)", borderRadius: 6, padding: "3px 8px" }}
               >
-                <ExternalLinkIcon /> {gw}
+                <ExternalLinkIcon /> {label}
               </a>
             ))}
           </div>

@@ -311,24 +311,24 @@ function AvatarIPFSUpload({
           </div>
           <div style={{ display: "flex", gap: 4 }}>
             <a
-              href={`https://ipfs.io/ipfs/${avatarCid}`}
+              href={`https://teal-advisory-zebra-284.mypinata.cloud/ipfs/${avatarCid}`}
               target="_blank"
               rel="noopener noreferrer"
               data-testid="ipfs-avatar-gateway-link"
               style={{ fontSize: 8.5, color: "#83eef066", textDecoration: "none", display: "flex", alignItems: "center", gap: 3 }}
             >
               <svg width="8" height="8" viewBox="0 0 24 24" fill="none"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              ipfs.io
+              pinata
             </a>
             <span style={{ color: "#83eef030", fontSize: 8 }}>·</span>
             <a
-              href={`https://cloudflare-ipfs.com/ipfs/${avatarCid}`}
+              href={`https://ipfs.io/ipfs/${avatarCid}`}
               target="_blank"
               rel="noopener noreferrer"
               style={{ fontSize: 8.5, color: "#83eef066", textDecoration: "none", display: "flex", alignItems: "center", gap: 3 }}
             >
               <svg width="8" height="8" viewBox="0 0 24 24" fill="none"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              cloudflare
+              ipfs.io
             </a>
           </div>
         </div>
@@ -1313,7 +1313,7 @@ export function UserProfileDashboard() {
                           {ipfsImages.slice(0, 12).map((cid) => (
                             <a
                               key={cid}
-                              href={`https://ipfs.io/ipfs/${cid}`}
+                              href={`https://teal-advisory-zebra-284.mypinata.cloud/ipfs/${cid}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               data-testid={`ipfs-thumb-${cid.slice(-6)}`}
@@ -1325,7 +1325,7 @@ export function UserProfileDashboard() {
                                   src={`/api/ipfs/cat/${cid}`}
                                   alt={cid.slice(0, 8)}
                                   className="w-full h-full object-cover"
-                                  onError={(e) => { (e.target as HTMLImageElement).src = `https://ipfs.io/ipfs/${cid}`; }}
+                                  onError={(e) => { (e.target as HTMLImageElement).src = `https://teal-advisory-zebra-284.mypinata.cloud/ipfs/${cid}`; }}
                                 />
                               </div>
                               <div className="absolute inset-0 rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 bg-[#00080c80] transition-opacity">
