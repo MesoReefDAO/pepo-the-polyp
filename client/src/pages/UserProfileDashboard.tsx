@@ -4,8 +4,7 @@ import { PRIVY_ENABLED } from "@/lib/privy";
 import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
-import { useCeramicProfile } from "@/hooks/use-ceramic-profile";
-import { ceramicStreamUrl } from "@/lib/ceramic";
+import { ipfsPublicUrl } from "@/lib/ipfs";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { useOrcidAuth } from "@/hooks/use-orcid-auth";
 import { OrcidLoginButton } from "@/components/OrcidLoginButton";
@@ -607,7 +606,8 @@ export function UserProfileDashboard() {
   const { ready, authenticated: privyAuthenticated, user, login, logout: privyLogout, getAccessToken } = usePrivy();
   const { wallets } = useWallets();
 
-  const ceramic = useCeramicProfile();
+  const [ipfsSyncLoading, setIpfsSyncLoading] = useState(false);
+  const [ipfsSyncError, setIpfsSyncError] = useState<string | null>(null);
 
   const {
     orcidAuthenticated,
@@ -882,26 +882,37 @@ export function UserProfileDashboard() {
 
   async function handleSyncToCeramic() {
     if (!user?.id) return;
-    const streamId = await ceramic.saveProfile(
-      { displayName, bio, location, website, tags: selectedTags, orcidId: orcidId || "", orcidName: orcidName || "" },
-      ceramicStreamId
-    );
-    if (!streamId) return;
-    setCeramicStreamId(streamId);
-    // Persist stream ID + DID to backend
+    setIpfsSyncLoading(true);
+    setIpfsSyncError(null);
     try {
       const token = await getAccessToken();
-      if (!token) return;
-      await fetch("/api/profiles/ceramic", {
+      if (!token) throw new Error("Not authenticated");
+      const res = await fetch("/api/ipfs/profile", {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-privy-token": token },
-        body: JSON.stringify({ ceramicStreamId: streamId, ceramicDid: ceramic.did || "" }),
+        body: JSON.stringify({
+          displayName,
+          bio,
+          location,
+          website,
+          tags: selectedTags,
+          orcidId: orcidId || "",
+          orcidName: orcidName || "",
+        }),
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/profiles"] });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `Upload failed (${res.status})`);
+      }
+      const { cid } = await res.json();
+      setCeramicStreamId(cid);
+      queryClient.invalidateQueries({ queryKey: ["/api/profiles/me"] });
       setCeramicSynced(true);
       setTimeout(() => setCeramicSynced(false), 4000);
-    } catch {
-      // non-blocking
+    } catch (err: any) {
+      setIpfsSyncError(err.message || "Failed to sync to IPFS");
+    } finally {
+      setIpfsSyncLoading(false);
     }
   }
 
@@ -1220,15 +1231,6 @@ export function UserProfileDashboard() {
                         )}
                       </div>
 
-                      {ceramic.did && (
-                        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#83eef008] border border-[#83eef020]">
-                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#83eef0" strokeWidth="2"/><path d="M12 8v4l3 3" stroke="#83eef0" strokeWidth="2" strokeLinecap="round"/></svg>
-                          <span className="[font-family:'Inter',Helvetica] text-[#83eef0b2] text-[9px] font-mono truncate flex-1" data-testid="text-ceramic-did">
-                            {ceramic.did}
-                          </span>
-                        </div>
-                      )}
-
                       {ceramicStreamId ? (
                         <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-[#83eef00d] border border-[#83eef020]">
                           <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#83eef0" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -1239,12 +1241,12 @@ export function UserProfileDashboard() {
                             </span>
                           </div>
                           <a
-                            href={ceramicStreamUrl(ceramicStreamId)}
+                            href={ipfsPublicUrl(ceramicStreamId)}
                             target="_blank"
                             rel="noopener noreferrer"
                             data-testid="link-ceramic-explorer"
                             className="text-[#83eef066] hover:text-[#83eef0] transition-colors"
-                            title="View on Cerscan"
+                            title="View on IPFS gateway"
                           >
                             <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><polyline points="15 3 21 3 21 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><line x1="10" y1="14" x2="21" y2="3" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
                           </a>
@@ -1255,25 +1257,23 @@ export function UserProfileDashboard() {
                         </p>
                       )}
 
-                      {ceramic.error && (
-                        <p className="[font-family:'Inter',Helvetica] text-red-400 text-[10px]">{ceramic.error}</p>
+                      {ipfsSyncError && (
+                        <p className="[font-family:'Inter',Helvetica] text-red-400 text-[10px]">{ipfsSyncError}</p>
                       )}
 
                       <button
                         onClick={handleSyncToCeramic}
-                        disabled={ceramic.authLoading || ceramic.syncLoading}
+                        disabled={ipfsSyncLoading}
                         data-testid="button-sync-ceramic"
                         className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl [font-family:'Inter',Helvetica] text-xs font-medium transition-all border ${
                           ceramicSynced
                             ? "bg-[#83eef015] border-[#83eef033] text-[#83eef0]"
-                            : ceramic.authLoading || ceramic.syncLoading
+                            : ipfsSyncLoading
                             ? "bg-[#83eef008] border-[#83eef015] text-[#83eef050] cursor-not-allowed"
                             : "bg-[#83eef010] border-[#83eef030] text-[#83eef0b2] hover:bg-[#83eef01a] hover:text-[#83eef0] hover:border-[#83eef05a]"
                         }`}
                       >
-                        {ceramic.authLoading ? (
-                          <><div className="w-3 h-3 rounded-full border border-[#83eef0] border-t-transparent animate-spin" />Signing in…</>
-                        ) : ceramic.syncLoading ? (
+                        {ipfsSyncLoading ? (
                           <><div className="w-3 h-3 rounded-full border border-[#83eef0] border-t-transparent animate-spin" />Syncing…</>
                         ) : ceramicSynced ? (
                           <><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>Synced to IPFS!</>

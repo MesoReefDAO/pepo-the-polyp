@@ -5,7 +5,7 @@ import multer from "multer";
 import { rateLimit } from "express-rate-limit";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { storage } from "./storage";
-import { uploadToIPFS, gatewayUrls, primaryGatewayUrl } from "./ipfs";
+import { uploadToIPFS, getPinata, gatewayUrls, primaryGatewayUrl } from "./ipfs";
 
 // ─── GCRMN regions GeoJSON cache (fetched once from GitHub, valid 24h) ─────────
 let _gcrmnCache: { geojson: object; expiresAt: number } | null = null;
@@ -269,6 +269,54 @@ export async function registerRoutes(
       gateway: process.env.PINATA_GATEWAY || "gateway.pinata.cloud",
       repo: "https://github.com/PinataCloud",
     });
+  });
+
+  // POST /api/ipfs/profile — pin a profile JSON blob to Pinata; requires Privy auth
+  app.post("/api/ipfs/profile", async (req: Request, res: Response) => {
+    const token = (req.headers["x-privy-token"] as string) || "";
+    if (!token) return res.status(401).json({ error: "Authentication required" });
+    const verify = await verifyPrivyToken(token);
+    if (!verify.valid) return res.status(401).json({ error: "Invalid token" });
+
+    try {
+      const profileData = req.body;
+      if (!profileData || typeof profileData !== "object") {
+        return res.status(400).json({ error: "Invalid profile data" });
+      }
+
+      const jsonStr = JSON.stringify({ ...profileData, pinnedAt: Date.now() });
+      const buf = Buffer.from(jsonStr, "utf-8");
+
+      // Upload to Pinata
+      const pinata = getPinata();
+      const filename = `pepo-profile-${verify.userId}-${Date.now()}.json`;
+      const file = new File([buf], filename, { type: "application/json" });
+      const result = await pinata.upload.public.file(file);
+      const cid = result.cid;
+
+      // Cache in DB so /api/ipfs/cat can serve it without a Pinata round-trip
+      await storage.saveIpfsBlock(cid, buf.toString("base64"), "application/json");
+
+      const gatewayBase = process.env.PINATA_GATEWAY || "gateway.pinata.cloud";
+      const url = `https://${gatewayBase}/ipfs/${cid}`;
+
+      // Persist CID + award one-time points (mirrors /api/profiles/ceramic logic)
+      const existing = await storage.getProfile(verify.userId!);
+      await storage.saveCeramic(verify.userId!, cid, "did:ipfs");
+      if (existing && !existing.ceramicStreamId) {
+        await storage.addContribution({
+          profileId: verify.userId!,
+          type: "resource",
+          description: "Synced profile to IPFS via Pinata",
+          points: 30,
+        });
+      }
+
+      return res.json({ cid, url, gateways: gatewayUrls(cid) });
+    } catch (err: any) {
+      console.error("[IPFS profile] error:", err);
+      return res.status(500).json({ error: err.message || "Failed to pin profile" });
+    }
   });
 
   // Proxy: fetch knowledge graph data
