@@ -99,6 +99,10 @@ export class DbStorage implements IStorage {
           orcidName: profile.orcidName,
           ceramicStreamId: profile.ceramicStreamId,
           ceramicDid: profile.ceramicDid,
+          twitterHandle: profile.twitterHandle,
+          linkedinUrl: profile.linkedinUrl,
+          githubHandle: profile.githubHandle,
+          instagramHandle: profile.instagramHandle,
           updatedAt: now,
         },
       })

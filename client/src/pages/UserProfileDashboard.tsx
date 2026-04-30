@@ -664,26 +664,39 @@ export function UserProfileDashboard() {
     enabled: !!activeProfileId,
   });
 
-  // Hydrate ORCID + Ceramic from DB on mount
+  // Hydrate ALL profile fields from DB — DB is the source of truth once a profile exists
   useEffect(() => {
-    if (savedProfile?.profile?.orcidId && !orcidId) {
-      setOrcidId(savedProfile.profile.orcidId);
-      setOrcidName(savedProfile.profile.orcidName || null);
+    if (!savedProfile?.profile) return;
+    const p = savedProfile.profile;
+
+    // Core fields — DB always wins when profile exists
+    setDisplayName(p.displayName || "");
+    setBio(p.bio || DEFAULT_BIO);
+    setLocation(p.location || "");
+    setWebsite(p.website || "");
+    setSelectedTags(Array.isArray(p.tags) ? p.tags : []);
+
+    // Social links
+    setTwitterHandle(p.twitterHandle || "");
+    setLinkedinUrl(p.linkedinUrl || "");
+    setGithubHandle(p.githubHandle || "");
+    setInstagramHandle(p.instagramHandle || "");
+
+    // Avatar / IPFS
+    if (p.avatarCid) {
+      setAvatarCid(p.avatarCid);
+      setProfileImage(ipfsImageUrl(p.avatarCid));
+    } else if (p.avatarUrl) {
+      setProfileImage(p.avatarUrl);
     }
-    if (savedProfile?.profile?.ceramicStreamId) {
-      setCeramicStreamId(savedProfile.profile.ceramicStreamId);
+    if (p.ipfsImages?.length) setIpfsImages(p.ipfsImages);
+
+    // ORCID — only set if not already populated from session
+    if (p.orcidId && !orcidId) {
+      setOrcidId(p.orcidId);
+      setOrcidName(p.orcidName || null);
     }
-    if (savedProfile?.profile?.avatarCid) {
-      setAvatarCid(savedProfile.profile.avatarCid);
-      setProfileImage(ipfsImageUrl(savedProfile.profile.avatarCid));
-    }
-    if (savedProfile?.profile?.ipfsImages?.length) {
-      setIpfsImages(savedProfile.profile.ipfsImages);
-    }
-    if (savedProfile?.profile?.twitterHandle !== undefined) setTwitterHandle(savedProfile.profile.twitterHandle);
-    if (savedProfile?.profile?.linkedinUrl !== undefined) setLinkedinUrl(savedProfile.profile.linkedinUrl);
-    if (savedProfile?.profile?.githubHandle !== undefined) setGithubHandle(savedProfile.profile.githubHandle);
-    if (savedProfile?.profile?.instagramHandle !== undefined) setInstagramHandle(savedProfile.profile.instagramHandle);
+    if (p.ceramicStreamId) setCeramicStreamId(p.ceramicStreamId);
   }, [savedProfile]);
 
   // Hydrate from ORCID session; if Privy user just connected ORCID, also persist it to their profile
