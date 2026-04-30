@@ -5,7 +5,7 @@ import { queryClient } from "@/lib/queryClient";
 import { Link } from "wouter";
 import { ipfsImageUrl, ipfsPublicUrl } from "@/lib/ipfs";
 import { useOrcidAuth } from "@/hooks/use-orcid-auth";
-import type { ReefImage } from "@shared/schema";
+import type { ReefImage, Profile } from "@shared/schema";
 
 function BackIcon() {
   return (
@@ -24,10 +24,86 @@ function PinIcon() {
   );
 }
 
+function OrcidLogo({ size = 10 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 256 256" fill="none">
+      <circle cx="128" cy="128" r="128" fill="#A6CE39"/>
+      <path d="M86.3 186.2H70.9V79.1h15.4v107.1zM108.9 79.1h41.6c39.6 0 57 28.3 57 53.6 0 27.5-21.5 53.6-56.8 53.6h-41.8V79.1zm15.4 93.3h24.5c34.9 0 42.9-26.5 42.9-39.7C191.7 111.2 178 93 153 93h-28.7v79.4zM88.7 56.8c0 5.5-4.5 10.1-10.1 10.1s-10.1-4.6-10.1-10.1c0-5.6 4.5-10.1 10.1-10.1s10.1 4.5 10.1 10.1z" fill="white"/>
+    </svg>
+  );
+}
+
 function formatDate(ts: number) {
   return new Date(ts * 1000).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 }
 
+// ─── Submitter profile mini-card ─────────────────────────────────────────────
+function SubmitterPill({ profileId, authorFallback }: { profileId: string | null | undefined; authorFallback: string }) {
+  const { data } = useQuery<{ profile: Profile }>({
+    queryKey: ["/api/profiles", profileId],
+    queryFn: () =>
+      fetch(`/api/profiles/${encodeURIComponent(profileId!)}`).then(r => {
+        if (!r.ok) throw new Error("not found");
+        return r.json();
+      }),
+    enabled: !!profileId,
+    staleTime: 60_000,
+    retry: false,
+  });
+
+  const profile = data?.profile;
+  const name = profile?.displayName || authorFallback || "Unknown";
+  const avatarUrl = profile?.avatarUrl;
+  const orcidId = profile?.orcidId;
+  const initials = name.split(" ").map((w: string) => w[0]).slice(0, 2).join("").toUpperCase() || "?";
+
+  const inner = (
+    <div className="flex items-center gap-2 px-2.5 py-1.5">
+      {/* Avatar */}
+      {avatarUrl ? (
+        <img src={avatarUrl} alt={name} className="w-6 h-6 rounded-full object-cover border border-[#83eef025] flex-shrink-0" />
+      ) : (
+        <div className="w-6 h-6 rounded-full bg-[#0a293380] border border-[#83eef025] flex items-center justify-center flex-shrink-0">
+          <span className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-bold text-[#83eef0] text-[9px]">{initials}</span>
+        </div>
+      )}
+      {/* Name */}
+      <span className="[font-family:'Inter',Helvetica] text-[11px] text-[#d4e9f3cc] leading-none">{name}</span>
+      {/* ORCID badge */}
+      {orcidId && (
+        <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-[#a6ce3920] border border-[#a6ce3940]">
+          <OrcidLogo size={9} />
+          <span className="[font-family:'Inter',Helvetica] text-[8px] font-semibold text-[#a6ce39]">Verified</span>
+        </span>
+      )}
+      {/* Arrow if clickable */}
+      {profileId && (
+        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" className="ml-auto text-[#d4e9f344]">
+          <path d="M7 17L17 7M17 7H7M17 7v10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      )}
+    </div>
+  );
+
+  if (profileId) {
+    return (
+      <Link
+        href={`/members/${encodeURIComponent(profileId)}`}
+        data-testid={`link-submitter-profile-${profileId}`}
+        className="flex flex-col rounded-xl bg-[#ffffff06] border border-[#ffffff10] hover:bg-[#ffffff0d] hover:border-[#83eef025] transition-colors no-underline"
+      >
+        {inner}
+      </Link>
+    );
+  }
+  return (
+    <div className="flex flex-col rounded-xl bg-[#ffffff06] border border-[#ffffff10]">
+      {inner}
+    </div>
+  );
+}
+
+// ─── Image card ───────────────────────────────────────────────────────────────
 function ImageCard({
   image,
   onDecide,
@@ -96,13 +172,16 @@ function ImageCard({
             {image.description}
           </p>
         )}
-        <div className="flex flex-wrap gap-3 mt-0.5">
-          {image.author && (
-            <span className="[font-family:'Inter',Helvetica] text-[#83eef0aa] text-[10px] flex items-center gap-1">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="2"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
-              {image.author}
-            </span>
-          )}
+
+        {/* Submitter profile — linked to /members/:profileId */}
+        <div className="mt-1">
+          <span className="[font-family:'Inter',Helvetica] text-[9px] uppercase tracking-widest text-[#d4e9f344] mb-1 block">
+            Submitted by
+          </span>
+          <SubmitterPill profileId={image.profileId} authorFallback={image.author} />
+        </div>
+
+        <div className="flex flex-wrap gap-3 mt-1">
           <span className="[font-family:'Inter',Helvetica] text-[#83eef066] text-[10px] flex items-center gap-1">
             <PinIcon />
             {image.latitude.toFixed(3)}, {image.longitude.toFixed(3)}
@@ -178,6 +257,7 @@ function ImageCard({
   );
 }
 
+// ─── Page ─────────────────────────────────────────────────────────────────────
 export function CurationPage() {
   const { authenticated: privyAuthenticated, user, getAccessToken } = usePrivy();
   const { orcidAuthenticated, orcidId: orcidSessionId } = useOrcidAuth();
@@ -267,7 +347,19 @@ export function CurationPage() {
               Reef Image Curation
             </span>
           </div>
-          <div className="w-16" />
+          {/* Community link */}
+          <Link
+            href="/community"
+            data-testid="link-to-community"
+            className="flex items-center gap-1.5 text-[#83eef066] hover:text-[#83eef0] transition-colors no-underline text-xs [font-family:'Inter',Helvetica]"
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+              <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <span className="hidden md:inline">Members</span>
+          </Link>
         </div>
 
         {/* Content */}
@@ -286,7 +378,7 @@ export function CurationPage() {
               )}
             </div>
             <p className="[font-family:'Inter',Helvetica] text-[#d4e9f366] text-sm m-0">
-              Review reef images submitted by community members. Approved images appear on the public map. You earn 5 points per decision. Leave a note to give the submitter feedback.
+              Review reef images submitted by community members. Click a submitter's name to view their profile. Approved images appear on the public map. You earn 5 points per decision.
             </p>
 
             {/* Curator identity badge — only shown when ORCID-verified */}
@@ -295,11 +387,7 @@ export function CurationPage() {
                 data-testid="badge-curator-orcid"
                 className="flex items-center gap-2.5 self-start px-3 py-2 rounded-xl bg-[#a6ce3910] border border-[#a6ce3930] mt-1"
               >
-                {/* ORCID logo */}
-                <svg width="18" height="18" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <circle cx="128" cy="128" r="128" fill="#A6CE39"/>
-                  <path d="M86.3 186.2H70.9V79.1h15.4v107.1zM108.9 79.1h41.6c39.6 0 57 28.3 57 53.6 0 27.5-21.5 53.6-56.8 53.6h-41.8V79.1zm15.4 93.3h24.5c34.9 0 42.9-26.5 42.9-39.7C191.7 111.2 178 93 153 93h-28.7v79.4zM88.7 56.8c0 5.5-4.5 10.1-10.1 10.1s-10.1-4.6-10.1-10.1c0-5.6 4.5-10.1 10.1-10.1s10.1 4.5 10.1 10.1z" fill="white"/>
-                </svg>
+                <OrcidLogo size={18} />
                 <div className="flex flex-col">
                   <span className="[font-family:'Inter',Helvetica] text-[9px] uppercase tracking-widest text-[#a6ce3988] leading-none mb-0.5">
                     Curating as verified researcher
