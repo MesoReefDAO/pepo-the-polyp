@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import coralBg from "@assets/coral_micro_1777060394505.jpg";
+import vocdoniLogo from "@assets/vocdoni_1777571540894.png";
 
 // ─── Vocdoni config ───────────────────────────────────────────────────────────
 const VOCDONI_ENV = (import.meta.env.VITE_VOCDONI_ENV as string) || "prod";
@@ -1545,7 +1546,10 @@ export function Governance() {
                 <h1 className="text-2xl md:text-3xl font-extrabold" style={{ fontFamily: "'Plus_Jakarta_Sans',sans-serif", color: "#d4e9f3" }}>
                   MesoReef DAO
                 </h1>
-                <p className="text-sm" style={{ fontFamily: "'Inter',sans-serif", color: "#9aaeb8" }}>On-chain governance · Powered by Vocdoni</p>
+                <p className="flex items-center gap-1.5 text-sm" style={{ fontFamily: "'Inter',sans-serif", color: "#9aaeb8" }}>
+                  On-chain governance · Powered by
+                  <img src={vocdoniLogo} alt="Vocdoni" className="inline-block h-4 w-auto" style={{ filter: "brightness(0) invert(1)", opacity: 0.75 }} />
+                </p>
               </div>
             </div>
             {/* Desktop create button */}
