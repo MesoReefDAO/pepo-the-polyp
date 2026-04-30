@@ -5,7 +5,7 @@ import multer from "multer";
 import { rateLimit } from "express-rate-limit";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { storage } from "./storage";
-import { uploadToIPFS, getIPFSBytes, gatewayUrls, primaryGatewayUrl } from "./ipfs";
+import { uploadToIPFS, gatewayUrls, primaryGatewayUrl } from "./ipfs";
 
 // ─── GCRMN regions GeoJSON cache (fetched once from GitHub, valid 24h) ─────────
 let _gcrmnCache: { geojson: object; expiresAt: number } | null = null;
@@ -204,7 +204,7 @@ export async function registerRoutes(
   // Apply general rate limiting to all /api routes
   app.use("/api", generalLimiter);
 
-  // ─── IPFS routes (Helia — https://github.com/ipfs/helia) ──────────────────
+  // ─── IPFS routes (Pinata — https://github.com/PinataCloud) ───────────────
   const ipfsUpload = multer({
     storage: multer.memoryStorage(),
     limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB max
@@ -214,7 +214,7 @@ export async function registerRoutes(
     },
   });
 
-  // POST /api/ipfs/upload — upload an image; returns CID + gateway URLs
+  // POST /api/ipfs/upload — pin an image to Pinata; returns CID + gateway URLs
   app.post(
     "/api/ipfs/upload",
     ipfsUpload.single("file"),
@@ -222,7 +222,7 @@ export async function registerRoutes(
       try {
         if (!req.file) return res.status(400).json({ error: "No file provided" });
         const cid = await uploadToIPFS(req.file.buffer, req.file.originalname);
-        // Persist bytes to DB so they survive server restarts
+        // Cache bytes locally so /cat can serve without a Pinata round-trip
         const b64 = req.file.buffer.toString("base64");
         await storage.saveIpfsBlock(cid, b64, req.file.mimetype);
         return res.json({
@@ -241,61 +241,34 @@ export async function registerRoutes(
     }
   );
 
-  // GET /api/ipfs/cat/:cid — serve a file (memory → DB → public gateway fallback)
+  // GET /api/ipfs/cat/:cid — serve a file (local DB cache → Pinata gateway redirect)
   app.get("/api/ipfs/cat/:cid", async (req: Request, res: Response) => {
     const cidStr = String(req.params.cid);
     try {
-      // 1. Try in-memory Helia blockstore (fast, warm)
-      let bytes = await getIPFSBytes(cidStr);
-
-      // 2. If not in memory, check DB and re-hydrate
-      if (!bytes) {
-        const block = await storage.getIpfsBlock(cidStr);
-        if (block) {
-          const buf = Buffer.from(block.data, "base64");
-          // Re-hydrate into Helia memory so subsequent hits are fast
-          try { await (await import("./ipfs")).hydrateIPFS(buf); } catch { /* best-effort */ }
-          bytes = buf;
-          // Set content-type from stored mime
-          res.setHeader("Content-Type", block.mimeType || "application/octet-stream");
-          res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
-          return res.send(bytes);
-        }
-      }
-
-      // 3. If found in memory, detect content type and serve
-      if (bytes) {
-        let contentType = "application/octet-stream";
-        if (bytes[0] === 0xff && bytes[1] === 0xd8) contentType = "image/jpeg";
-        else if (bytes[0] === 0x89 && bytes[1] === 0x50) contentType = "image/png";
-        else if (bytes[0] === 0x47 && bytes[1] === 0x49) contentType = "image/gif";
-        else if (bytes[0] === 0x52 && bytes[4] === 0x57) contentType = "image/webp";
-        res.setHeader("Content-Type", contentType);
+      // 1. Try local DB cache (fast; avoids Pinata round-trip)
+      const block = await storage.getIpfsBlock(cidStr);
+      if (block) {
+        const buf = Buffer.from(block.data, "base64");
+        res.setHeader("Content-Type", block.mimeType || "application/octet-stream");
         res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
-        return res.send(bytes);
+        return res.send(buf);
       }
-
-      // 4. Not found locally — redirect to public IPFS gateway
-      return res.redirect(302, `https://ipfs.io/ipfs/${cidStr}`);
+      // 2. Not cached — redirect to dedicated Pinata gateway (file lives on IPFS)
+      return res.redirect(302, primaryGatewayUrl(cidStr));
     } catch (err: any) {
       console.error("[IPFS] cat error:", err);
-      return res.redirect(302, `https://ipfs.io/ipfs/${cidStr}`);
+      return res.redirect(302, primaryGatewayUrl(cidStr));
     }
   });
 
-  // GET /api/ipfs/info — node status
-  app.get("/api/ipfs/info", async (_req: Request, res: Response) => {
-    try {
-      const { helia } = await (await import("./ipfs")).getHelia();
-      return res.json({
-        status: helia.libp2p?.status ?? "offline",
-        mode: "local-blockstore",
-        library: "helia",
-        repo: "https://github.com/ipfs/helia",
-      });
-    } catch (err: any) {
-      return res.json({ status: "starting", mode: "local-blockstore" });
-    }
+  // GET /api/ipfs/info — service status
+  app.get("/api/ipfs/info", (_req: Request, res: Response) => {
+    return res.json({
+      status: "ok",
+      mode: "pinata",
+      gateway: process.env.PINATA_GATEWAY || "gateway.pinata.cloud",
+      repo: "https://github.com/PinataCloud",
+    });
   });
 
   // Proxy: fetch knowledge graph data
