@@ -778,86 +778,52 @@ function ExpandedMapModal({
           overflowY: "auto",
         }}>
           <SideSection title="Layers">
-            <LayerToggle
-              label="EEZ Boundaries (Marine Regions)"
-              sublabel="Exclusive Economic Zones · MarineRegions.org · VLIZ"
-              active={showMarineRegions}
-              color="#fdcb6e"
-              onClick={() => setShowMarineRegions((v) => !v)}
-              testId="expanded-toggle-marine-regions"
-            />
-            <LayerToggle
-              label="CoralMapping Reef Regions"
-              sublabel="29 global mapped reef zones · UQ / Allen Coral Atlas"
-              active={showCoralMapping}
-              color="#fd7272"
-              onClick={() => setShowCoralMapping((v) => !v)}
-              testId="expanded-toggle-coral-mapping"
-            />
-            <LayerToggle
-              label="GCRMN Sites 2026"
-              sublabel={`${GCRMN_SITES_2026.length} territories · ${GCRMN_TOTALS.surveys.toLocaleString()} surveys`}
-              active={showGcrmnSites}
-              color="#A6CE39"
-              onClick={() => setShowGcrmnSites((v) => !v)}
-              testId="expanded-toggle-gcrmn-sites"
-            />
-            <LayerToggle
-              label="GCRMN Regions"
-              sublabel="10 GCRMN monitoring zones"
-              active={showGcrmn}
-              color="#1dd1a1"
-              onClick={() => setShowGcrmn((v) => !v)}
-              testId="expanded-toggle-gcrmn"
-            />
-            <LayerToggle
-              label="Reef Photos"
-              sublabel={`${reefImgs.length} community images`}
-              active={showImgs}
-              color="#ff9f43"
-              onClick={() => setShowImgs((v) => !v)}
-              testId="expanded-toggle-imgs"
-            />
-            <LayerToggle
-              label="WCS ReefCloud Sites"
-              sublabel="14,501 global monitoring stations · WCS-Marine"
-              active={showWcsReefCloud}
-              color="#e056fd"
-              onClick={() => setShowWcsReefCloud((v) => !v)}
-              testId="expanded-toggle-wcs-reefcloud"
-            />
-            <LayerToggle
-              label="WCS Coral Cover Sites"
-              sublabel="4,766 field survey sites · WCS-Marine"
-              active={showWcsCcSites}
-              color="#ff6b9d"
-              onClick={() => setShowWcsCcSites((v) => !v)}
-              testId="expanded-toggle-wcs-cc-sites"
-            />
-            <LayerToggle
-              label="Reef Check Sites"
-              sublabel="~6,200 unique stations · coral cover + bleaching"
-              active={showReefCheck}
-              color="#fd9644"
-              onClick={() => setShowReefCheck((v) => !v)}
-              testId="expanded-toggle-reef-check"
-            />
-            <LayerToggle
-              label="Reef Life Survey Sites"
-              sublabel="4,147 sites · ecoregion + realm metadata"
-              active={showReefLife}
-              color="#45aaf2"
-              onClick={() => setShowReefLife((v) => !v)}
-              testId="expanded-toggle-reef-life"
-            />
-            <LayerToggle
-              label="GCRMN Benthic Sites"
-              sublabel="GCRMN program stations · gcrmndb_benthos"
-              active={showGcrmnMonSites}
-              color="#26de81"
-              onClick={() => setShowGcrmnMonSites((v) => !v)}
-              testId="expanded-toggle-gcrmn-mon-sites"
-            />
+            {/* ── Quick presets ── */}
+            <div style={{ display: "flex", gap: 5, marginBottom: 10, paddingBottom: 10, borderBottom: "1px solid rgba(131,238,240,0.08)" }}>
+              <button
+                data-testid="expanded-toggle-all-layers"
+                onClick={() => { setShowMarineRegions(true); setShowCoralMapping(true); setShowGcrmn(true); setShowGcrmnSites(true); setShowGcrmnMonSites(true); setShowWcsReefCloud(true); setShowWcsCcSites(true); setShowReefCheck(true); setShowReefLife(true); setShowImgs(true); }}
+                style={{ flex: 1, fontSize: 9, fontFamily: "Inter,sans-serif", fontWeight: 700, background: "rgba(131,238,240,0.12)", border: "1px solid rgba(131,238,240,0.3)", borderRadius: 6, padding: "4px 0", color: "#83eef0", cursor: "pointer" }}
+              >All On</button>
+              <button
+                data-testid="expanded-toggle-no-layers"
+                onClick={() => { setShowMarineRegions(false); setShowCoralMapping(false); setShowGcrmn(false); setShowGcrmnSites(false); setShowGcrmnMonSites(false); setShowWcsReefCloud(false); setShowWcsCcSites(false); setShowReefCheck(false); setShowReefLife(false); setShowImgs(false); }}
+                style={{ flex: 1, fontSize: 9, fontFamily: "Inter,sans-serif", fontWeight: 700, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 6, padding: "4px 0", color: "#d4e9f355", cursor: "pointer" }}
+              >All Off</button>
+            </div>
+
+            {/* ── Boundaries ── */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+              <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#d4e9f340" }}>Boundaries</span>
+              <button
+                onClick={() => { const all = showCoralMapping && showMarineRegions && showGcrmn; setShowCoralMapping(!all); setShowMarineRegions(!all); setShowGcrmn(!all); }}
+                style={{ fontSize: 8, background: "none", border: "none", color: "#83eef066", cursor: "pointer", fontFamily: "Inter,sans-serif", fontWeight: 600 }}
+              >{showCoralMapping && showMarineRegions && showGcrmn ? "off" : "all"}</button>
+            </div>
+            <LayerToggle label="Coral Reef Regions"  sublabel="29 global mapped reef zones · UQ / Allen Coral Atlas"                                   active={showCoralMapping}  color="#fd7272" onClick={() => setShowCoralMapping(v => !v)}  testId="expanded-toggle-coral-mapping" />
+            <LayerToggle label="EEZ Boundaries"      sublabel="Exclusive Economic Zones · MarineRegions.org · VLIZ"                                     active={showMarineRegions} color="#fdcb6e" onClick={() => setShowMarineRegions(v => !v)} testId="expanded-toggle-marine-regions" />
+            <LayerToggle label="GCRMN Regions"       sublabel="10 GCRMN monitoring zones"                                                               active={showGcrmn}         color="#1dd1a1" onClick={() => setShowGcrmn(v => !v)}         testId="expanded-toggle-gcrmn" />
+
+            {/* ── Monitoring ── */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "10px 0 4px" }}>
+              <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#d4e9f340" }}>Monitoring</span>
+              <button
+                onClick={() => { const all = showGcrmnMonSites && showGcrmnSites && showReefCheck && showReefLife && showWcsCcSites && showWcsReefCloud; [setShowGcrmnMonSites, setShowGcrmnSites, setShowReefCheck, setShowReefLife, setShowWcsCcSites, setShowWcsReefCloud].forEach(fn => fn(!all)); }}
+                style={{ fontSize: 8, background: "none", border: "none", color: "#83eef066", cursor: "pointer", fontFamily: "Inter,sans-serif", fontWeight: 600 }}
+              >{showGcrmnMonSites && showGcrmnSites && showReefCheck && showReefLife && showWcsCcSites && showWcsReefCloud ? "off" : "all"}</button>
+            </div>
+            <LayerToggle label="GCRMN Benthic Sites" sublabel="GCRMN program stations · gcrmndb_benthos"                                                active={showGcrmnMonSites} color="#26de81" onClick={() => setShowGcrmnMonSites(v => !v)} testId="expanded-toggle-gcrmn-mon-sites" />
+            <LayerToggle label="GCRMN Sites 2026"    sublabel={`${GCRMN_SITES_2026.length} territories · ${GCRMN_TOTALS.surveys.toLocaleString()} surveys`} active={showGcrmnSites}    color="#A6CE39" onClick={() => setShowGcrmnSites(v => !v)}    testId="expanded-toggle-gcrmn-sites" />
+            <LayerToggle label="Reef Check"          sublabel="~6,200 unique stations · coral cover + bleaching"                                         active={showReefCheck}     color="#fd9644" onClick={() => setShowReefCheck(v => !v)}     testId="expanded-toggle-reef-check" />
+            <LayerToggle label="Reef Life Survey"    sublabel="4,147 sites · ecoregion + realm metadata"                                                 active={showReefLife}      color="#45aaf2" onClick={() => setShowReefLife(v => !v)}      testId="expanded-toggle-reef-life" />
+            <LayerToggle label="WCS Coral Cover"     sublabel="4,766 field survey sites · WCS-Marine"                                                    active={showWcsCcSites}    color="#ff6b9d" onClick={() => setShowWcsCcSites(v => !v)}    testId="expanded-toggle-wcs-cc-sites" />
+            <LayerToggle label="WCS ReefCloud"       sublabel="14,501 global monitoring stations · WCS-Marine"                                           active={showWcsReefCloud}  color="#e056fd" onClick={() => setShowWcsReefCloud(v => !v)}  testId="expanded-toggle-wcs-reefcloud" />
+
+            {/* ── Community ── */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "10px 0 4px" }}>
+              <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#d4e9f340" }}>Community</span>
+            </div>
+            <LayerToggle label="Reef Photos"         sublabel={`${reefImgs.length} community images`}                                                   active={showImgs}          color="#ff9f43" onClick={() => setShowImgs(v => !v)}          testId="expanded-toggle-imgs" />
           </SideSection>
 
           {showGcrmn && (
@@ -1454,48 +1420,70 @@ export function ReefMap({
               marginTop: 5,
               background: "rgba(0,14,22,0.97)",
               border: "1px solid rgba(131,238,240,0.14)",
-              borderRadius: 9, padding: "6px 5px",
-              display: "flex", flexDirection: "column", gap: 1,
-              minWidth: 182, boxShadow: "0 6px 28px rgba(0,0,0,0.55)",
+              borderRadius: 9, padding: "8px 6px",
+              minWidth: 200, boxShadow: "0 6px 28px rgba(0,0,0,0.55)",
             }}>
-              {([
-                { testId: "toggle-marine-regions-layer",  label: "EEZ Boundaries",    color: "#fdcb6e", active: showMarineRegions, toggle: () => setShowMarineRegions(v => !v) },
-                { testId: "toggle-coral-mapping-layer",   label: "Coral Reef Regions", color: "#fd7272", active: showCoralMapping,  toggle: () => setShowCoralMapping(v => !v) },
-                { testId: "toggle-gcrmn-sites-layer",     label: "GCRMN Sites 2026",   color: "#A6CE39", active: showGcrmnSites,    toggle: () => setShowGcrmnSites(v => !v) },
-                { testId: "toggle-gcrmn-layer",           label: "GCRMN Regions",      color: "#1dd1a1", active: showGcrmn,         toggle: () => setShowGcrmn(v => !v) },
-                { testId: "toggle-imgs-layer",            label: "Reef Photos",         color: "#ff9f43", active: showImgs,          toggle: () => setShowImgs(v => !v) },
-                { testId: "toggle-wcs-reefcloud-layer",   label: "WCS ReefCloud",       color: "#e056fd", active: showWcsReefCloud,  toggle: () => setShowWcsReefCloud(v => !v) },
-                { testId: "toggle-wcs-cc-layer",          label: "WCS Coral Cover",     color: "#ff6b9d", active: showWcsCcSites,    toggle: () => setShowWcsCcSites(v => !v) },
-                { testId: "toggle-reef-check-layer",      label: "Reef Check",          color: "#fd9644", active: showReefCheck,     toggle: () => setShowReefCheck(v => !v) },
-                { testId: "toggle-reef-life-layer",       label: "Reef Life Survey",    color: "#45aaf2", active: showReefLife,      toggle: () => setShowReefLife(v => !v) },
-                { testId: "toggle-gcrmn-mon-sites-layer", label: "GCRMN Benthic Sites", color: "#26de81", active: showGcrmnMonSites, toggle: () => setShowGcrmnMonSites(v => !v) },
-              ] as const).map(({ testId, label, color, active, toggle }) => (
+              {/* ── Quick presets ── */}
+              <div style={{ display: "flex", gap: 4, marginBottom: 8, paddingBottom: 7, borderBottom: "1px solid rgba(131,238,240,0.08)" }}>
                 <button
-                  key={testId}
-                  data-testid={testId}
-                  onClick={toggle}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 8,
-                    background: active ? `${color}14` : "transparent",
-                    border: "1px solid transparent",
-                    borderRadius: 6, padding: "4px 8px",
-                    cursor: "pointer", textAlign: "left", width: "100%",
-                  }}
-                >
-                  <span style={{
-                    width: 8, height: 8, borderRadius: "50%", flexShrink: 0,
-                    background: color,
-                    opacity: active ? 0.9 : 0.22,
-                    boxShadow: active ? `0 0 5px ${color}77` : "none",
-                    transition: "opacity 0.15s",
-                  }} />
-                  <span style={{
-                    fontSize: 9.5, fontFamily: "Inter,sans-serif",
-                    fontWeight: active ? 600 : 400,
-                    color: active ? "#d4e9f3dd" : "#d4e9f340",
-                  }}>{label}</span>
-                </button>
-              ))}
+                  data-testid="toggle-all-layers"
+                  onClick={() => { setShowMarineRegions(true); setShowCoralMapping(true); setShowGcrmn(true); setShowGcrmnSites(true); setShowGcrmnMonSites(true); setShowWcsReefCloud(true); setShowWcsCcSites(true); setShowReefCheck(true); setShowReefLife(true); setShowImgs(true); }}
+                  style={{ flex: 1, fontSize: 8.5, fontFamily: "Inter,sans-serif", fontWeight: 700, background: "rgba(131,238,240,0.12)", border: "1px solid rgba(131,238,240,0.28)", borderRadius: 5, padding: "3px 0", color: "#83eef0", cursor: "pointer" }}
+                >All</button>
+                <button
+                  data-testid="toggle-no-layers"
+                  onClick={() => { setShowMarineRegions(false); setShowCoralMapping(false); setShowGcrmn(false); setShowGcrmnSites(false); setShowGcrmnMonSites(false); setShowWcsReefCloud(false); setShowWcsCcSites(false); setShowReefCheck(false); setShowReefLife(false); setShowImgs(false); }}
+                  style={{ flex: 1, fontSize: 8.5, fontFamily: "Inter,sans-serif", fontWeight: 700, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 5, padding: "3px 0", color: "#d4e9f355", cursor: "pointer" }}
+                >None</button>
+              </div>
+
+              {/* ── Layer groups (alphabetical within each) ── */}
+              {[
+                { group: "Boundaries", layers: [
+                  { testId: "toggle-coral-mapping-layer",   label: "Coral Reef Regions",  color: "#fd7272", active: showCoralMapping,  toggle: () => setShowCoralMapping(v => !v)  },
+                  { testId: "toggle-marine-regions-layer",  label: "EEZ Boundaries",      color: "#fdcb6e", active: showMarineRegions, toggle: () => setShowMarineRegions(v => !v) },
+                  { testId: "toggle-gcrmn-layer",           label: "GCRMN Regions",       color: "#1dd1a1", active: showGcrmn,         toggle: () => setShowGcrmn(v => !v)         },
+                ]},
+                { group: "Monitoring", layers: [
+                  { testId: "toggle-gcrmn-mon-sites-layer", label: "GCRMN Benthic Sites", color: "#26de81", active: showGcrmnMonSites, toggle: () => setShowGcrmnMonSites(v => !v) },
+                  { testId: "toggle-gcrmn-sites-layer",     label: "GCRMN Sites 2026",    color: "#A6CE39", active: showGcrmnSites,    toggle: () => setShowGcrmnSites(v => !v)    },
+                  { testId: "toggle-reef-check-layer",      label: "Reef Check",          color: "#fd9644", active: showReefCheck,     toggle: () => setShowReefCheck(v => !v)     },
+                  { testId: "toggle-reef-life-layer",       label: "Reef Life Survey",    color: "#45aaf2", active: showReefLife,      toggle: () => setShowReefLife(v => !v)      },
+                  { testId: "toggle-wcs-cc-layer",          label: "WCS Coral Cover",     color: "#ff6b9d", active: showWcsCcSites,    toggle: () => setShowWcsCcSites(v => !v)    },
+                  { testId: "toggle-wcs-reefcloud-layer",   label: "WCS ReefCloud",       color: "#e056fd", active: showWcsReefCloud,  toggle: () => setShowWcsReefCloud(v => !v)  },
+                ]},
+                { group: "Community", layers: [
+                  { testId: "toggle-imgs-layer",            label: "Reef Photos",         color: "#ff9f43", active: showImgs,          toggle: () => setShowImgs(v => !v)          },
+                ]},
+              ].map(({ group, layers }) => {
+                const allActive = layers.every(l => l.active);
+                return (
+                  <div key={group} style={{ marginBottom: 6 }}>
+                    {/* Group header */}
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 6px 3px" }}>
+                      <span style={{ fontSize: 7.5, fontFamily: "Inter,sans-serif", fontWeight: 700, letterSpacing: "0.09em", textTransform: "uppercase", color: "#d4e9f340" }}>
+                        {group}
+                      </span>
+                      <button
+                        onClick={() => { const turnOn = !allActive; layers.forEach(l => { if (l.active !== turnOn) l.toggle(); }); }}
+                        style={{ fontSize: 7.5, fontFamily: "Inter,sans-serif", fontWeight: 600, background: "none", border: "none", color: allActive ? "#d4e9f350" : "#83eef077", cursor: "pointer", padding: "0 2px" }}
+                      >{allActive ? "off" : "all"}</button>
+                    </div>
+                    {/* Layer rows */}
+                    {layers.map(({ testId, label, color, active, toggle }) => (
+                      <button
+                        key={testId}
+                        data-testid={testId}
+                        onClick={toggle}
+                        style={{ display: "flex", alignItems: "center", gap: 7, background: active ? `${color}14` : "transparent", border: "1px solid transparent", borderRadius: 6, padding: "3px 8px", cursor: "pointer", textAlign: "left", width: "100%" }}
+                      >
+                        <span style={{ width: 7, height: 7, borderRadius: "50%", flexShrink: 0, background: color, opacity: active ? 0.9 : 0.2, boxShadow: active ? `0 0 4px ${color}77` : "none", transition: "opacity 0.15s" }} />
+                        <span style={{ fontSize: 9.5, fontFamily: "Inter,sans-serif", fontWeight: active ? 600 : 400, color: active ? "#d4e9f3dd" : "#d4e9f340" }}>{label}</span>
+                      </button>
+                    ))}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
