@@ -751,12 +751,12 @@ function ExpandedMapModal({
                   }
                   m.bindPopup(
                     `<div style="font-family:Inter,sans-serif;font-size:11px;min-width:155px;color:#d4e9f3">
-                      <div style="font-weight:700;color:#26de81;font-size:12px;margin-bottom:4px">🔬 GCRMN Benthic Monitoring Network Site</div>
+                      <div style="font-weight:700;color:#26de81;font-size:12px;margin-bottom:4px">🔬 GCRMN Benthic Site</div>
                       <table style="border-collapse:collapse;width:100%;font-size:10px">
                         ${country  ? `<tr><td style="color:#888;padding:1px 6px 1px 0">Country</td><td style="font-weight:600">${country}</td></tr>`  : ""}
                         ${location ? `<tr><td style="color:#888;padding:1px 6px 1px 0">Location</td><td>${location}</td></tr>` : ""}
                       </table>
-                      <div style="font-size:8px;color:#555;border-top:1px solid rgba(131,238,240,0.12);padding-top:4px;margin-top:4px">GCRMN Benthic Monitoring Network · WCS-Marine / global-monitoring-maps</div>
+                      <div style="font-size:8px;color:#555;border-top:1px solid rgba(131,238,240,0.12);padding-top:4px;margin-top:4px">GCRMN Benthic Sites · WCS-Marine / global-monitoring-maps</div>
                     </div>`,
                     { maxWidth: 240 }
                   );
@@ -851,7 +851,7 @@ function ExpandedMapModal({
               testId="expanded-toggle-reef-life"
             />
             <LayerToggle
-              label="GCRMN Benthic Monitoring Network Sites"
+              label="GCRMN Benthic Sites"
               sublabel="GCRMN program stations · gcrmndb_benthos"
               active={showGcrmnMonSites}
               color="#26de81"
@@ -929,7 +929,7 @@ function ExpandedMapModal({
             {showGcrmnMonSites && (
               <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "3px 0" }}>
                 <span style={{ width:9,height:9,borderRadius:"50%",background:"rgba(38,222,129,0.45)",border:"1.5px solid #26de81",display:"inline-block",flexShrink:0 }}/>
-                <span style={{ fontSize: 10.5, color: "#d4e9f3bb" }}>GCRMN Benthic Monitoring Network Site</span>
+                <span style={{ fontSize: 10.5, color: "#d4e9f3bb" }}>GCRMN Benthic Site</span>
               </div>
             )}
           </SideSection>
@@ -1203,6 +1203,7 @@ export function ReefMap({
   const [showReefCheck,     setShowReefCheck]     = useState(true);
   const [showReefLife,      setShowReefLife]       = useState(true);
   const [showGcrmnMonSites, setShowGcrmnMonSites] = useState(true);
+  const [showLayerMenu,     setShowLayerMenu]     = useState(false);
   const [internalExpanded,  setInternalExpanded]  = useState(false);
 
   const expanded  = externalExpanded !== undefined ? externalExpanded : internalExpanded;
@@ -1427,129 +1428,76 @@ export function ReefMap({
           {markers.length > 0 && <FitBounds markers={markers} />}
         </MapContainer>
 
-        {/* ── Layer toggles ── */}
+        {/* ── Minimal layer menu ── */}
         <div
-          className="absolute top-2 left-2 flex flex-col gap-1 pointer-events-auto"
+          className="absolute top-2 left-2 pointer-events-auto"
           style={{ zIndex: 500 }}
         >
           <button
-            data-testid="toggle-marine-regions-layer"
-            onClick={() => setShowMarineRegions((v) => !v)}
+            data-testid="toggle-layer-menu"
+            onClick={() => setShowLayerMenu(v => !v)}
             style={{
-              background: showMarineRegions ? "rgba(253,203,110,0.82)" : "rgba(0,19,28,0.75)",
-              border: `1px solid ${showMarineRegions ? "#fdcb6e" : "rgba(253,203,110,0.4)"}`,
-              borderRadius: 6, padding: "2px 7px", fontSize: 9,
-              color: showMarineRegions ? "#00131c" : "#fdcb6ecc",
-              fontFamily: "Inter,sans-serif", fontWeight: 700, cursor: "pointer", letterSpacing: "0.05em",
+              background: showLayerMenu ? "rgba(131,238,240,0.15)" : "rgba(0,19,28,0.85)",
+              border: `1px solid ${showLayerMenu ? "rgba(131,238,240,0.45)" : "rgba(131,238,240,0.22)"}`,
+              borderRadius: 7, padding: "4px 9px",
+              display: "flex", alignItems: "center", gap: 5,
+              cursor: "pointer", color: "#83eef0cc",
+              fontSize: 9, fontFamily: "Inter,sans-serif", fontWeight: 600,
             }}
           >
-            EEZ
+            <Layers size={10} color="#83eef0" />
+            Layers
           </button>
-          <button
-            data-testid="toggle-coral-mapping-layer"
-            onClick={() => setShowCoralMapping((v) => !v)}
-            style={{
-              background: showCoralMapping ? "rgba(253,114,114,0.82)" : "rgba(0,19,28,0.75)",
-              border: `1px solid ${showCoralMapping ? "#fd7272" : "rgba(253,114,114,0.4)"}`,
-              borderRadius: 6, padding: "2px 7px", fontSize: 9,
-              color: showCoralMapping ? "#fff" : "#fd7272cc",
-              fontFamily: "Inter,sans-serif", fontWeight: 700, cursor: "pointer", letterSpacing: "0.05em",
-            }}
-          >
-            Reef
-          </button>
-          <button
-            data-testid="toggle-gcrmn-sites-layer"
-            onClick={() => setShowGcrmnSites((v) => !v)}
-            style={{
-              background: showGcrmnSites ? "rgba(166,206,57,0.82)" : "rgba(0,19,28,0.75)",
-              border: `1px solid ${showGcrmnSites ? "#A6CE39" : "rgba(166,206,57,0.4)"}`,
-              borderRadius: 6, padding: "2px 7px", fontSize: 9,
-              color: showGcrmnSites ? "#fff" : "#A6CE39cc",
-              fontFamily: "Inter,sans-serif", fontWeight: 700, cursor: "pointer", letterSpacing: "0.05em",
-            }}
-          >
-            Sites
-          </button>
-          <button
-            data-testid="toggle-gcrmn-layer"
-            onClick={() => setShowGcrmn((v) => !v)}
-            style={{
-              background: showGcrmn ? "rgba(29,209,161,0.85)" : "rgba(0,19,28,0.75)",
-              border: `1px solid ${showGcrmn ? "#1dd1a1" : "rgba(29,209,161,0.4)"}`,
-              borderRadius: 6, padding: "2px 7px", fontSize: 9,
-              color: showGcrmn ? "#fff" : "#1dd1a1cc",
-              fontFamily: "Inter,sans-serif", fontWeight: 700, cursor: "pointer", letterSpacing: "0.05em",
-            }}
-          >
-            GCRMN
-          </button>
-          <button
-            data-testid="toggle-imgs-layer"
-            onClick={() => setShowImgs((v) => !v)}
-            style={{
-              background: showImgs ? "rgba(255,159,67,0.85)" : "rgba(0,19,28,0.75)",
-              border: `1px solid ${showImgs ? "#ff9f43" : "rgba(255,159,67,0.4)"}`,
-              borderRadius: 6, padding: "2px 7px", fontSize: 9,
-              color: showImgs ? "#fff" : "#ff9f43cc",
-              fontFamily: "Inter,sans-serif", fontWeight: 700, cursor: "pointer", letterSpacing: "0.05em",
-              display: "flex", alignItems: "center", gap: 3,
-            }}
-          >
-            <Camera size={8} /> Photos
-          </button>
-          <button
-            data-testid="toggle-wcs-reefcloud-layer"
-            onClick={() => setShowWcsReefCloud((v) => !v)}
-            style={{
-              background: showWcsReefCloud ? "rgba(224,86,253,0.82)" : "rgba(0,19,28,0.75)",
-              border: `1px solid ${showWcsReefCloud ? "#e056fd" : "rgba(224,86,253,0.4)"}`,
-              borderRadius: 6, padding: "2px 7px", fontSize: 9,
-              color: showWcsReefCloud ? "#fff" : "#e056fdcc",
-              fontFamily: "Inter,sans-serif", fontWeight: 700, cursor: "pointer", letterSpacing: "0.05em",
-            }}
-          >
-            WCS
-          </button>
-          <button
-            data-testid="toggle-reef-check-layer"
-            onClick={() => setShowReefCheck((v) => !v)}
-            style={{
-              background: showReefCheck ? "rgba(253,150,68,0.85)" : "rgba(0,19,28,0.75)",
-              border: `1px solid ${showReefCheck ? "#fd9644" : "rgba(253,150,68,0.4)"}`,
-              borderRadius: 6, padding: "2px 7px", fontSize: 9,
-              color: showReefCheck ? "#fff" : "#fd9644cc",
-              fontFamily: "Inter,sans-serif", fontWeight: 700, cursor: "pointer", letterSpacing: "0.05em",
-            }}
-          >
-            RC
-          </button>
-          <button
-            data-testid="toggle-reef-life-layer"
-            onClick={() => setShowReefLife((v) => !v)}
-            style={{
-              background: showReefLife ? "rgba(69,170,242,0.85)" : "rgba(0,19,28,0.75)",
-              border: `1px solid ${showReefLife ? "#45aaf2" : "rgba(69,170,242,0.4)"}`,
-              borderRadius: 6, padding: "2px 7px", fontSize: 9,
-              color: showReefLife ? "#fff" : "#45aaf2cc",
-              fontFamily: "Inter,sans-serif", fontWeight: 700, cursor: "pointer", letterSpacing: "0.05em",
-            }}
-          >
-            RLS
-          </button>
-          <button
-            data-testid="toggle-gcrmn-mon-sites-layer"
-            onClick={() => setShowGcrmnMonSites((v) => !v)}
-            style={{
-              background: showGcrmnMonSites ? "rgba(38,222,129,0.85)" : "rgba(0,19,28,0.75)",
-              border: `1px solid ${showGcrmnMonSites ? "#26de81" : "rgba(38,222,129,0.4)"}`,
-              borderRadius: 6, padding: "2px 7px", fontSize: 9,
-              color: showGcrmnMonSites ? "#fff" : "#26de81cc",
-              fontFamily: "Inter,sans-serif", fontWeight: 700, cursor: "pointer", letterSpacing: "0.05em",
-            }}
-          >
-            GCRMN
-          </button>
+
+          {showLayerMenu && (
+            <div style={{
+              marginTop: 5,
+              background: "rgba(0,14,22,0.97)",
+              border: "1px solid rgba(131,238,240,0.14)",
+              borderRadius: 9, padding: "6px 5px",
+              display: "flex", flexDirection: "column", gap: 1,
+              minWidth: 182, boxShadow: "0 6px 28px rgba(0,0,0,0.55)",
+            }}>
+              {([
+                { testId: "toggle-marine-regions-layer",  label: "EEZ Boundaries",    color: "#fdcb6e", active: showMarineRegions, toggle: () => setShowMarineRegions(v => !v) },
+                { testId: "toggle-coral-mapping-layer",   label: "Coral Reef Regions", color: "#fd7272", active: showCoralMapping,  toggle: () => setShowCoralMapping(v => !v) },
+                { testId: "toggle-gcrmn-sites-layer",     label: "GCRMN Sites 2026",   color: "#A6CE39", active: showGcrmnSites,    toggle: () => setShowGcrmnSites(v => !v) },
+                { testId: "toggle-gcrmn-layer",           label: "GCRMN Regions",      color: "#1dd1a1", active: showGcrmn,         toggle: () => setShowGcrmn(v => !v) },
+                { testId: "toggle-imgs-layer",            label: "Reef Photos",         color: "#ff9f43", active: showImgs,          toggle: () => setShowImgs(v => !v) },
+                { testId: "toggle-wcs-reefcloud-layer",   label: "WCS ReefCloud",       color: "#e056fd", active: showWcsReefCloud,  toggle: () => setShowWcsReefCloud(v => !v) },
+                { testId: "toggle-wcs-cc-layer",          label: "WCS Coral Cover",     color: "#ff6b9d", active: showWcsCcSites,    toggle: () => setShowWcsCcSites(v => !v) },
+                { testId: "toggle-reef-check-layer",      label: "Reef Check",          color: "#fd9644", active: showReefCheck,     toggle: () => setShowReefCheck(v => !v) },
+                { testId: "toggle-reef-life-layer",       label: "Reef Life Survey",    color: "#45aaf2", active: showReefLife,      toggle: () => setShowReefLife(v => !v) },
+                { testId: "toggle-gcrmn-mon-sites-layer", label: "GCRMN Benthic Sites", color: "#26de81", active: showGcrmnMonSites, toggle: () => setShowGcrmnMonSites(v => !v) },
+              ] as const).map(({ testId, label, color, active, toggle }) => (
+                <button
+                  key={testId}
+                  data-testid={testId}
+                  onClick={toggle}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 8,
+                    background: active ? `${color}14` : "transparent",
+                    border: "1px solid transparent",
+                    borderRadius: 6, padding: "4px 8px",
+                    cursor: "pointer", textAlign: "left", width: "100%",
+                  }}
+                >
+                  <span style={{
+                    width: 8, height: 8, borderRadius: "50%", flexShrink: 0,
+                    background: color,
+                    opacity: active ? 0.9 : 0.22,
+                    boxShadow: active ? `0 0 5px ${color}77` : "none",
+                    transition: "opacity 0.15s",
+                  }} />
+                  <span style={{
+                    fontSize: 9.5, fontFamily: "Inter,sans-serif",
+                    fontWeight: active ? 600 : 400,
+                    color: active ? "#d4e9f3dd" : "#d4e9f340",
+                  }}>{label}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* ── Expand button ── */}
@@ -1588,7 +1536,7 @@ export function ReefMap({
             {showWcsCcSites    && <span title="WCS coral cover site" style={{ width:7,height:7,borderRadius:"50%",background:"rgba(255,107,157,0.4)",border:"1.5px solid #ff6b9d",display:"inline-block" }}/>}
             {showReefCheck     && <span title="Reef Check site" style={{ width:7,height:7,borderRadius:"50%",background:"rgba(253,150,68,0.4)",border:"1.5px solid #fd9644",display:"inline-block" }}/>}
             {showReefLife      && <span title="Reef Life Survey site" style={{ width:7,height:7,borderRadius:"50%",background:"rgba(69,170,242,0.4)",border:"1.5px solid #45aaf2",display:"inline-block" }}/>}
-            {showGcrmnMonSites && <span title="GCRMN Benthic Monitoring Network Site" style={{ width:7,height:7,borderRadius:"50%",background:"rgba(38,222,129,0.4)",border:"1.5px solid #26de81",display:"inline-block" }}/>}
+            {showGcrmnMonSites && <span title="GCRMN Benthic Site" style={{ width:7,height:7,borderRadius:"50%",background:"rgba(38,222,129,0.4)",border:"1.5px solid #26de81",display:"inline-block" }}/>}
           </div>
           {/* Log in button */}
           {!authenticated && (
