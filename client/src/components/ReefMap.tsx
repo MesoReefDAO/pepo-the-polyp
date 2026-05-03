@@ -275,7 +275,7 @@ function FitBounds({ markers }: { markers: { latitude: number; longitude: number
 
 /** Toggles .gcrmn-labels-on on the map container when zoom ≥ minZoom so that
  *  permanent GCRMN site labels (class gcrmn-perm) become visible via CSS. */
-function GcrmnZoomWatcher({ enabled, minZoom = 8 }: { enabled: boolean; minZoom?: number }) {
+function GcrmnZoomWatcher({ enabled, minZoom = 5 }: { enabled: boolean; minZoom?: number }) {
   const map = useMap();
   const update = useCallback(() => {
     const c = map.getContainer();
@@ -736,7 +736,7 @@ function ExpandedMapModal({
                   const p = feature.properties ?? {};
                   const country  = (p.country  as string) || "";
                   const location = (p.location as string) || "";
-                  // Permanent label — visible via CSS when map zoom ≥ 8 (GcrmnZoomWatcher)
+                  // Permanent label — visible via CSS when map zoom ≥ 5 (GcrmnZoomWatcher)
                   if (country) {
                     const labelHtml = location
                       ? `${country}<br/><span style="font-weight:400;color:#d4e9f3aa;font-size:8px">${location}</span>`
@@ -753,8 +753,8 @@ function ExpandedMapModal({
                     `<div style="font-family:Inter,sans-serif;font-size:11px;min-width:155px;color:#d4e9f3">
                       <div style="font-weight:700;color:#26de81;font-size:12px;margin-bottom:4px">🔬 GCRMN Benthic Monitoring Network Site</div>
                       <table style="border-collapse:collapse;width:100%;font-size:10px">
-                        <tr><td style="color:#888;padding:1px 6px 1px 0">Country</td><td style="font-weight:600">${country || "-"}</td></tr>
-                        <tr><td style="color:#888;padding:1px 6px 1px 0">Location</td><td>${location || "-"}</td></tr>
+                        ${country  ? `<tr><td style="color:#888;padding:1px 6px 1px 0">Country</td><td style="font-weight:600">${country}</td></tr>`  : ""}
+                        ${location ? `<tr><td style="color:#888;padding:1px 6px 1px 0">Location</td><td>${location}</td></tr>` : ""}
                       </table>
                       <div style="font-size:8px;color:#555;border-top:1px solid rgba(131,238,240,0.12);padding-top:4px;margin-top:4px">GCRMN Benthic Monitoring Network · WCS-Marine / global-monitoring-maps</div>
                     </div>`,
