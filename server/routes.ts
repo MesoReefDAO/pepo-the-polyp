@@ -596,7 +596,7 @@ async function pinProfileAsync(profile: Record<string, unknown>, profileId: stri
     const isFirstPin = !profile.ipfsCid;
     const jsonStr = JSON.stringify({
       ...profile,
-      schema: "pepo-profile-v1",
+      schema: "pepo-profile-v2",
       pinnedAt: Date.now(),
     });
     const buf = Buffer.from(jsonStr, "utf-8");
@@ -961,7 +961,7 @@ export async function registerRoutes(
     const verify = await verifyPrivyToken(token);
     if (!verify.valid) return res.status(401).json({ error: "Unauthorized" });
 
-    const { displayName, bio, location, website, avatarUrl, avatarCid, ipfsImages, tags, isPublic, twitterHandle, linkedinUrl, githubHandle, instagramHandle } = req.body;
+    const { displayName, bio, location, website, avatarUrl, avatarCid, ipfsImages, tags, isPublic, twitterHandle, linkedinUrl, githubHandle, instagramHandle, walletAddress } = req.body;
     const uid = verify.userId!;
     try {
       // Snapshot the profile BEFORE changes so we can detect newly completed fields
@@ -983,6 +983,7 @@ export async function registerRoutes(
         linkedinUrl: sanitizeString(linkedinUrl, 200) || "",
         githubHandle: sanitizeString(githubHandle, 50) || "",
         instagramHandle: sanitizeString(instagramHandle, 50) || "",
+        walletAddress: sanitizeString(walletAddress, 100) || "",
       });
 
       // ── Award one-time points for newly completed profile fields ──────────
@@ -1052,6 +1053,30 @@ export async function registerRoutes(
     } catch (err) {
       console.error("[syncProfile]", err);
       return res.status(500).json({ error: "Failed to sync profile" });
+    }
+  });
+
+  // POST /api/profiles/pin-all — batch-pin all profiles without an IPFS CID
+  // Protected by PEPO_API_KEY header
+  app.post("/api/profiles/pin-all", async (req: Request, res: Response) => {
+    const apiKey = req.headers["x-api-key"] as string;
+    if (!apiKey || apiKey !== process.env.PEPO_API_KEY) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    try {
+      const all = await storage.getAllProfilesRaw();
+      const unpinned = all.filter(p => !p.ipfsCid);
+      for (const p of unpinned) {
+        void pinProfileAsync(p as Record<string, unknown>, p.id);
+      }
+      return res.json({
+        message: `Queued ${unpinned.length} profiles for IPFS pinning`,
+        total: all.length,
+        alreadyPinned: all.length - unpinned.length,
+      });
+    } catch (err) {
+      console.error("[pin-all]", err);
+      return res.status(500).json({ error: "Failed to queue pins" });
     }
   });
 

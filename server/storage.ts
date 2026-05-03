@@ -40,6 +40,8 @@ export interface IStorage {
 
   // IPFS / Pinata
   saveIpfsCid(profileId: string, ipfsCid: string): Promise<Profile>;
+  saveWalletAddress(profileId: string, walletAddress: string): Promise<Profile>;
+  getAllProfilesRaw(): Promise<Profile[]>;
 
   // Geolocation
   saveLocation(profileId: string, latitude: number, longitude: number): Promise<Profile>;
@@ -111,6 +113,7 @@ export class DbStorage implements IStorage {
           linkedinUrl: profile.linkedinUrl,
           githubHandle: profile.githubHandle,
           instagramHandle: profile.instagramHandle,
+          walletAddress: profile.walletAddress,
           updatedAt: now,
         },
       })
@@ -214,6 +217,20 @@ export class DbStorage implements IStorage {
       .where(eq(profiles.id, profileId))
       .returning();
     return row;
+  }
+
+  async saveWalletAddress(profileId: string, walletAddress: string): Promise<Profile> {
+    const now = Math.floor(Date.now() / 1000);
+    const [row] = await db
+      .update(profiles)
+      .set({ walletAddress, updatedAt: now })
+      .where(eq(profiles.id, profileId))
+      .returning();
+    return row;
+  }
+
+  async getAllProfilesRaw(): Promise<Profile[]> {
+    return db.select().from(profiles).orderBy(desc(profiles.points));
   }
 
   // ── Geolocation ───────────────────────────────────────────────────────────
@@ -390,11 +407,21 @@ export class DbStorage implements IStorage {
         id: profiles.id,
         displayName: profiles.displayName,
         avatarUrl: profiles.avatarUrl,
+        avatarCid: profiles.avatarCid,
         tags: profiles.tags,
         points: profiles.points,
         createdAt: profiles.createdAt,
         orcidId: profiles.orcidId,
         orcidName: profiles.orcidName,
+        ipfsCid: profiles.ipfsCid,
+        walletAddress: profiles.walletAddress,
+        twitterHandle: profiles.twitterHandle,
+        githubHandle: profiles.githubHandle,
+        linkedinUrl: profiles.linkedinUrl,
+        instagramHandle: profiles.instagramHandle,
+        bio: profiles.bio,
+        location: profiles.location,
+        website: profiles.website,
         questionCount: sql<number>`count(${contributions.id}) filter (where ${contributions.type} = 'question')`,
       })
       .from(profiles)
@@ -414,12 +441,22 @@ export class DbStorage implements IStorage {
       id: r.id,
       displayName: r.displayName,
       avatarUrl: r.avatarUrl,
+      avatarCid: r.avatarCid ?? "",
       tags: r.tags,
       points: r.points,
       questionCount: Number(r.questionCount),
       createdAt: r.createdAt,
-      orcidId: r.orcidId,
-      orcidName: r.orcidName,
+      orcidId: r.orcidId ?? "",
+      orcidName: r.orcidName ?? "",
+      ipfsCid: r.ipfsCid ?? "",
+      walletAddress: r.walletAddress ?? "",
+      twitterHandle: r.twitterHandle ?? "",
+      githubHandle: r.githubHandle ?? "",
+      linkedinUrl: r.linkedinUrl ?? "",
+      instagramHandle: r.instagramHandle ?? "",
+      bio: r.bio ?? "",
+      location: r.location ?? "",
+      website: r.website ?? "",
     }));
   }
 

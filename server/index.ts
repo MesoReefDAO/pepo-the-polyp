@@ -170,6 +170,11 @@ app.use((req, res, next) => {
 
 // ─── Routes + static + error handler ─────────────────────────────────────────
 (async () => {
+  // Idempotent schema migrations (safe to run every startup)
+  await pool.query(
+    `ALTER TABLE profiles ADD COLUMN IF NOT EXISTS wallet_address text NOT NULL DEFAULT '';`
+  ).catch(err => console.error("[migration] wallet_address:", err));
+
   await registerRoutes(httpServer, app);
 
   // Backfill + recalculate points for all users on every startup (idempotent)

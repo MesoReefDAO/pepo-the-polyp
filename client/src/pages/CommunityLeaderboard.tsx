@@ -160,6 +160,48 @@ function LeaderboardPanel({ entries, currentUserId }: { entries: LeaderboardEntr
   );
 }
 
+// ─── Social icons row ─────────────────────────────────────────────────────────
+function SocialRow({ entry }: { entry: LeaderboardEntry }) {
+  const hasSocials = entry.twitterHandle || entry.githubHandle || entry.linkedinUrl || entry.instagramHandle;
+  if (!hasSocials) return null;
+  return (
+    <div className="flex items-center gap-1.5 flex-wrap" onClick={e => e.stopPropagation()}>
+      {entry.twitterHandle && (
+        <a href={`https://x.com/${entry.twitterHandle}`} target="_blank" rel="noopener noreferrer"
+          className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#ffffff08] border border-[#ffffff0f] hover:bg-[#ffffff12] transition-colors no-underline"
+          title={`@${entry.twitterHandle} on X`}>
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="#d4e9f380"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+          <span className="[font-family:'Inter',Helvetica] text-[9px] text-[#d4e9f366]">@{entry.twitterHandle}</span>
+        </a>
+      )}
+      {entry.githubHandle && (
+        <a href={`https://github.com/${entry.githubHandle}`} target="_blank" rel="noopener noreferrer"
+          className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#ffffff08] border border-[#ffffff0f] hover:bg-[#ffffff12] transition-colors no-underline"
+          title={`${entry.githubHandle} on GitHub`}>
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="#d4e9f380"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 00-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0020 4.77 5.07 5.07 0 0019.91 1S18.73.65 16 2.48a13.38 13.38 0 00-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 005 4.77a5.44 5.44 0 00-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 009 18.13V22"/></svg>
+          <span className="[font-family:'Inter',Helvetica] text-[9px] text-[#d4e9f366]">{entry.githubHandle}</span>
+        </a>
+      )}
+      {entry.linkedinUrl && (
+        <a href={entry.linkedinUrl.startsWith("http") ? entry.linkedinUrl : `https://${entry.linkedinUrl}`} target="_blank" rel="noopener noreferrer"
+          className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#ffffff08] border border-[#ffffff0f] hover:bg-[#ffffff12] transition-colors no-underline"
+          title="LinkedIn">
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="#d4e9f380"><path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg>
+          <span className="[font-family:'Inter',Helvetica] text-[9px] text-[#d4e9f366]">LinkedIn</span>
+        </a>
+      )}
+      {entry.instagramHandle && (
+        <a href={`https://instagram.com/${entry.instagramHandle}`} target="_blank" rel="noopener noreferrer"
+          className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#ffffff08] border border-[#ffffff0f] hover:bg-[#ffffff12] transition-colors no-underline"
+          title={`@${entry.instagramHandle} on Instagram`}>
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#d4e9f380" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="#d4e9f380" stroke="none"/></svg>
+          <span className="[font-family:'Inter',Helvetica] text-[9px] text-[#d4e9f366]">@{entry.instagramHandle}</span>
+        </a>
+      )}
+    </div>
+  );
+}
+
 // ─── Profile card ─────────────────────────────────────────────────────────────
 function ProfileCard({ entry, rank }: { entry: LeaderboardEntry; rank: number }) {
   const navigate = useMemberNav();
@@ -168,7 +210,7 @@ function ProfileCard({ entry, rank }: { entry: LeaderboardEntry; rank: number })
     <div
       data-testid={`profile-card-${entry.id}`}
       onClick={(e) => navigate(entry.id, e)}
-      className="flex flex-col gap-4 p-5 rounded-3xl border border-[#ffffff08] bg-[#00080c80] hover:border-[#83eef025] hover:bg-[#83eef005] transition-colors cursor-pointer group"
+      className="flex flex-col gap-3 p-5 rounded-3xl border border-[#ffffff08] bg-[#00080c80] hover:border-[#83eef025] hover:bg-[#83eef005] transition-colors cursor-pointer group"
     >
       {/* Header */}
       <div className="flex items-start gap-3">
@@ -188,6 +230,20 @@ function ProfileCard({ entry, rank }: { entry: LeaderboardEntry; rank: number })
               {entry.displayName}
             </span>
             <OrcidBadge orcidId={entry.orcidId} />
+            {entry.ipfsCid && (
+              <a
+                href={`https://ipfs.io/ipfs/${entry.ipfsCid}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={e => e.stopPropagation()}
+                title="Permanent IPFS profile record"
+                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full no-underline flex-shrink-0"
+                style={{ background: "#83eef012", border: "1px solid #83eef030" }}
+              >
+                <svg width="8" height="8" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#83eef0" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                <span className="[font-family:'Inter',Helvetica] text-[9px] font-semibold" style={{ color: "#83eef0" }}>IPFS</span>
+              </a>
+            )}
           </div>
           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
             <span className="[font-family:'Inter',Helvetica] text-[#83eef0] text-xs font-semibold">
@@ -197,11 +253,27 @@ function ProfileCard({ entry, rank }: { entry: LeaderboardEntry; rank: number })
             <span className="[font-family:'Inter',Helvetica] text-[#d4e9f366] text-xs">
               Rank #{rank}
             </span>
+            {entry.location && (
+              <>
+                <span className="text-[#d4e9f333]">·</span>
+                <span className="[font-family:'Inter',Helvetica] text-[#d4e9f355] text-[10px] flex items-center gap-0.5">
+                  <svg width="8" height="8" viewBox="0 0 24 24" fill="none"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" stroke="#d4e9f355" strokeWidth="2"/><circle cx="12" cy="10" r="3" stroke="#d4e9f355" strokeWidth="2"/></svg>
+                  {entry.location}
+                </span>
+              </>
+            )}
           </div>
         </div>
 
         <ChevronRight size={16} className="text-[#d4e9f322] group-hover:text-[#83eef066] transition-colors flex-shrink-0 mt-1" />
       </div>
+
+      {/* Bio snippet */}
+      {entry.bio && (
+        <p className="[font-family:'Inter',Helvetica] text-[11px] text-[#d4e9f366] leading-[1.6] line-clamp-2">
+          {entry.bio}
+        </p>
+      )}
 
       {/* Tags */}
       {entry.tags.length > 0 && (
@@ -214,6 +286,20 @@ function ProfileCard({ entry, rank }: { entry: LeaderboardEntry; rank: number })
               {tag}
             </span>
           ))}
+        </div>
+      )}
+
+      {/* Socials */}
+      <SocialRow entry={entry} />
+
+      {/* Wallet */}
+      {entry.walletAddress && (
+        <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-[#ffffff05] border border-[#ffffff0a]"
+          onClick={e => e.stopPropagation()}>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#d4e9f355" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 11a2 2 0 010 4"/></svg>
+          <span className="[font-family:'Inter',Helvetica] text-[10px] font-mono text-[#d4e9f355] flex-1 min-w-0 truncate">
+            {entry.walletAddress.slice(0, 8)}…{entry.walletAddress.slice(-6)}
+          </span>
         </div>
       )}
 

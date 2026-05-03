@@ -35,6 +35,8 @@ export const profiles = pgTable("profiles", {
   linkedinUrl: text("linkedin_url").notNull().default(""),
   githubHandle: text("github_handle").notNull().default(""),
   instagramHandle: text("instagram_handle").notNull().default(""),
+  // Wallet / Web3 identity
+  walletAddress: text("wallet_address").notNull().default(""),
   // IPFS / Pinata decentralised storage — CID of the pinned profile JSON
   ipfsCid: text("ipfs_cid").default(""),
   // IPFS
@@ -129,10 +131,21 @@ export interface LeaderboardEntry {
   id: string;
   displayName: string;
   avatarUrl: string;
+  avatarCid: string;
   tags: string[];
   points: number;
   questionCount: number;
   createdAt: number;
   orcidId: string;
   orcidName: string;
+  // Extended community visibility fields
+  ipfsCid: string;
+  walletAddress: string;
+  twitterHandle: string;
+  githubHandle: string;
+  linkedinUrl: string;
+  instagramHandle: string;
+  bio: string;
+  location: string;
+  website: string;
 }

@@ -408,6 +408,81 @@ export function PublicProfile() {
             </div>
           )}
 
+          {/* ── IPFS Profile Record ────────────────────────────────────────── */}
+          {profile.ipfsCid && (
+            <div
+              className="flex items-center gap-4 p-4 rounded-2xl border"
+              style={{ background: "#83eef005", borderColor: "#83eef020" }}
+              data-testid="card-ipfs-record"
+            >
+              <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                style={{ background: "#83eef015" }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#83eef0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-semibold text-sm" style={{ color: "#83eef0" }}>
+                  Permanent IPFS Record
+                </p>
+                <p className="[font-family:'Inter',Helvetica] text-[10px] text-[#d4e9f355] mt-0.5 font-mono truncate" data-testid="text-public-ipfs-cid">
+                  {profile.ipfsCid}
+                </p>
+              </div>
+              <div className="flex gap-2 flex-shrink-0">
+                <a
+                  href={`https://ipfs.io/ipfs/${profile.ipfsCid}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-testid="link-ipfs-io"
+                  className="text-[10px] [font-family:'Inter',Helvetica] font-semibold px-2.5 py-1.5 rounded-full no-underline hover:opacity-80 transition-opacity"
+                  style={{ background: "#83eef015", color: "#83eef0", border: "1px solid #83eef030" }}
+                >
+                  ipfs.io ↗
+                </a>
+                <a
+                  href={`https://teal-advisory-zebra-284.mypinata.cloud/ipfs/${profile.ipfsCid}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-testid="link-pinata-gateway"
+                  className="text-[10px] [font-family:'Inter',Helvetica] font-semibold px-2.5 py-1.5 rounded-full no-underline hover:opacity-80 transition-opacity"
+                  style={{ background: "#83eef015", color: "#83eef0", border: "1px solid #83eef030" }}
+                >
+                  Pinata ↗
+                </a>
+              </div>
+            </div>
+          )}
+
+          {/* ── Wallet address ──────────────────────────────────────────────── */}
+          {profile.walletAddress && (
+            <div
+              className="flex items-center gap-4 p-4 rounded-2xl border"
+              style={{ background: "#ffffff05", borderColor: "#ffffff0d" }}
+              data-testid="card-wallet-address"
+            >
+              <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                style={{ background: "#ffffff0a" }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d4e9f380" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="2" y="7" width="20" height="14" rx="2"/>
+                  <path d="M16 11a2 2 0 010 4"/>
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-semibold text-sm text-[#d4e9f3b2]">
+                  Wallet Address
+                </p>
+                <p className="[font-family:'Inter',Helvetica] text-[11px] text-[#d4e9f355] mt-0.5 font-mono truncate" data-testid="text-public-wallet">
+                  {profile.walletAddress}
+                </p>
+              </div>
+              <span className="text-[10px] [font-family:'Inter',Helvetica] px-2.5 py-1 rounded-full flex-shrink-0"
+                style={{ background: "#83eef010", color: "#83eef0", border: "1px solid #83eef025" }}>
+                {profile.walletAddress.slice(0, 6)}…{profile.walletAddress.slice(-4)}
+              </span>
+            </div>
+          )}
+
           {/* ── Activity feed ──────────────────────────────────────────────── */}
           <div className="flex flex-col gap-3">
             <div className="flex items-center gap-2 px-1">

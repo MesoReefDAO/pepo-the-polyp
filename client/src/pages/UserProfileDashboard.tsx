@@ -874,6 +874,7 @@ export function UserProfileDashboard() {
             linkedinUrl,
             githubHandle,
             instagramHandle,
+            walletAddress: walletAddr || "",
           }),
         });
         queryClient.invalidateQueries({ queryKey: ["/api/profiles", activeProfileId] });
@@ -903,6 +904,7 @@ export function UserProfileDashboard() {
               linkedinUrl,
               githubHandle,
               instagramHandle,
+              walletAddress: walletAddr || "",
             }),
           });
           queryClient.invalidateQueries({ queryKey: ["/api/profiles", activeProfileId] });
@@ -944,6 +946,7 @@ export function UserProfileDashboard() {
           linkedinUrl,
           githubHandle,
           instagramHandle,
+          walletAddress: walletAddr || "",
         }),
       });
       if (!res.ok) {

@@ -27,9 +27,9 @@ Six parallel knowledge sources fused into every chat response:
 client/src/
   pages/
     Body.tsx                              — Main layout (header + sidebar + dashboard)
-    CommunityLeaderboard.tsx              — Community page: Leaderboard (left) + Profile cards (right); rows/cards are clickable divs navigating to /members/:id
+    CommunityLeaderboard.tsx              — Community page: Leaderboard (left) + Profile cards (right); cards show bio snippet, location, socials row, IPFS badge, wallet address, ORCID badge; rows/cards navigate to /members/:id
     Governance.tsx                        — /governance page: Adaptive DAO voting via Vocdoni. Three voting modes (Standard/Approval/Quadratic), two census modes (Open Wallet / Base Network Members), GitHub repo import for proposal options. Configured via VITE_VOCDONI_ORG_ADDRESS, VITE_VOCDONI_ENV, VITE_GITHUB_OWNER, VITE_GITHUB_REPO.
-    PublicProfile.tsx                     — Public member profile at /members/:id; shows avatar, bio, ORCID badge, stats, activity feed
+    PublicProfile.tsx                     — Public member profile at /members/:id; shows avatar, bio, ORCID badge, stats, activity feed, IPFS permanence card (CID + gateway links), wallet address card
     UserProfileDashboard.tsx              — My Profile edit page (bio, tags, links, ORCID linking)
     WorkspacePage.tsx                     — /workspace page: Fileverse dDocs + dSheets integration cards with launch buttons, About Fileverse section
     sections/
