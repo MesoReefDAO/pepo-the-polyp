@@ -322,7 +322,7 @@ export function FileverseWorkspacePanel({
             Connect your wallet to access your workspace
           </p>
           <p className="[font-family:'Inter',Helvetica] text-[#9aaeb8] text-xs leading-5">
-            Your Privy wallet is your Fileverse identity — no separate account needed.
+            Your Privy wallet is your Fileverse identity. No separate account needed.
           </p>
         </div>
         <button

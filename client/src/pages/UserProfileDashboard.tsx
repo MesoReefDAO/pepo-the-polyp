@@ -160,7 +160,7 @@ function GuestView({ onLogin, error }: { onLogin: () => void; error?: string | n
             Create your Profile
           </h2>
           <p className="[font-family:'Inter',Helvetica] text-[#d4e9f380] text-sm max-w-sm leading-6">
-            Sign in to build your MesoReef DAO identity — upload a photo, write your bio, and connect your research credentials.
+            Sign in to build your MesoReef DAO identity: upload a photo, write your bio, and connect your research credentials.
           </p>
         </div>
       </div>
@@ -383,7 +383,7 @@ function LinkedAccountsRow({ user }: { user: any }) {
       else if (type === "twitter_oauth") await unlinkTwitter(acct.subject);
       else if (type === "linkedin_oauth") await unlinkLinkedIn(acct.subject);
     } catch (e: any) {
-      setUnlinkError(e?.message ?? "Could not unlink — try again.");
+      setUnlinkError(e?.message ?? "Could not unlink. Try again.");
     } finally {
       setUnlinking(null);
     }
@@ -1165,7 +1165,7 @@ export function UserProfileDashboard() {
                         onChange={(e) => setBio(e.target.value)}
                         maxLength={500}
                         rows={5}
-                        placeholder="Tell the reef community about yourself — your research focus, conservation work, or what brought you to the MesoAmerican Reef…"
+                        placeholder="Tell the reef community about yourself: your research focus, conservation work, or what brought you to the MesoAmerican Reef…"
                         data-testid="input-bio"
                         className={`${inputCls} resize-none leading-6`}
                       />
@@ -1436,7 +1436,7 @@ export function UserProfileDashboard() {
                       )}
                     </div>
                     <p className="[font-family:'Inter',Helvetica] text-[#d4e9f350] text-[11px] leading-5 -mt-1">
-                      Upload reef images to IPFS — they'll be stored permanently on the decentralised web and optionally pinned to the Regen Reef Network Map.
+                      Upload reef images to IPFS. They'll be stored permanently on the decentralised web and optionally pinned to the Regen Reef Network Map.
                     </p>
                     <IPFSImageUpload
                       showMapPin

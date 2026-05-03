@@ -251,7 +251,7 @@ function SubmitPanel({
               Submit a Reef Image
             </div>
             <div className="[font-family:'Inter',Helvetica] text-[#d4e9f355] text-[10px] mt-0.5">
-              Upload a file or paste an IPFS CID — your image enters the review queue
+              Upload a file or paste an IPFS CID. Your image enters the review queue
             </div>
           </div>
         </div>
@@ -390,7 +390,7 @@ function SubmitPanel({
                     type="text"
                     value={title}
                     onChange={e => setTitle(e.target.value)}
-                    placeholder="Title — e.g. Staghorn coral at 8m, Belize"
+                    placeholder="Title, e.g. Staghorn coral at 8m, Belize"
                     maxLength={120}
                     className={inputCls}
                   />
@@ -624,7 +624,7 @@ function ImageCard({
       {/* Curator note */}
       <div className="px-4 pb-3">
         <label className="block [font-family:'Inter',Helvetica] text-[#d4e9f366] text-[10px] uppercase tracking-widest mb-1.5">
-          Curator note <span className="normal-case text-[#d4e9f344]">(optional — visible to submitter)</span>
+          Curator note <span className="normal-case text-[#d4e9f344]">(optional, visible to submitter)</span>
         </label>
         <textarea
           data-testid={`textarea-note-${image.id}`}
@@ -1022,11 +1022,11 @@ export function CurationPage() {
             <div className="flex items-center gap-4 mt-1">
               <div className="flex items-center gap-1.5">
                 <div className="w-3 h-3 rounded-full bg-[#1dd1a1]" />
-                <span className="[font-family:'Inter',Helvetica] text-[10px] text-[#d4e9f366]">Approve — publishes to map</span>
+                <span className="[font-family:'Inter',Helvetica] text-[10px] text-[#d4e9f366]">Approve: publishes to map</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="w-3 h-3 rounded-full bg-[#ff8888]" />
-                <span className="[font-family:'Inter',Helvetica] text-[10px] text-[#d4e9f366]">Reject — removes from queue</span>
+                <span className="[font-family:'Inter',Helvetica] text-[10px] text-[#d4e9f366]">Reject: removes from queue</span>
               </div>
             </div>
           </div>
@@ -1099,7 +1099,7 @@ export function CurationPage() {
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#1dd1a1" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                   </div>
                   <p className="[font-family:'Inter',Helvetica] text-[#d4e9f366] text-sm">
-                    Queue is empty — all images have been reviewed.
+                    Queue is empty. All images have been reviewed.
                   </p>
                 </div>
               )}

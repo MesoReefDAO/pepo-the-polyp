@@ -170,7 +170,7 @@ export function IPFSImageUpload({ onUpload, currentCid, label, compact, showMapP
           </span>
         </div>
         <p style={{ fontSize: 10.5, color: "#d4e9f377", margin: 0, lineHeight: 1.5 }}>
-          Your image will appear as a public marker on the map — visible to all visitors.
+          Your image will appear as a public marker on the map, visible to all visitors.
           Your precise location is only used to place the pin and is never shared beyond that.
         </p>
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -202,7 +202,7 @@ export function IPFSImageUpload({ onUpload, currentCid, label, compact, showMapP
             data-testid="pin-description-input"
             value={pinDescription}
             onChange={e => setPinDescription(e.target.value)}
-            placeholder="Brief description — species, reef condition, depth, date… (optional)"
+            placeholder="Brief description: species, reef condition, depth, date… (optional)"
             maxLength={500}
             rows={3}
             style={{
@@ -549,7 +549,7 @@ export function IPFSImageUpload({ onUpload, currentCid, label, compact, showMapP
                     Drop image here or click to browse
                   </p>
                   <p style={{ fontSize: 11, color: "#d4e9f344", margin: 0 }}>
-                    JPEG · PNG · GIF · WebP — up to 10 MB
+                    JPEG · PNG · GIF · WebP, up to 10 MB
                   </p>
                 </div>
               </>

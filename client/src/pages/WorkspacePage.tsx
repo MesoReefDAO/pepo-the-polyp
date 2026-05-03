@@ -14,7 +14,7 @@ const TOOLS = [
     name: "dDocs",
     tagline: "Decentralized Document Editor",
     description:
-      "Create, collaborate and share research documents — end-to-end encrypted, stored on IPFS. No account needed. Works like Google Docs but fully self-sovereign. Ideal for field reports, species assessments, and DAO proposals.",
+      "Create, collaborate and share research documents. End-to-end encrypted, stored on IPFS. No account needed. Works like Google Docs but fully self-sovereign. Ideal for field reports, species assessments, and DAO proposals.",
     href: "https://ddocs.new",
     color: "#48dbfb",
     icon: <FileText size={28} strokeWidth={1.5} />,
@@ -131,7 +131,7 @@ export function WorkspacePage() {
             <span style={{ color: "#83eef0" }}>Privately. Decentralised.</span>
           </h1>
           <p style={{ fontSize: 14, color: "#9aaeb8", maxWidth: 520, margin: "0 auto 24px", lineHeight: 1.7 }}>
-            MesoReef DAO's workspace is built on Fileverse — privacy-first, end-to-end encrypted
+            MesoReef DAO's workspace is built on Fileverse: privacy-first, end-to-end encrypted
             collaboration tools that run on IPFS. No Google. No Microsoft. No central servers.
           </p>
 
@@ -269,7 +269,7 @@ export function WorkspacePage() {
                 </span>
               </div>
               <p style={{ fontSize: 12, color: "#9aaeb8", margin: "2px 0 0" }}>
-                Pin field photos and reef imagery to IPFS — permanently addressable, censorship-resistant.
+                Pin field photos and reef imagery to IPFS, permanently addressable and censorship-resistant.
               </p>
             </div>
           </div>
@@ -300,7 +300,7 @@ export function WorkspacePage() {
                 fontSize: 9, fontWeight: 700, color: "#ffbe6955", letterSpacing: "0.1em",
                 textTransform: "uppercase", marginBottom: 10,
               }}>
-                Session archive — {archivedImages.length} image{archivedImages.length !== 1 ? "s" : ""}
+                Session archive: {archivedImages.length} image{archivedImages.length !== 1 ? "s" : ""}
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))", gap: 10 }}>
                 {archivedImages.map((img) => (
@@ -342,7 +342,7 @@ export function WorkspacePage() {
           </div>
           <p style={{ fontSize: 12.5, color: "#9aaeb8", lineHeight: 1.7, margin: "0 0 14px" }}>
             Fileverse is an end-to-end encrypted, decentralised alternative to Google Workspace and Microsoft Office.
-            Built on open standards — IPFS, Ethereum — it guarantees data sovereignty and privacy by design.
+            Built on open standards (IPFS, Ethereum), it guarantees data sovereignty and privacy by design.
           </p>
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
             {[

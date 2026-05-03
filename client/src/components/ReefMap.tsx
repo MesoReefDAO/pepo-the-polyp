@@ -399,12 +399,12 @@ function WdparClickHandler({ active }: { active: boolean }) {
           p.MARINE === "2" ? "Wholly marine" :
           p.MARINE === "1" ? "Partially marine" : String(p.MARINE ?? "");
         const areaFmt = p.REP_AREA
-          ? `${Number(p.REP_AREA).toLocaleString()} km²` : "—";
-        const iucn   = p.IUCN_CAT || "—";
+          ? `${Number(p.REP_AREA).toLocaleString()} km²` : "-";
+        const iucn   = p.IUCN_CAT || "-";
         const name   = p.NAME || "Marine Protected Area";
-        const desig  = p.DESIG_ENG || p.DESIG || "—";
-        const yr     = p.STATUS_YR || "—";
-        const wdpaid = p.WDPAID || "—";
+        const desig  = p.DESIG_ENG || p.DESIG || "-";
+        const yr     = p.STATUS_YR || "-";
+        const wdpaid = p.WDPAID || "-";
 
         const html = `
           <div style="font-family:Inter,sans-serif;font-size:11.5px;min-width:170px;max-width:240px;color:#d4e9f3">
@@ -628,7 +628,7 @@ function ExpandedMapModal({
                     `<div style="font-family:Inter,sans-serif;font-size:11px;min-width:150px;color:#d4e9f3">
                       <div style="font-weight:700;color:#ff6b9d;font-size:12px;margin-bottom:4px">🪸 ${p.site || "Survey site"}</div>
                       <div style="font-size:10px;color:#aaa;margin-bottom:4px">${p.country || ""}</div>
-                      <div style="font-size:9px;color:#666;border-top:1px solid rgba(131,238,240,0.12);padding-top:4px">Dataset: ${p.db || "—"}</div>
+                      <div style="font-size:9px;color:#666;border-top:1px solid rgba(131,238,240,0.12);padding-top:4px">Dataset: ${p.db || "-"}</div>
                       <div style="font-size:8px;color:#555;margin-top:2px">WCS-Marine / global-monitoring-maps</div>
                     </div>`,
                     { maxWidth: 220 }
@@ -647,13 +647,13 @@ function ExpandedMapModal({
                     fillColor: "#fd9644", fillOpacity: 0.6, opacity: 0.85,
                   });
                   const p = feature.properties ?? {};
-                  const coralPct = p.coral != null ? `${(p.coral * 100).toFixed(1)}%` : "—";
-                  const bleachPct = p.bleaching != null ? `${(p.bleaching * 100).toFixed(1)}%` : "—";
+                  const coralPct = p.coral != null ? `${(p.coral * 100).toFixed(1)}%` : "-";
+                  const bleachPct = p.bleaching != null ? `${(p.bleaching * 100).toFixed(1)}%` : "-";
                   m.bindPopup(
                     `<div style="font-family:Inter,sans-serif;font-size:11px;min-width:155px;color:#d4e9f3">
                       <div style="font-weight:700;color:#fd9644;font-size:12px;margin-bottom:4px">🐠 ${p.location || "Reef Check site"}</div>
                       <table style="border-collapse:collapse;width:100%;font-size:10px">
-                        <tr><td style="color:#888;padding:1px 6px 1px 0">Latest year</td><td style="font-weight:700;color:#ffd32a">${p.year ?? "—"}</td></tr>
+                        <tr><td style="color:#888;padding:1px 6px 1px 0">Latest year</td><td style="font-weight:700;color:#ffd32a">${p.year ?? "-"}</td></tr>
                         <tr><td style="color:#888;padding:1px 6px 1px 0">Coral cover</td><td style="font-weight:700;color:#55efc4">${coralPct}</td></tr>
                         <tr><td style="color:#888;padding:1px 6px 1px 0">Bleaching</td><td style="font-weight:700;color:#ff7675">${bleachPct}</td></tr>
                         <tr><td style="color:#888;padding:1px 6px 1px 0">Surveys</td><td>${p.surveys ?? 1}</td></tr>
@@ -680,10 +680,10 @@ function ExpandedMapModal({
                     `<div style="font-family:Inter,sans-serif;font-size:11px;min-width:160px;color:#d4e9f3">
                       <div style="font-weight:700;color:#45aaf2;font-size:12px;margin-bottom:4px">🌊 ${p.site_name || "RLS site"}</div>
                       <table style="border-collapse:collapse;width:100%;font-size:10px">
-                        <tr><td style="color:#888;padding:1px 6px 1px 0">Country</td><td>${p.country || "—"}</td></tr>
-                        <tr><td style="color:#888;padding:1px 6px 1px 0">Ecoregion</td><td style="font-size:9px">${p.ecoregion || "—"}</td></tr>
-                        <tr><td style="color:#888;padding:1px 6px 1px 0">Realm</td><td>${p.realm || "—"}</td></tr>
-                        <tr><td style="color:#888;padding:1px 6px 1px 0">Programs</td><td>${p.programs || "—"}</td></tr>
+                        <tr><td style="color:#888;padding:1px 6px 1px 0">Country</td><td>${p.country || "-"}</td></tr>
+                        <tr><td style="color:#888;padding:1px 6px 1px 0">Ecoregion</td><td style="font-size:9px">${p.ecoregion || "-"}</td></tr>
+                        <tr><td style="color:#888;padding:1px 6px 1px 0">Realm</td><td>${p.realm || "-"}</td></tr>
+                        <tr><td style="color:#888;padding:1px 6px 1px 0">Programs</td><td>${p.programs || "-"}</td></tr>
                       </table>
                       <div style="font-size:8px;color:#555;border-top:1px solid rgba(131,238,240,0.12);padding-top:4px;margin-top:4px">Reef Life Survey · WCS-Marine / global-monitoring-maps</div>
                     </div>`,
@@ -707,8 +707,8 @@ function ExpandedMapModal({
                     `<div style="font-family:Inter,sans-serif;font-size:11px;min-width:155px;color:#d4e9f3">
                       <div style="font-weight:700;color:#26de81;font-size:12px;margin-bottom:4px">🔬 ${p.site || "GCRMN site"}</div>
                       <table style="border-collapse:collapse;width:100%;font-size:10px">
-                        <tr><td style="color:#888;padding:1px 6px 1px 0">Country</td><td>${p.country || "—"}</td></tr>
-                        <tr><td style="color:#888;padding:1px 6px 1px 0">Location</td><td>${p.location || "—"}</td></tr>
+                        <tr><td style="color:#888;padding:1px 6px 1px 0">Country</td><td>${p.country || "-"}</td></tr>
+                        <tr><td style="color:#888;padding:1px 6px 1px 0">Location</td><td>${p.location || "-"}</td></tr>
                       </table>
                       <div style="font-size:8px;color:#555;border-top:1px solid rgba(131,238,240,0.12);padding-top:4px;margin-top:4px">GCRMN · WCS-Marine / global-monitoring-maps</div>
                     </div>`,
@@ -890,7 +890,7 @@ function ExpandedMapModal({
           {(showWcsReefCloud || showWcsCcSites || showReefCheck || showReefLife || showGcrmnMonSites) && (
             <SideSection title="WCS Marine Datasets">
               <div style={{ fontSize: 9.5, color: "#d4e9f3aa", lineHeight: 1.5, marginBottom: 8 }}>
-                Wildlife Conservation Society (WCS) Marine Program global reef monitoring data. Includes ReefCloud stations, coral cover field records, Reef Check surveys with coral cover and bleaching metrics, and Reef Life Survey sites with full ecoregion and realm metadata — the same input datasets used by the WCS <em>global-reef-data-layers</em> analysis pipeline.
+                Wildlife Conservation Society (WCS) Marine Program global reef monitoring data. Includes ReefCloud stations, coral cover field records, Reef Check surveys with coral cover and bleaching metrics, and Reef Life Survey sites with full ecoregion and realm metadata, the same input datasets used by the WCS <em>global-reef-data-layers</em> analysis pipeline.
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 8px", marginBottom: 8 }}>
                 {[
@@ -907,10 +907,10 @@ function ExpandedMapModal({
                 ))}
               </div>
               {[
-                { label: "WCS.org — Marine Program", href: "https://www.wcs.org/", color: "#e056fd" },
+                { label: "WCS.org: Marine Program", href: "https://www.wcs.org/", color: "#e056fd" },
                 { label: "WCS-Marine / global-monitoring-maps", href: "https://github.com/WCS-Marine/global-monitoring-maps", color: "#e056fdbb" },
                 { label: "WCS-Marine / global-reef-data-layers", href: "https://github.com/WCS-Marine/global-reef-data-layers", color: "#e056fdbb" },
-                { label: "ReefCloud — AIMS reef monitoring", href: "https://reefcloud.ai", color: "#ff6b9d" },
+                { label: "ReefCloud: AIMS reef monitoring", href: "https://reefcloud.ai", color: "#ff6b9d" },
                 { label: "Reef Check International", href: "https://www.reefcheck.org", color: "#fd9644" },
                 { label: "Reef Life Survey", href: "https://reeflifesurvey.com", color: "#45aaf2" },
                 { label: "GCRMN / gcrmndb_benthos", href: "https://github.com/GCRMN/gcrmndb_benthos", color: "#26de81" },
@@ -960,7 +960,7 @@ function ExpandedMapModal({
 
           <SideSection title="Marine Regions · EEZ">
             <div style={{ fontSize: 9.5, color: "#d4e9f3aa", lineHeight: 1.5, marginBottom: 8 }}>
-              Marine Regions is a standard reference list of marine place names and geographic areas from the world's seas and oceans, maintained by VLIZ. The EEZ layer shows Exclusive Economic Zones — maritime boundaries within which coastal nations exercise sovereign rights over resources.
+              Marine Regions is a standard reference list of marine place names and geographic areas from the world's seas and oceans, maintained by VLIZ. The EEZ layer shows Exclusive Economic Zones, maritime boundaries within which coastal nations exercise sovereign rights over resources.
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 8px", marginBottom: 8 }}>
               {[
@@ -978,12 +978,12 @@ function ExpandedMapModal({
             <div style={{ marginBottom: 8 }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: "#fdcb6e", marginBottom: 2 }}>mregions2</div>
               <div style={{ fontSize: 9, color: "#d4e9f377", lineHeight: 1.4 }}>
-                rOpenSci R package for querying the Marine Regions Gazetteer and GeoServer — returns EEZ, IHO Sea Areas, Large Marine Ecosystems, Marine Ecoregions, and 27,000+ other standardised marine place names with geometry.
+                rOpenSci R package for querying the Marine Regions Gazetteer and GeoServer. Returns EEZ, IHO Sea Areas, Large Marine Ecosystems, Marine Ecoregions, and 27,000+ other standardised marine place names with geometry.
               </div>
             </div>
             {[
               { label: "MarineRegions.org (VLIZ)",        href: "https://www.marineregions.org",                                          color: "#fdcb6e" },
-              { label: "mregions2 — rOpenSci (GitHub)",   href: "https://github.com/ropensci/mregions2",                                  color: "#ffeaa7" },
+              { label: "mregions2: rOpenSci (GitHub)",    href: "https://github.com/ropensci/mregions2",                                  color: "#ffeaa7" },
               { label: "mregions2 documentation",         href: "https://docs.ropensci.org/mregions2/",                                   color: "#ffeaa7" },
               { label: "Marine Regions Gazetteer",        href: "https://www.marineregions.org/gazetteer.php",                            color: "#ffeaa7" },
               { label: "EEZ GeoServer layer",             href: "https://geo.vliz.be/geoserver/MarineRegions/wms?SERVICE=WMS&REQUEST=GetCapabilities", color: "#ffeaa7" },
@@ -1005,7 +1005,7 @@ function ExpandedMapModal({
             <div style={{ marginBottom: 8 }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: "#fd7272", marginBottom: 2 }}>GlobalMappingRegions</div>
               <div style={{ fontSize: 9, color: "#d4e9f377", lineHeight: 1.4 }}>
-                GeoJSON region mask files covering 29 reef zones — from the Great Barrier Reef and Hawaiian Islands to the Red Sea, Coral Sea, and Mesoamerican Reef.
+                GeoJSON region mask files covering 29 reef zones, from the Great Barrier Reef and Hawaiian Islands to the Red Sea, Coral Sea, and Mesoamerican Reef.
               </div>
             </div>
             <div style={{ marginBottom: 8 }}>
