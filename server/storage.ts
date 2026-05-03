@@ -28,6 +28,7 @@ export interface IStorage {
   addContribution(contribution: InsertContribution): Promise<Contribution>;
   hasContributionToday(profileId: string, type: string): Promise<boolean>;
   hasContribution(profileId: string, type: string): Promise<boolean>;
+  syncAllUserPoints(): Promise<{ synced: number; pointsAdded: number }>;
 
   // leaderboard
   getLeaderboard(): Promise<LeaderboardEntry[]>;
@@ -291,6 +292,83 @@ export class DbStorage implements IStorage {
   async getIpfsBlock(cid: string): Promise<IpfsBlock | undefined> {
     const [row] = await db.select().from(ipfsBlocks).where(eq(ipfsBlocks.cid, cid));
     return row;
+  }
+
+  // ── Points sync ───────────────────────────────────────────────────────────
+  // Backfills any one-time contribution records that existing users should have
+  // earned (profile_name, profile_bio, profile_avatar, orcid) then recalculates
+  // profiles.points = SUM(contributions.points) for every profile.
+  async syncAllUserPoints(): Promise<{ synced: number; pointsAdded: number }> {
+    const allProfiles = await db.select().from(profiles);
+    const now = Math.floor(Date.now() / 1000);
+    let synced = 0;
+    let pointsAdded = 0;
+
+    const ONE_TIME: Array<{
+      type: string;
+      description: string;
+      points: number;
+      check: (p: typeof allProfiles[0]) => boolean;
+    }> = [
+      {
+        type: "profile_name",
+        description: "Set display name",
+        points: 10,
+        check: (p) => !!(p.displayName && p.displayName.trim() && p.displayName !== "Explorer"),
+      },
+      {
+        type: "profile_bio",
+        description: "Wrote a bio",
+        points: 10,
+        check: (p) => !!(p.bio && p.bio.trim().length >= 10),
+      },
+      {
+        type: "profile_avatar",
+        description: "Uploaded a profile photo",
+        points: 15,
+        check: (p) => !!(p.avatarCid || p.avatarUrl),
+      },
+      {
+        type: "orcid",
+        description: "Linked ORCID iD",
+        points: 20,
+        check: (p) => !!(p.orcidId),
+      },
+    ];
+
+    for (const profile of allProfiles) {
+      // Backfill any missing one-time contributions
+      for (const task of ONE_TIME) {
+        if (!task.check(profile)) continue;
+        const has = await this.hasContribution(profile.id, task.type);
+        if (!has) {
+          await db.insert(contributions).values({
+            id: randomUUID(),
+            profileId: profile.id,
+            type: task.type,
+            description: task.description,
+            points: task.points,
+            createdAt: now,
+          });
+          pointsAdded += task.points;
+        }
+      }
+
+      // Recalculate cached points total from the source of truth
+      const [result] = await db
+        .select({ total: sql<number>`coalesce(sum(${contributions.points}), 0)` })
+        .from(contributions)
+        .where(eq(contributions.profileId, profile.id));
+      const total = Number(result?.total ?? 0);
+      await db
+        .update(profiles)
+        .set({ points: total, updatedAt: now })
+        .where(eq(profiles.id, profile.id));
+
+      synced++;
+    }
+
+    return { synced, pointsAdded };
   }
 
   // ── Leaderboard ───────────────────────────────────────────────────────────

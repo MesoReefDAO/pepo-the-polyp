@@ -1182,6 +1182,17 @@ export async function registerRoutes(
     : _VOCDONI_ENV === "dev" ? "https://api-dev.vocdoni.net/v2"
     : "https://api-stg.vocdoni.net/v2";
 
+  // POST /api/admin/sync-points — backfill + recalculate points for all users
+  app.post("/api/admin/sync-points", generalLimiter, async (_req: Request, res: Response) => {
+    try {
+      const result = await storage.syncAllUserPoints();
+      return res.json({ ok: true, ...result });
+    } catch (err: any) {
+      console.error("[sync-points]", err);
+      return res.status(500).json({ error: err.message || "sync failed" });
+    }
+  });
+
   app.get("/api/governance/info", (_req: Request, res: Response) => {
     res.json({ orgAddress: _VOCDONI_ORG, env: _VOCDONI_ENV, configured: !!_VOCDONI_ORG });
   });
