@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
 import { MapContainer, TileLayer, WMSTileLayer, Marker, Popup, GeoJSON, CircleMarker, useMap, useMapEvents } from "react-leaflet";
@@ -270,6 +270,20 @@ function FitBounds({ markers }: { markers: { latitude: number; longitude: number
     map.fitBounds(bounds.pad(0.5), { maxZoom: 6 });
     fitted.current = true;
   }, [markers, map]);
+  return null;
+}
+
+/** Toggles .gcrmn-labels-on on the map container when zoom ≥ minZoom so that
+ *  permanent GCRMN site labels (class gcrmn-perm) become visible via CSS. */
+function GcrmnZoomWatcher({ enabled, minZoom = 8 }: { enabled: boolean; minZoom?: number }) {
+  const map = useMap();
+  const update = useCallback(() => {
+    const c = map.getContainer();
+    const show = enabled && map.getZoom() >= minZoom;
+    c.classList.toggle("gcrmn-labels-on", show);
+  }, [map, enabled, minZoom]);
+  useMapEvents({ zoomend: update });
+  useEffect(() => { update(); }, [update]);
   return null;
 }
 
@@ -720,31 +734,38 @@ function ExpandedMapModal({
                     fillColor: "#26de81", fillOpacity: 0.6, opacity: 0.85,
                   });
                   const p = feature.properties ?? {};
-                  // Hover tooltip — country · location
-                  const ttParts = [p.country, p.location].filter(Boolean).join(" · ");
-                  m.bindTooltip(
-                    `<div style="font-family:Inter,sans-serif;font-size:10px;line-height:1.4;color:#d4e9f3">
-                      <span style="color:#26de81;font-weight:700">🔬 GCRMN</span>
-                      ${ttParts ? `<br/><span style="color:#d4e9f3cc">${ttParts}</span>` : ""}
-                    </div>`,
-                    { direction: "top", offset: [0, -5], sticky: false }
-                  );
+                  const country  = (p.country  as string) || "";
+                  const location = (p.location as string) || "";
+                  // Permanent label — visible via CSS when map zoom ≥ 8 (GcrmnZoomWatcher)
+                  if (country) {
+                    const labelHtml = location
+                      ? `${country}<br/><span style="font-weight:400;color:#d4e9f3aa;font-size:8px">${location}</span>`
+                      : country;
+                    m.bindTooltip(labelHtml, {
+                      permanent: true,
+                      direction: "right",
+                      offset: [5, 0],
+                      className: "gcrmn-perm",
+                      interactive: false,
+                    });
+                  }
                   m.bindPopup(
                     `<div style="font-family:Inter,sans-serif;font-size:11px;min-width:155px;color:#d4e9f3">
-                      <div style="font-weight:700;color:#26de81;font-size:12px;margin-bottom:4px">🔬 GCRMN Benthic Site</div>
+                      <div style="font-weight:700;color:#26de81;font-size:12px;margin-bottom:4px">🔬 GCRMN Benthic Monitoring Network Site</div>
                       <table style="border-collapse:collapse;width:100%;font-size:10px">
-                        <tr><td style="color:#888;padding:1px 6px 1px 0">Country</td><td style="font-weight:600">${p.country || "-"}</td></tr>
-                        <tr><td style="color:#888;padding:1px 6px 1px 0">Location</td><td>${p.location || "-"}</td></tr>
+                        <tr><td style="color:#888;padding:1px 6px 1px 0">Country</td><td style="font-weight:600">${country || "-"}</td></tr>
+                        <tr><td style="color:#888;padding:1px 6px 1px 0">Location</td><td>${location || "-"}</td></tr>
                       </table>
-                      <div style="font-size:8px;color:#555;border-top:1px solid rgba(131,238,240,0.12);padding-top:4px;margin-top:4px">GCRMN · WCS-Marine / global-monitoring-maps</div>
+                      <div style="font-size:8px;color:#555;border-top:1px solid rgba(131,238,240,0.12);padding-top:4px;margin-top:4px">GCRMN Benthic Monitoring Network · WCS-Marine / global-monitoring-maps</div>
                     </div>`,
-                    { maxWidth: 220 }
+                    { maxWidth: 240 }
                   );
                   return m;
                 }}
               />
             )}
             {markers.length > 0 && <FitBounds markers={markers} />}
+            <GcrmnZoomWatcher enabled={showGcrmnMonSites} />
           </MapContainer>
         </div>
 
@@ -830,7 +851,7 @@ function ExpandedMapModal({
               testId="expanded-toggle-reef-life"
             />
             <LayerToggle
-              label="GCRMN Benthic Monitoring Sites"
+              label="GCRMN Benthic Monitoring Network Sites"
               sublabel="GCRMN program stations · gcrmndb_benthos"
               active={showGcrmnMonSites}
               color="#26de81"
@@ -908,7 +929,7 @@ function ExpandedMapModal({
             {showGcrmnMonSites && (
               <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "3px 0" }}>
                 <span style={{ width:9,height:9,borderRadius:"50%",background:"rgba(38,222,129,0.45)",border:"1.5px solid #26de81",display:"inline-block",flexShrink:0 }}/>
-                <span style={{ fontSize: 10.5, color: "#d4e9f3bb" }}>GCRMN benthic monitoring site</span>
+                <span style={{ fontSize: 10.5, color: "#d4e9f3bb" }}>GCRMN Benthic Monitoring Network Site</span>
               </div>
             )}
           </SideSection>
@@ -1567,7 +1588,7 @@ export function ReefMap({
             {showWcsCcSites    && <span title="WCS coral cover site" style={{ width:7,height:7,borderRadius:"50%",background:"rgba(255,107,157,0.4)",border:"1.5px solid #ff6b9d",display:"inline-block" }}/>}
             {showReefCheck     && <span title="Reef Check site" style={{ width:7,height:7,borderRadius:"50%",background:"rgba(253,150,68,0.4)",border:"1.5px solid #fd9644",display:"inline-block" }}/>}
             {showReefLife      && <span title="Reef Life Survey site" style={{ width:7,height:7,borderRadius:"50%",background:"rgba(69,170,242,0.4)",border:"1.5px solid #45aaf2",display:"inline-block" }}/>}
-            {showGcrmnMonSites && <span title="GCRMN benthic site" style={{ width:7,height:7,borderRadius:"50%",background:"rgba(38,222,129,0.4)",border:"1.5px solid #26de81",display:"inline-block" }}/>}
+            {showGcrmnMonSites && <span title="GCRMN Benthic Monitoring Network Site" style={{ width:7,height:7,borderRadius:"50%",background:"rgba(38,222,129,0.4)",border:"1.5px solid #26de81",display:"inline-block" }}/>}
           </div>
           {/* Log in button */}
           {!authenticated && (
