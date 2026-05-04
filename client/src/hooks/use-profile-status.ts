@@ -2,25 +2,22 @@ import { useQuery } from "@tanstack/react-query";
 import { usePrivy } from "@privy-io/react-auth";
 import { useOrcidAuth } from "@/hooks/use-orcid-auth";
 
-interface Profile {
-  displayName: string;
-  bio: string;
-  orcidId: string;
-  avatarCid: string;
-  avatarUrl: string;
-  points: number;
-}
-
 export function useProfileStatus() {
-  const { authenticated } = usePrivy();
-  const { orcidAuthenticated } = useOrcidAuth();
+  const { authenticated, user } = usePrivy();
+  const { orcidAuthenticated, orcidProfileId } = useOrcidAuth();
   const isAuthed = authenticated || orcidAuthenticated;
 
-  const { data: profile } = useQuery<Profile>({
-    queryKey: ["/api/profiles/me"],
-    enabled: isAuthed,
+  const activeProfileId = orcidAuthenticated && !authenticated
+    ? orcidProfileId
+    : user?.id;
+
+  const { data } = useQuery<any>({
+    queryKey: ["/api/profiles", activeProfileId],
+    enabled: isAuthed && !!activeProfileId,
     staleTime: 60_000,
   });
+
+  const profile = data?.profile;
 
   const hasName = !!(profile?.displayName && !["Explorer", "Researcher"].includes(profile.displayName));
   const hasBio = !!(profile?.bio && profile.bio.length > 10);

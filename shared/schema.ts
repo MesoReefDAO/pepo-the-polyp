@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, boolean, real } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, boolean, real, serial } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -30,9 +30,15 @@ export const profiles = pgTable("profiles", {
   isPublic: boolean("is_public").notNull().default(true),
   orcidId: text("orcid_id").notNull().default(""),
   orcidName: text("orcid_name").notNull().default(""),
-  // Ceramic + IDX decentralized storage
-  ceramicStreamId: text("ceramic_stream_id").default(""),
-  ceramicDid: text("ceramic_did").default(""),
+  // Social links
+  twitterHandle: text("twitter_handle").notNull().default(""),
+  linkedinUrl: text("linkedin_url").notNull().default(""),
+  githubHandle: text("github_handle").notNull().default(""),
+  instagramHandle: text("instagram_handle").notNull().default(""),
+  // Wallet / Web3 identity
+  walletAddress: text("wallet_address").notNull().default(""),
+  // IPFS / Pinata decentralised storage — CID of the pinned profile JSON
+  ipfsCid: text("ipfs_cid").default(""),
   // IPFS
   avatarCid: text("avatar_cid").default(""),
   ipfsImages: text("ipfs_images").array().notNull().default(sql`'{}'::text[]`),
@@ -74,6 +80,12 @@ export const reefImages = pgTable("reef_images", {
   longitude: real("longitude").notNull(),
   title: text("title").notNull().default(""),
   author: text("author").notNull().default(""),
+  description: text("description").notNull().default(""),
+  // curation: 'pending' | 'approved' | 'rejected'
+  status: text("status").notNull().default("pending"),
+  curatedBy: varchar("curated_by"),   // profileId of the ORCID-verified curator
+  curatedAt: integer("curated_at"),
+  curatorNote: text("curator_note").notNull().default(""),
   profileId: varchar("profile_id"),
   createdAt: integer("created_at").notNull().default(sql`extract(epoch from now())::int`),
 });
@@ -81,6 +93,9 @@ export const reefImages = pgTable("reef_images", {
 export const insertReefImageSchema = createInsertSchema(reefImages).omit({
   id: true,
   createdAt: true,
+  status: true,
+  curatedBy: true,
+  curatedAt: true,
 });
 export type InsertReefImage = z.infer<typeof insertReefImageSchema>;
 export type ReefImage = typeof reefImages.$inferSelect;
@@ -97,15 +112,40 @@ export const insertIpfsBlockSchema = createInsertSchema(ipfsBlocks).omit({ uploa
 export type InsertIpfsBlock = z.infer<typeof insertIpfsBlockSchema>;
 export type IpfsBlock = typeof ipfsBlocks.$inferSelect;
 
+// ─── GCRMN Benthic Monitoring Sites (geocoded, persisted) ─────────────────────
+export const gcrmnSites = pgTable("gcrmn_sites", {
+  id:       serial("id").primaryKey(),
+  lat:      real("lat").notNull(),
+  lon:      real("lon").notNull(),
+  site:     text("site").notNull().default(""),
+  location: text("location").notNull().default(""),
+  country:  text("country").notNull().default(""),
+});
+
+export const insertGcrmnSiteSchema = createInsertSchema(gcrmnSites).omit({ id: true });
+export type InsertGcrmnSite = z.infer<typeof insertGcrmnSiteSchema>;
+export type GcrmnSite = typeof gcrmnSites.$inferSelect;
+
 // ─── Leaderboard (aggregated view) ────────────────────────────────────────────
 export interface LeaderboardEntry {
   id: string;
   displayName: string;
   avatarUrl: string;
+  avatarCid: string;
   tags: string[];
   points: number;
   questionCount: number;
   createdAt: number;
   orcidId: string;
   orcidName: string;
+  // Extended community visibility fields
+  ipfsCid: string;
+  walletAddress: string;
+  twitterHandle: string;
+  githubHandle: string;
+  linkedinUrl: string;
+  instagramHandle: string;
+  bio: string;
+  location: string;
+  website: string;
 }

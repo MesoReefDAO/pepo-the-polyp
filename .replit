@@ -42,6 +42,8 @@ waitForPort = 5000
 
 [userenv.shared]
 VITE_PRIVY_APP_ID = "cmnysfvqe00ff0cjmh15ba116"
+VOCDONI_ENV = "prod"
+PINATA_GATEWAY = "teal-advisory-zebra-284.mypinata.cloud"
 
 [userenv.production]
 ORCID_REDIRECT_URI = "https://thepolyp.xyz/api/auth/orcid/callback"

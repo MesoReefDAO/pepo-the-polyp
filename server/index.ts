@@ -5,6 +5,7 @@ import connectPgSimple from "connect-pg-simple";
 import { pool } from "./db";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
+import { storage } from "./storage";
 import { createServer } from "http";
 
 const app = express();
@@ -169,7 +170,21 @@ app.use((req, res, next) => {
 
 // ─── Routes + static + error handler ─────────────────────────────────────────
 (async () => {
+  // Idempotent schema migrations (safe to run every startup)
+  await pool.query(
+    `ALTER TABLE profiles ADD COLUMN IF NOT EXISTS wallet_address text NOT NULL DEFAULT '';`
+  ).catch(err => console.error("[migration] wallet_address:", err));
+
   await registerRoutes(httpServer, app);
+
+  // Backfill + recalculate points for all users on every startup (idempotent)
+  storage.syncAllUserPoints()
+    .then(({ synced, pointsAdded }) => {
+      log(`Points sync complete — ${synced} profiles synced, ${pointsAdded} pts backfilled`);
+    })
+    .catch((err) => {
+      console.error("[points-sync] startup sync failed:", err);
+    });
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

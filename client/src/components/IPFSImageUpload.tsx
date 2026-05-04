@@ -51,6 +51,7 @@ export function IPFSImageUpload({ onUpload, currentCid, label, compact, showMapP
   const [manualLon, setManualLon] = useState("");
   const [pinTitle, setPinTitle] = useState("");
   const [pinAuthor, setPinAuthor] = useState("");
+  const [pinDescription, setPinDescription] = useState("");
   const [pinError, setPinError] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -72,6 +73,7 @@ export function IPFSImageUpload({ onUpload, currentCid, label, compact, showMapP
           longitude: lon,
           title: pinTitle.trim(),
           author: pinAuthor.trim(),
+          description: pinDescription.trim(),
         }),
       });
       if (!res.ok) throw new Error(await res.text());
@@ -168,7 +170,7 @@ export function IPFSImageUpload({ onUpload, currentCid, label, compact, showMapP
           </span>
         </div>
         <p style={{ fontSize: 10.5, color: "#d4e9f377", margin: 0, lineHeight: 1.5 }}>
-          Your image will appear as a public marker on the map — visible to all visitors.
+          Your image will appear as a public marker on the map, visible to all visitors.
           Your precise location is only used to place the pin and is never shared beyond that.
         </p>
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -194,6 +196,19 @@ export function IPFSImageUpload({ onUpload, currentCid, label, compact, showMapP
               background: "rgba(0,19,28,0.6)", border: "1px solid rgba(131,238,240,0.2)",
               borderRadius: 7, padding: "6px 10px", fontSize: 11, color: "#d4e9f3",
               fontFamily: "Inter, sans-serif", outline: "none",
+            }}
+          />
+          <textarea
+            data-testid="pin-description-input"
+            value={pinDescription}
+            onChange={e => setPinDescription(e.target.value)}
+            placeholder="Brief description: species, reef condition, depth, date… (optional)"
+            maxLength={500}
+            rows={3}
+            style={{
+              background: "rgba(0,19,28,0.6)", border: "1px solid rgba(131,238,240,0.2)",
+              borderRadius: 7, padding: "6px 10px", fontSize: 11, color: "#d4e9f3",
+              fontFamily: "Inter, sans-serif", outline: "none", resize: "vertical",
             }}
           />
         </div>
@@ -303,6 +318,19 @@ export function IPFSImageUpload({ onUpload, currentCid, label, compact, showMapP
             fontFamily: "Inter, sans-serif", outline: "none",
           }}
         />
+        <textarea
+          data-testid="pin-description-input-manual"
+          value={pinDescription}
+          onChange={e => setPinDescription(e.target.value)}
+          placeholder="Brief description: species, reef condition, depth, date… (optional)"
+          maxLength={500}
+          rows={3}
+          style={{
+            background: "rgba(0,19,28,0.6)", border: "1px solid rgba(131,238,240,0.2)",
+            borderRadius: 7, padding: "6px 10px", fontSize: 11, color: "#d4e9f3",
+            fontFamily: "Inter, sans-serif", outline: "none", resize: "vertical",
+          }}
+        />
         {pinError && <p style={{ fontSize: 10.5, color: "#ff8888", margin: 0 }}>{pinError}</p>}
         <div style={{ display: "flex", gap: 8 }}>
           <button
@@ -338,10 +366,10 @@ export function IPFSImageUpload({ onUpload, currentCid, label, compact, showMapP
         <span style={{ fontSize: 14 }}>🌊</span>
         <div>
           <span style={{ fontSize: 11, fontWeight: 700, color: "#1dd1a1" }}>
-            Pinned to the Regen Reef Network Map!
+            Submitted for review!
           </span>
           <p style={{ fontSize: 10, color: "#83eef066", margin: "2px 0 0" }}>
-            Your image is now publicly visible as a reef map marker.
+            An ORCID-verified member will review your image before it appears on the map.
           </p>
         </div>
       </div>
@@ -521,7 +549,7 @@ export function IPFSImageUpload({ onUpload, currentCid, label, compact, showMapP
                     Drop image here or click to browse
                   </p>
                   <p style={{ fontSize: 11, color: "#d4e9f344", margin: 0 }}>
-                    JPEG · PNG · GIF · WebP — up to 10 MB
+                    JPEG · PNG · GIF · WebP, up to 10 MB
                   </p>
                 </div>
               </>

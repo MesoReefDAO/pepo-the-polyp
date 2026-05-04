@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { usePrivy } from "@privy-io/react-auth";
+import { useOrcidAuth } from "@/hooks/use-orcid-auth";
 import { Trophy, MessageCircle, Star, Users, ArrowLeft, Globe, ChevronRight } from "lucide-react";
 import type { LeaderboardEntry } from "@shared/schema";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
@@ -159,6 +160,60 @@ function LeaderboardPanel({ entries, currentUserId }: { entries: LeaderboardEntr
   );
 }
 
+// ─── Social icons row ─────────────────────────────────────────────────────────
+function SocialRow({ entry }: { entry: LeaderboardEntry }) {
+  const hasSocials = entry.twitterHandle || entry.githubHandle || entry.linkedinUrl || entry.instagramHandle;
+  if (!hasSocials) return null;
+  return (
+    <div className="flex items-center gap-1.5 flex-wrap" onClick={e => e.stopPropagation()}>
+      {entry.twitterHandle && (
+        <a href={`https://x.com/${entry.twitterHandle}`} target="_blank" rel="noopener noreferrer"
+          className="flex items-center gap-1 px-2 py-1 rounded-full hover:opacity-80 transition-opacity no-underline"
+          style={{ background: "#18181b", border: "1px solid #3f3f4660" }}
+          title={`@${entry.twitterHandle} on X`}>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="white">
+            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+          </svg>
+          <span className="[font-family:'Inter',Helvetica] text-[9px] font-medium text-white/70">@{entry.twitterHandle}</span>
+        </a>
+      )}
+      {entry.githubHandle && (
+        <a href={`https://github.com/${entry.githubHandle}`} target="_blank" rel="noopener noreferrer"
+          className="flex items-center gap-1 px-2 py-1 rounded-full hover:opacity-80 transition-opacity no-underline"
+          style={{ background: "#24292e", border: "1px solid #3f3f4660" }}
+          title={`${entry.githubHandle} on GitHub`}>
+          <svg width="11" height="11" viewBox="0 0 98 96" fill="white">
+            <path fillRule="evenodd" clipRule="evenodd" d="M48.854 0C21.839 0 0 22 0 49.217c0 21.756 13.993 40.172 33.405 46.69 2.427.49 3.316-1.059 3.316-2.362 0-1.141-.08-5.052-.08-9.127-13.59 2.934-16.42-5.867-16.42-5.867-2.184-5.704-5.42-7.17-5.42-7.17-4.448-3.015.324-3.015.324-3.015 4.934.326 7.523 5.052 7.523 5.052 4.367 7.496 11.404 5.378 14.235 4.074.404-3.178 1.699-5.378 3.074-6.6-10.839-1.141-22.243-5.378-22.243-24.283 0-5.378 1.94-9.778 5.014-13.2-.485-1.222-2.184-6.275.486-13.038 0 0 4.125-1.304 13.426 5.052a46.97 46.97 0 0 1 12.214-1.63c4.125 0 8.33.571 12.213 1.63 9.302-6.356 13.427-5.052 13.427-5.052 2.67 6.763.97 11.816.485 13.038 3.155 3.422 5.015 7.822 5.015 13.2 0 18.905-11.404 23.06-22.324 24.283 1.78 1.548 3.316 4.481 3.316 9.126 0 6.6-.08 11.897-.08 13.526 0 1.304.89 2.853 3.316 2.364 19.412-6.52 33.405-24.935 33.405-46.691C97.707 22 75.788 0 48.854 0z"/>
+          </svg>
+          <span className="[font-family:'Inter',Helvetica] text-[9px] font-medium text-white/70">{entry.githubHandle}</span>
+        </a>
+      )}
+      {entry.linkedinUrl && (
+        <a href={entry.linkedinUrl.startsWith("http") ? entry.linkedinUrl : `https://${entry.linkedinUrl}`} target="_blank" rel="noopener noreferrer"
+          className="flex items-center gap-1 px-2 py-1 rounded-full hover:opacity-80 transition-opacity no-underline"
+          style={{ background: "#0077b5", border: "1px solid #0077b560" }}
+          title="LinkedIn">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="white">
+            <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+          </svg>
+          <span className="[font-family:'Inter',Helvetica] text-[9px] font-medium text-white/90">LinkedIn</span>
+        </a>
+      )}
+      {entry.instagramHandle && (
+        <a href={`https://instagram.com/${entry.instagramHandle}`} target="_blank" rel="noopener noreferrer"
+          className="flex items-center gap-1 px-2 py-1 rounded-full hover:opacity-80 transition-opacity no-underline"
+          style={{ background: "linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)", border: "1px solid #e1306c60" }}
+          title={`@${entry.instagramHandle} on Instagram`}>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="white">
+            <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
+          </svg>
+          <span className="[font-family:'Inter',Helvetica] text-[9px] font-medium text-white/90">@{entry.instagramHandle}</span>
+        </a>
+      )}
+    </div>
+  );
+}
+
 // ─── Profile card ─────────────────────────────────────────────────────────────
 function ProfileCard({ entry, rank }: { entry: LeaderboardEntry; rank: number }) {
   const navigate = useMemberNav();
@@ -167,7 +222,7 @@ function ProfileCard({ entry, rank }: { entry: LeaderboardEntry; rank: number })
     <div
       data-testid={`profile-card-${entry.id}`}
       onClick={(e) => navigate(entry.id, e)}
-      className="flex flex-col gap-4 p-5 rounded-3xl border border-[#ffffff08] bg-[#00080c80] hover:border-[#83eef025] hover:bg-[#83eef005] transition-colors cursor-pointer group"
+      className="flex flex-col gap-3 p-5 rounded-3xl border border-[#ffffff08] bg-[#00080c80] hover:border-[#83eef025] hover:bg-[#83eef005] transition-colors cursor-pointer group"
     >
       {/* Header */}
       <div className="flex items-start gap-3">
@@ -187,6 +242,20 @@ function ProfileCard({ entry, rank }: { entry: LeaderboardEntry; rank: number })
               {entry.displayName}
             </span>
             <OrcidBadge orcidId={entry.orcidId} />
+            {entry.ipfsCid && (
+              <a
+                href={`https://ipfs.io/ipfs/${entry.ipfsCid}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={e => e.stopPropagation()}
+                title="Permanent IPFS profile record"
+                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full no-underline flex-shrink-0"
+                style={{ background: "#83eef012", border: "1px solid #83eef030" }}
+              >
+                <svg width="8" height="8" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#83eef0" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                <span className="[font-family:'Inter',Helvetica] text-[9px] font-semibold" style={{ color: "#83eef0" }}>IPFS</span>
+              </a>
+            )}
           </div>
           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
             <span className="[font-family:'Inter',Helvetica] text-[#83eef0] text-xs font-semibold">
@@ -196,11 +265,27 @@ function ProfileCard({ entry, rank }: { entry: LeaderboardEntry; rank: number })
             <span className="[font-family:'Inter',Helvetica] text-[#d4e9f366] text-xs">
               Rank #{rank}
             </span>
+            {entry.location && (
+              <>
+                <span className="text-[#d4e9f333]">·</span>
+                <span className="[font-family:'Inter',Helvetica] text-[#d4e9f355] text-[10px] flex items-center gap-0.5">
+                  <svg width="8" height="8" viewBox="0 0 24 24" fill="none"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" stroke="#d4e9f355" strokeWidth="2"/><circle cx="12" cy="10" r="3" stroke="#d4e9f355" strokeWidth="2"/></svg>
+                  {entry.location}
+                </span>
+              </>
+            )}
           </div>
         </div>
 
         <ChevronRight size={16} className="text-[#d4e9f322] group-hover:text-[#83eef066] transition-colors flex-shrink-0 mt-1" />
       </div>
+
+      {/* Bio snippet */}
+      {entry.bio && (
+        <p className="[font-family:'Inter',Helvetica] text-[11px] text-[#d4e9f366] leading-[1.6] line-clamp-2">
+          {entry.bio}
+        </p>
+      )}
 
       {/* Tags */}
       {entry.tags.length > 0 && (
@@ -213,6 +298,20 @@ function ProfileCard({ entry, rank }: { entry: LeaderboardEntry; rank: number })
               {tag}
             </span>
           ))}
+        </div>
+      )}
+
+      {/* Socials */}
+      <SocialRow entry={entry} />
+
+      {/* Wallet */}
+      {entry.walletAddress && (
+        <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-[#ffffff05] border border-[#ffffff0a]"
+          onClick={e => e.stopPropagation()}>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#d4e9f355" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 11a2 2 0 010 4"/></svg>
+          <span className="[font-family:'Inter',Helvetica] text-[10px] font-mono text-[#d4e9f355] flex-1 min-w-0 truncate">
+            {entry.walletAddress.slice(0, 8)}…{entry.walletAddress.slice(-6)}
+          </span>
         </div>
       )}
 
@@ -248,6 +347,8 @@ function ProfileCard({ entry, rank }: { entry: LeaderboardEntry; rank: number })
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export function CommunityLeaderboard() {
   const { user, authenticated } = usePrivy();
+  const { orcidAuthenticated } = useOrcidAuth();
+  const isAuthenticated = authenticated || orcidAuthenticated;
 
   const { data: leaderboard = [], isLoading } = useQuery<LeaderboardEntry[]>({
     queryKey: ["/api/leaderboard"],
@@ -308,7 +409,7 @@ export function CommunityLeaderboard() {
         <p className="[font-family:'Inter',Helvetica] text-[#9aaeb8] text-sm max-w-md">
           Every question asked earns points. The most curious explorers rise to the top of the Reef Knowledge Network.
         </p>
-        {!authenticated && (
+        {!isAuthenticated && (
           <div className="mt-2 px-4 py-2 rounded-full bg-[#83eef010] border border-[#83eef033]">
             <span className="[font-family:'Inter',Helvetica] text-[#83eef0] text-xs">
               Log in and ask Pepo a question to join the leaderboard

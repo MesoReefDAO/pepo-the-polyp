@@ -4,13 +4,13 @@ import { PRIVY_ENABLED } from "@/lib/privy";
 import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
-import { useCeramicProfile } from "@/hooks/use-ceramic-profile";
-import { ceramicStreamUrl } from "@/lib/ceramic";
+import { ipfsPublicUrl } from "@/lib/ipfs";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { useOrcidAuth } from "@/hooks/use-orcid-auth";
 import { OrcidLoginButton } from "@/components/OrcidLoginButton";
 import { IPFSImageUpload } from "@/components/IPFSImageUpload";
 import { ipfsImageUrl } from "@/lib/ipfs";
+import { JourneySection } from "@/components/JourneySection";
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 function MetaMaskIcon({ size = 14 }: { size?: number }) {
@@ -160,7 +160,7 @@ function GuestView({ onLogin, error }: { onLogin: () => void; error?: string | n
             Create your Profile
           </h2>
           <p className="[font-family:'Inter',Helvetica] text-[#d4e9f380] text-sm max-w-sm leading-6">
-            Sign in to build your MesoReef DAO identity — upload a photo, write your bio, and connect your research credentials.
+            Sign in to build your MesoReef DAO identity: upload a photo, write your bio, and connect your research credentials.
           </p>
         </div>
       </div>
@@ -383,7 +383,7 @@ function LinkedAccountsRow({ user }: { user: any }) {
       else if (type === "twitter_oauth") await unlinkTwitter(acct.subject);
       else if (type === "linkedin_oauth") await unlinkLinkedIn(acct.subject);
     } catch (e: any) {
-      setUnlinkError(e?.message ?? "Could not unlink — try again.");
+      setUnlinkError(e?.message ?? "Could not unlink. Try again.");
     } finally {
       setUnlinking(null);
     }
@@ -607,7 +607,8 @@ export function UserProfileDashboard() {
   const { ready, authenticated: privyAuthenticated, user, login, logout: privyLogout, getAccessToken } = usePrivy();
   const { wallets } = useWallets();
 
-  const ceramic = useCeramicProfile();
+  const [ipfsSyncLoading, setIpfsSyncLoading] = useState(false);
+  const [ipfsSyncError, setIpfsSyncError] = useState<string | null>(null);
 
   const {
     orcidAuthenticated,
@@ -639,15 +640,19 @@ export function UserProfileDashboard() {
   const [location, setLocation] = useState("");
   const [website, setWebsite] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [twitterHandle, setTwitterHandle] = useState("");
+  const [linkedinUrl, setLinkedinUrl] = useState("");
+  const [githubHandle, setGithubHandle] = useState("");
+  const [instagramHandle, setInstagramHandle] = useState("");
 
   // ORCID from URL callback, session, or persisted DB
   const [orcidId, setOrcidId] = useState<string | null>(null);
   const [orcidName, setOrcidName] = useState<string | null>(null);
   const [orcidError, setOrcidError] = useState<string | null>(null);
 
-  // Ceramic + IDX
-  const [ceramicStreamId, setCeramicStreamId] = useState<string | null>(null);
-  const [ceramicSynced, setCeramicSynced] = useState(false);
+  // IPFS / Pinata
+  const [ipfsCid, setIpfsCid] = useState<string | null>(null);
+  const [ipfsSynced, setIpfsSynced] = useState(false);
 
   // The active profile ID — Privy user ID, or ORCID-prefixed ID for ORCID-only logins
   const activeProfileId = orcidAuthenticated && !privyAuthenticated
@@ -660,22 +665,39 @@ export function UserProfileDashboard() {
     enabled: !!activeProfileId,
   });
 
-  // Hydrate ORCID + Ceramic from DB on mount
+  // Hydrate ALL profile fields from DB — DB is the source of truth once a profile exists
   useEffect(() => {
-    if (savedProfile?.profile?.orcidId && !orcidId) {
-      setOrcidId(savedProfile.profile.orcidId);
-      setOrcidName(savedProfile.profile.orcidName || null);
+    if (!savedProfile?.profile) return;
+    const p = savedProfile.profile;
+
+    // Core fields — DB always wins when profile exists
+    setDisplayName(p.displayName || "");
+    setBio(p.bio || DEFAULT_BIO);
+    setLocation(p.location || "");
+    setWebsite(p.website || "");
+    setSelectedTags(Array.isArray(p.tags) ? p.tags : []);
+
+    // Social links
+    setTwitterHandle(p.twitterHandle || "");
+    setLinkedinUrl(p.linkedinUrl || "");
+    setGithubHandle(p.githubHandle || "");
+    setInstagramHandle(p.instagramHandle || "");
+
+    // Avatar / IPFS
+    if (p.avatarCid) {
+      setAvatarCid(p.avatarCid);
+      setProfileImage(ipfsImageUrl(p.avatarCid));
+    } else if (p.avatarUrl) {
+      setProfileImage(p.avatarUrl);
     }
-    if (savedProfile?.profile?.ceramicStreamId) {
-      setCeramicStreamId(savedProfile.profile.ceramicStreamId);
+    if (p.ipfsImages?.length) setIpfsImages(p.ipfsImages);
+
+    // ORCID — only set if not already populated from session
+    if (p.orcidId && !orcidId) {
+      setOrcidId(p.orcidId);
+      setOrcidName(p.orcidName || null);
     }
-    if (savedProfile?.profile?.avatarCid) {
-      setAvatarCid(savedProfile.profile.avatarCid);
-      setProfileImage(ipfsImageUrl(savedProfile.profile.avatarCid));
-    }
-    if (savedProfile?.profile?.ipfsImages?.length) {
-      setIpfsImages(savedProfile.profile.ipfsImages);
-    }
+    if (p.ipfsCid) setIpfsCid(p.ipfsCid);
   }, [savedProfile]);
 
   // Hydrate from ORCID session; if Privy user just connected ORCID, also persist it to their profile
@@ -714,6 +736,10 @@ export function UserProfileDashboard() {
     setWebsite(localStorage.getItem("pepo_website") || "");
     const tags = localStorage.getItem("pepo_tags");
     if (tags) setSelectedTags(JSON.parse(tags));
+    setTwitterHandle(localStorage.getItem("pepo_twitter") || "");
+    setLinkedinUrl(localStorage.getItem("pepo_linkedin") || "");
+    setGithubHandle(localStorage.getItem("pepo_github") || "");
+    setInstagramHandle(localStorage.getItem("pepo_instagram") || "");
   }, []);
 
   useEffect(() => {
@@ -824,6 +850,10 @@ export function UserProfileDashboard() {
     localStorage.setItem("pepo_location", location);
     localStorage.setItem("pepo_website", website);
     localStorage.setItem("pepo_tags", JSON.stringify(selectedTags));
+    localStorage.setItem("pepo_twitter", twitterHandle);
+    localStorage.setItem("pepo_linkedin", linkedinUrl);
+    localStorage.setItem("pepo_github", githubHandle);
+    localStorage.setItem("pepo_instagram", instagramHandle);
 
     if (orcidAuthenticated && !privyAuthenticated) {
       try {
@@ -836,10 +866,15 @@ export function UserProfileDashboard() {
             location,
             website,
             tags: selectedTags,
-            avatarUrl: profileImage || "",
+            avatarUrl: avatarCid ? ipfsPublicUrl(avatarCid) : profileImage || "",
             avatarCid: avatarCid || "",
             ipfsImages,
             isPublic: true,
+            twitterHandle,
+            linkedinUrl,
+            githubHandle,
+            instagramHandle,
+            walletAddress: walletAddr || "",
           }),
         });
         queryClient.invalidateQueries({ queryKey: ["/api/profiles", activeProfileId] });
@@ -861,10 +896,15 @@ export function UserProfileDashboard() {
               location,
               website,
               tags: selectedTags,
-              avatarUrl: profileImage || "",
+              avatarUrl: avatarCid ? ipfsPublicUrl(avatarCid) : profileImage || "",
               avatarCid: avatarCid || "",
               ipfsImages,
               isPublic: true,
+              twitterHandle,
+              linkedinUrl,
+              githubHandle,
+              instagramHandle,
+              walletAddress: walletAddr || "",
             }),
           });
           queryClient.invalidateQueries({ queryKey: ["/api/profiles", activeProfileId] });
@@ -874,34 +914,54 @@ export function UserProfileDashboard() {
       } catch {
         // non-blocking — local save succeeded
       }
+      // Background: pin updated profile to IPFS (Pinata) so it's live on the web too
+      void handleSyncToIpfs();
     }
 
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
   }
 
-  async function handleSyncToCeramic() {
+  async function handleSyncToIpfs() {
     if (!user?.id) return;
-    const streamId = await ceramic.saveProfile(
-      { displayName, bio, location, website, tags: selectedTags, orcidId: orcidId || "", orcidName: orcidName || "" },
-      ceramicStreamId
-    );
-    if (!streamId) return;
-    setCeramicStreamId(streamId);
-    // Persist stream ID + DID to backend
+    setIpfsSyncLoading(true);
+    setIpfsSyncError(null);
     try {
       const token = await getAccessToken();
-      if (!token) return;
-      await fetch("/api/profiles/ceramic", {
+      if (!token) throw new Error("Not authenticated");
+      const res = await fetch("/api/ipfs/profile", {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-privy-token": token },
-        body: JSON.stringify({ ceramicStreamId: streamId, ceramicDid: ceramic.did || "" }),
+        body: JSON.stringify({
+          displayName,
+          bio,
+          location,
+          website,
+          tags: selectedTags,
+          orcidId: orcidId || "",
+          orcidName: orcidName || "",
+          avatarCid: avatarCid || "",
+          avatarUrl: avatarCid ? ipfsPublicUrl(avatarCid) : profileImage || "",
+          twitterHandle,
+          linkedinUrl,
+          githubHandle,
+          instagramHandle,
+          walletAddress: walletAddr || "",
+        }),
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/profiles"] });
-      setCeramicSynced(true);
-      setTimeout(() => setCeramicSynced(false), 4000);
-    } catch {
-      // non-blocking
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `Upload failed (${res.status})`);
+      }
+      const { cid } = await res.json();
+      setIpfsCid(cid);
+      queryClient.invalidateQueries({ queryKey: ["/api/profiles", activeProfileId] });
+      setIpfsSynced(true);
+      setTimeout(() => setIpfsSynced(false), 4000);
+    } catch (err: any) {
+      setIpfsSyncError(err.message || "Failed to sync to IPFS");
+    } finally {
+      setIpfsSyncLoading(false);
     }
   }
 
@@ -952,6 +1012,9 @@ export function UserProfileDashboard() {
                   Your MesoReef DAO identity visible to the reef community.
                 </p>
               </div>
+
+              {/* Regen Reef Journey */}
+              <JourneySection className="rounded-[20px] border border-[#83eef01a] overflow-hidden" />
 
               {/* Two-column layout */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -1105,7 +1168,7 @@ export function UserProfileDashboard() {
                         onChange={(e) => setBio(e.target.value)}
                         maxLength={500}
                         rows={5}
-                        placeholder="Tell the reef community about yourself — your research focus, conservation work, or what brought you to the MesoAmerican Reef…"
+                        placeholder="Tell the reef community about yourself: your research focus, conservation work, or what brought you to the MesoAmerican Reef…"
                         data-testid="input-bio"
                         className={`${inputCls} resize-none leading-6`}
                       />
@@ -1122,6 +1185,87 @@ export function UserProfileDashboard() {
                           placeholder="https://yoursite.org"
                           maxLength={120}
                           data-testid="input-website"
+                          className={`${inputCls} pl-9`}
+                        />
+                      </div>
+                    </Field>
+                  </div>
+
+                  {/* Social Links */}
+                  <div className="flex flex-col gap-4 p-5 md:p-6 rounded-3xl bg-[#ffffff08] border border-[#83eef01a] backdrop-blur-sm">
+                    <div className="flex items-center gap-2 pb-1 border-b border-[#ffffff08]">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" stroke="#83eef0aa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" stroke="#83eef0aa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      <span className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-semibold text-[#d4e9f3b2] text-xs uppercase tracking-wider">Social Links</span>
+                      <span className="[font-family:'Inter',Helvetica] text-[#d4e9f340] text-[10px] ml-1">Optional</span>
+                    </div>
+
+                    {/* Twitter / X */}
+                    <Field label="Twitter / X" hint="@handle">
+                      <div className="relative">
+                        <div className="absolute left-4 top-1/2 -translate-y-1/2">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="#d4e9f340"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                        </div>
+                        <input
+                          type="text"
+                          value={twitterHandle}
+                          onChange={e => setTwitterHandle(e.target.value.replace(/^@/, ""))}
+                          placeholder="yourhandle"
+                          maxLength={50}
+                          data-testid="input-twitter"
+                          className={`${inputCls} pl-9`}
+                        />
+                      </div>
+                    </Field>
+
+                    {/* LinkedIn */}
+                    <Field label="LinkedIn" hint="Profile URL">
+                      <div className="relative">
+                        <div className="absolute left-4 top-1/2 -translate-y-1/2">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="#d4e9f340"><path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg>
+                        </div>
+                        <input
+                          type="url"
+                          value={linkedinUrl}
+                          onChange={e => setLinkedinUrl(e.target.value)}
+                          placeholder="https://linkedin.com/in/yourprofile"
+                          maxLength={120}
+                          data-testid="input-linkedin"
+                          className={`${inputCls} pl-9`}
+                        />
+                      </div>
+                    </Field>
+
+                    {/* GitHub */}
+                    <Field label="GitHub" hint="@handle">
+                      <div className="relative">
+                        <div className="absolute left-4 top-1/2 -translate-y-1/2">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="#d4e9f340"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 00-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0020 4.77 5.07 5.07 0 0019.91 1S18.73.65 16 2.48a13.38 13.38 0 00-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 005 4.77a5.44 5.44 0 00-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 009 18.13V22"/></svg>
+                        </div>
+                        <input
+                          type="text"
+                          value={githubHandle}
+                          onChange={e => setGithubHandle(e.target.value.replace(/^@/, ""))}
+                          placeholder="yourhandle"
+                          maxLength={50}
+                          data-testid="input-github"
+                          className={`${inputCls} pl-9`}
+                        />
+                      </div>
+                    </Field>
+
+                    {/* Instagram */}
+                    <Field label="Instagram" hint="@handle">
+                      <div className="relative">
+                        <div className="absolute left-4 top-1/2 -translate-y-1/2">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d4e9f340" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="#d4e9f340" stroke="none"/></svg>
+                        </div>
+                        <input
+                          type="text"
+                          value={instagramHandle}
+                          onChange={e => setInstagramHandle(e.target.value.replace(/^@/, ""))}
+                          placeholder="yourhandle"
+                          maxLength={50}
+                          data-testid="input-instagram"
                           className={`${inputCls} pl-9`}
                         />
                       </div>
@@ -1213,74 +1357,67 @@ export function UserProfileDashboard() {
                           <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#83eef0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                           IPFS Storage
                         </label>
-                        {ceramicStreamId && (
+                        {ipfsCid && (
                           <span className="px-2 py-0.5 rounded-full bg-[#83eef015] border border-[#83eef033] text-[#83eef0] [font-family:'Inter',Helvetica] text-[9px] font-semibold">
                             DECENTRALISED
                           </span>
                         )}
                       </div>
 
-                      {ceramic.did && (
-                        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#83eef008] border border-[#83eef020]">
-                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#83eef0" strokeWidth="2"/><path d="M12 8v4l3 3" stroke="#83eef0" strokeWidth="2" strokeLinecap="round"/></svg>
-                          <span className="[font-family:'Inter',Helvetica] text-[#83eef0b2] text-[9px] font-mono truncate flex-1" data-testid="text-ceramic-did">
-                            {ceramic.did}
-                          </span>
-                        </div>
-                      )}
-
-                      {ceramicStreamId ? (
+                      {ipfsCid ? (
                         <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-[#83eef00d] border border-[#83eef020]">
-                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#83eef0" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                          {ipfsSyncLoading ? (
+                            <div className="w-3 h-3 rounded-full border border-[#83eef0] border-t-transparent animate-spin flex-shrink-0" />
+                          ) : (
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#83eef0" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                          )}
                           <div className="flex flex-col flex-1 min-w-0">
-                            <span className="[font-family:'Inter',Helvetica] text-[#83eef0] text-[10px] font-medium">Profile synced</span>
-                            <span className="[font-family:'Inter',Helvetica] text-[#d4e9f350] text-[9px] font-mono truncate" data-testid="text-ceramic-stream-id">
-                              {ceramicStreamId}
+                            <span className="[font-family:'Inter',Helvetica] text-[#83eef0] text-[10px] font-medium">
+                              {ipfsSyncLoading ? "Updating on web…" : "Live on IPFS via Pinata"}
+                            </span>
+                            <span className="[font-family:'Inter',Helvetica] text-[#d4e9f350] text-[9px] font-mono truncate" data-testid="text-ipfs-cid">
+                              {ipfsCid}
                             </span>
                           </div>
                           <a
-                            href={ceramicStreamUrl(ceramicStreamId)}
+                            href={ipfsPublicUrl(ipfsCid)}
                             target="_blank"
                             rel="noopener noreferrer"
-                            data-testid="link-ceramic-explorer"
+                            data-testid="link-ipfs-explorer"
                             className="text-[#83eef066] hover:text-[#83eef0] transition-colors"
-                            title="View on Cerscan"
+                            title="View profile JSON on IPFS"
                           >
                             <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><polyline points="15 3 21 3 21 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><line x1="10" y1="14" x2="21" y2="3" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
                           </a>
                         </div>
                       ) : (
                         <p className="[font-family:'Inter',Helvetica] text-[#d4e9f340] text-[10px] leading-4">
-                          Sync your profile to IPFS to store it on a decentralised network that you own and control.
+                          Your profile is automatically published to the decentralised web via Pinata each time you save.
                         </p>
                       )}
 
-                      {ceramic.error && (
-                        <p className="[font-family:'Inter',Helvetica] text-red-400 text-[10px]">{ceramic.error}</p>
+                      {ipfsSyncError && (
+                        <p className="[font-family:'Inter',Helvetica] text-red-400 text-[10px]">{ipfsSyncError}</p>
                       )}
 
-                      <button
-                        onClick={handleSyncToCeramic}
-                        disabled={ceramic.authLoading || ceramic.syncLoading}
-                        data-testid="button-sync-ceramic"
-                        className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl [font-family:'Inter',Helvetica] text-xs font-medium transition-all border ${
-                          ceramicSynced
-                            ? "bg-[#83eef015] border-[#83eef033] text-[#83eef0]"
-                            : ceramic.authLoading || ceramic.syncLoading
-                            ? "bg-[#83eef008] border-[#83eef015] text-[#83eef050] cursor-not-allowed"
-                            : "bg-[#83eef010] border-[#83eef030] text-[#83eef0b2] hover:bg-[#83eef01a] hover:text-[#83eef0] hover:border-[#83eef05a]"
-                        }`}
-                      >
-                        {ceramic.authLoading ? (
-                          <><div className="w-3 h-3 rounded-full border border-[#83eef0] border-t-transparent animate-spin" />Signing in…</>
-                        ) : ceramic.syncLoading ? (
-                          <><div className="w-3 h-3 rounded-full border border-[#83eef0] border-t-transparent animate-spin" />Syncing…</>
-                        ) : ceramicSynced ? (
-                          <><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>Synced to IPFS!</>
-                        ) : (
-                          <><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>{ceramicStreamId ? "Re-sync to IPFS" : "Sync to IPFS"}</>
-                        )}
-                      </button>
+                      {!ipfsCid && (
+                        <button
+                          onClick={handleSyncToIpfs}
+                          disabled={ipfsSyncLoading}
+                          data-testid="button-sync-ipfs"
+                          className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl [font-family:'Inter',Helvetica] text-xs font-medium transition-all border ${
+                            ipfsSyncLoading
+                              ? "bg-[#83eef008] border-[#83eef015] text-[#83eef050] cursor-not-allowed"
+                              : "bg-[#83eef010] border-[#83eef030] text-[#83eef0b2] hover:bg-[#83eef01a] hover:text-[#83eef0] hover:border-[#83eef05a]"
+                          }`}
+                        >
+                          {ipfsSyncLoading ? (
+                            <><div className="w-3 h-3 rounded-full border border-[#83eef0] border-t-transparent animate-spin" />Publishing…</>
+                          ) : (
+                            <><svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>Publish to IPFS</>
+                          )}
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -1302,7 +1439,7 @@ export function UserProfileDashboard() {
                       )}
                     </div>
                     <p className="[font-family:'Inter',Helvetica] text-[#d4e9f350] text-[11px] leading-5 -mt-1">
-                      Upload reef images to IPFS — they'll be stored permanently on the decentralised web and optionally pinned to the Regen Reef Network Map.
+                      Upload reef images to IPFS. They'll be stored permanently on the decentralised web and optionally pinned to the Regen Reef Network Map.
                     </p>
                     <IPFSImageUpload
                       showMapPin
@@ -1343,7 +1480,7 @@ export function UserProfileDashboard() {
                         </div>
                         {ipfsImages.length > 12 && (
                           <span className="[font-family:'Inter',Helvetica] text-[#d4e9f340] text-[10px]">
-                            +{ipfsImages.length - 12} more — save profile to persist all.
+                            +{ipfsImages.length - 12} more. Save profile to persist all.
                           </span>
                         )}
                       </div>

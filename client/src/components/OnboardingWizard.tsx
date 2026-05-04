@@ -216,7 +216,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                       <span className="text-[#83eef0] font-semibold">Decentralized Science (DeSci)</span>{" "}
                       initiative dedicated to{" "}
                       <span className="text-[#A6CE39] font-semibold">Regenerating Coral Reef Conservation</span>{" "}
-                      in Mesoamerica and Worldwide — combining open science, blockchain governance, and community action to protect one of Earth's most vital marine ecosystems.
+                      in Mesoamerica and Worldwide, combining open science, blockchain governance, and community action to protect one of Earth's most vital marine ecosystems.
                     </p>
                   </div>
                   <div className="grid grid-cols-3 gap-3 w-full">
@@ -318,7 +318,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                       </div>
                       <div className="flex flex-col">
                         <span className="font-semibold text-[#d4e9f3] text-sm [font-family:'Plus_Jakarta_Sans',Helvetica]">ORCID iD</span>
-                        <span className="text-[#d4e9f360] text-xs [font-family:'Inter',Helvetica]">orcid.org — Free for researchers</span>
+                        <span className="text-[#d4e9f360] text-xs [font-family:'Inter',Helvetica]">orcid.org, free for researchers</span>
                       </div>
                       <div className="ml-auto flex items-center gap-1 px-2.5 py-1 rounded-full" style={{ background: "#A6CE3920", border: "1px solid #A6CE3940" }}>
                         <span className="text-[#A6CE39] text-xs font-bold [font-family:'Plus_Jakarta_Sans',Helvetica]">+25 pts</span>
@@ -326,7 +326,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                     </div>
                     {orcidAuthenticated ? (
                       <div className="flex items-center gap-2 text-[#A6CE39] text-sm [font-family:'Inter',Helvetica]">
-                        <span>✓</span> ORCID already linked — you earned the bonus!
+                        <span>✓</span> ORCID already linked! You earned the bonus!
                       </div>
                     ) : (
                       <a

@@ -34,19 +34,50 @@ function rankBadge(rank: number) {
 }
 
 function contribColor(type: string) {
-  if (type === "question") return "#83eef0";
-  if (type === "answer") return "#a78bfa";
-  if (type === "resource") return "#34d399";
-  if (type === "verification") return "#f59e0b";
+  if (type === "question")             return "#83eef0";
+  if (type === "answer")               return "#a78bfa";
+  if (type === "resource")             return "#34d399";
+  if (type === "verification")         return "#f59e0b";
+  if (type === "login")                return "#60a5fa";
+  if (type === "clean")                return "#a6ce39";
+  if (type === "submission")           return "#fb923c";
+  if (type === "submission_approved")  return "#4ade80";
+  if (type === "curation")             return "#c084fc";
+  if (type === "profile_name")         return "#83eef0";
+  if (type === "profile_bio")          return "#83eef0";
+  if (type === "profile_avatar")       return "#83eef0";
+  if (type.startsWith("vote_"))        return "#f472b6";
   return "#d4e9f366";
 }
 
 function contribIcon(type: string) {
-  if (type === "question") return <MessageCircle size={12} />;
-  if (type === "answer") return <Activity size={12} />;
-  if (type === "resource") return <Microscope size={12} />;
-  if (type === "verification") return <Award size={12} />;
+  if (type === "question")             return <MessageCircle size={12} />;
+  if (type === "answer")               return <Activity size={12} />;
+  if (type === "resource")             return <Microscope size={12} />;
+  if (type === "verification")         return <Award size={12} />;
+  if (type === "login")                return <Star size={12} />;
+  if (type === "clean")                return <span style={{ fontSize: 11 }}>🧹</span>;
+  if (type === "submission")           return <span style={{ fontSize: 11 }}>🪸</span>;
+  if (type === "submission_approved")  return <Award size={12} />;
+  if (type === "curation")             return <Microscope size={12} />;
+  if (type === "profile_name")         return <span style={{ fontSize: 11 }}>✏️</span>;
+  if (type === "profile_bio")          return <span style={{ fontSize: 11 }}>📝</span>;
+  if (type === "profile_avatar")       return <span style={{ fontSize: 11 }}>🖼️</span>;
+  if (type.startsWith("vote_"))        return <span style={{ fontSize: 11 }}>🗳️</span>;
   return <Star size={12} />;
+}
+
+function contribLabel(type: string, description: string) {
+  if (type === "login")               return "Login bonus";
+  if (type === "clean")               return "Coral clean";
+  if (type === "submission")          return "Reef image submitted";
+  if (type === "submission_approved") return "Image approved!";
+  if (type === "curation")            return "Curated image";
+  if (type === "profile_name")        return "Set display name";
+  if (type === "profile_bio")         return "Wrote bio";
+  if (type === "profile_avatar")      return "Uploaded avatar";
+  if (type.startsWith("vote_"))       return "Governance vote";
+  return description || type;
 }
 
 // ─── Avatar ───────────────────────────────────────────────────────────────────
@@ -264,6 +295,48 @@ export function PublicProfile() {
                     Joined {formatDate(profile.createdAt)}
                   </span>
                 </div>
+
+                {/* Social links */}
+                {(profile.twitterHandle || profile.linkedinUrl || profile.githubHandle || profile.instagramHandle) && (
+                  <div className="flex flex-wrap items-center gap-2 mt-2">
+                    {profile.twitterHandle && (
+                      <a href={`https://x.com/${profile.twitterHandle}`} target="_blank" rel="noopener noreferrer"
+                        data-testid="link-member-twitter"
+                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#ffffff08] border border-[#ffffff12] hover:bg-[#ffffff12] transition-colors no-underline"
+                      >
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="#d4e9f380"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                        <span className="[font-family:'Inter',Helvetica] text-[11px] text-[#d4e9f380]">@{profile.twitterHandle}</span>
+                      </a>
+                    )}
+                    {profile.githubHandle && (
+                      <a href={`https://github.com/${profile.githubHandle}`} target="_blank" rel="noopener noreferrer"
+                        data-testid="link-member-github"
+                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#ffffff08] border border-[#ffffff12] hover:bg-[#ffffff12] transition-colors no-underline"
+                      >
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="#d4e9f380"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 00-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0020 4.77 5.07 5.07 0 0019.91 1S18.73.65 16 2.48a13.38 13.38 0 00-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 005 4.77a5.44 5.44 0 00-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 009 18.13V22"/></svg>
+                        <span className="[font-family:'Inter',Helvetica] text-[11px] text-[#d4e9f380]">@{profile.githubHandle}</span>
+                      </a>
+                    )}
+                    {profile.linkedinUrl && (
+                      <a href={profile.linkedinUrl.startsWith("http") ? profile.linkedinUrl : `https://${profile.linkedinUrl}`} target="_blank" rel="noopener noreferrer"
+                        data-testid="link-member-linkedin"
+                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#ffffff08] border border-[#ffffff12] hover:bg-[#ffffff12] transition-colors no-underline"
+                      >
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="#d4e9f380"><path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg>
+                        <span className="[font-family:'Inter',Helvetica] text-[11px] text-[#d4e9f380]">LinkedIn</span>
+                      </a>
+                    )}
+                    {profile.instagramHandle && (
+                      <a href={`https://instagram.com/${profile.instagramHandle}`} target="_blank" rel="noopener noreferrer"
+                        data-testid="link-member-instagram"
+                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#ffffff08] border border-[#ffffff12] hover:bg-[#ffffff12] transition-colors no-underline"
+                      >
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#d4e9f380" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="#d4e9f380" stroke="none"/></svg>
+                        <span className="[font-family:'Inter',Helvetica] text-[11px] text-[#d4e9f380]">@{profile.instagramHandle}</span>
+                      </a>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -298,7 +371,7 @@ export function PublicProfile() {
             <StatTile icon={<MessageCircle size={16} />} value={questionCount} label="Questions" />
             <StatTile
               icon={<Award size={16} />}
-              value={rank ? `#${rank}` : "—"}
+              value={rank ? `#${rank}` : "-"}
               label="Rank"
             />
           </div>
@@ -332,6 +405,36 @@ export function PublicProfile() {
               >
                 View profile ↗
               </a>
+            </div>
+          )}
+
+
+          {/* ── Wallet address ──────────────────────────────────────────────── */}
+          {profile.walletAddress && (
+            <div
+              className="flex items-center gap-4 p-4 rounded-2xl border"
+              style={{ background: "#ffffff05", borderColor: "#ffffff0d" }}
+              data-testid="card-wallet-address"
+            >
+              <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                style={{ background: "#ffffff0a" }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d4e9f380" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="2" y="7" width="20" height="14" rx="2"/>
+                  <path d="M16 11a2 2 0 010 4"/>
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-semibold text-sm text-[#d4e9f3b2]">
+                  Wallet Address
+                </p>
+                <p className="[font-family:'Inter',Helvetica] text-[11px] text-[#d4e9f355] mt-0.5 font-mono truncate" data-testid="text-public-wallet">
+                  {profile.walletAddress}
+                </p>
+              </div>
+              <span className="text-[10px] [font-family:'Inter',Helvetica] px-2.5 py-1 rounded-full flex-shrink-0"
+                style={{ background: "#83eef010", color: "#83eef0", border: "1px solid #83eef025" }}>
+                {profile.walletAddress.slice(0, 6)}…{profile.walletAddress.slice(-4)}
+              </span>
             </div>
           )}
 
@@ -371,23 +474,19 @@ export function PublicProfile() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span
-                          className="[font-family:'Inter',Helvetica] text-[10px] font-semibold capitalize px-1.5 py-0.5 rounded-full"
+                          className="flex items-center gap-1 [font-family:'Inter',Helvetica] text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
                           style={{
                             color: contribColor(c.type),
                             background: `${contribColor(c.type)}15`,
                           }}
                         >
-                          {c.type}
+                          {contribIcon(c.type)}
+                          {contribLabel(c.type, c.description)}
                         </span>
                         <span className="ml-auto [font-family:'Inter',Helvetica] text-[10px] text-[#d4e9f344] flex-shrink-0">
                           {formatRelative(c.createdAt)}
                         </span>
                       </div>
-                      {c.description && (
-                        <p className="[font-family:'Inter',Helvetica] text-xs text-[#9aaeb8] mt-1 leading-relaxed line-clamp-2">
-                          {c.description}
-                        </p>
-                      )}
                     </div>
                     <span
                       className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-bold text-xs flex-shrink-0 mt-0.5"

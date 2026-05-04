@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import coralBg from "@assets/coral_micro_1777060394505.jpg";
+import vocdoniLogo from "@assets/vocdoni_1777571540894.png";
 
 // ─── Vocdoni config ───────────────────────────────────────────────────────────
 const VOCDONI_ENV = (import.meta.env.VITE_VOCDONI_ENV as string) || "prod";
@@ -607,6 +608,8 @@ function VoteModal({
   election, onClose, onSuccess,
 }: { election: VocdoniElection; onClose: () => void; onSuccess: () => void }) {
   const { wallets } = useWallets();
+  const { authenticated: privyAuthenticated, getAccessToken } = usePrivy();
+  const { orcidAuthenticated } = useOrcidAuth();
   const strategy = strategyFromMeta(election.meta);
 
   const [choices, setChoices]               = useState<Record<number, number>>({});
@@ -726,6 +729,25 @@ function VoteModal({
           case VoteSteps.SIGN_TX:       setCurrentSdkStep("sign-tx"); break;
           case VoteSteps.DONE:          setCurrentSdkStep("done"); break;
         }
+      }
+
+      // Award governance vote points (fire-and-forget — don't block the success UX)
+      if (privyAuthenticated || orcidAuthenticated) {
+        (async () => {
+          try {
+            const headers: Record<string, string> = { "Content-Type": "application/json" };
+            if (privyAuthenticated) {
+              const tok = await getAccessToken();
+              if (tok) headers["x-privy-token"] = tok;
+            }
+            await fetch("/api/governance/vote-recorded", {
+              method: "POST",
+              headers,
+              credentials: "include",
+              body: JSON.stringify({ electionId: election.electionId }),
+            });
+          } catch { /* non-critical */ }
+        })();
       }
 
       setPhase("success");
@@ -1323,13 +1345,13 @@ function HowVotingWorks() {
           <p className="text-[11px] leading-relaxed" style={{ fontFamily: "'Inter',sans-serif", color: "#d4e9f350" }}>
             MesoReef DAO votes are recorded on-chain via{" "}
             <a href="https://vocdoni.io" target="_blank" rel="noopener noreferrer" className="font-semibold no-underline" style={{ color: "#83eef0" }}>Vocdoni</a>
-            {" "}— a censorship-resistant, gasless governance protocol.
+            {": "}a censorship-resistant, gasless governance protocol.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
             {[
               { icon: "✅", name: "Standard",  desc: "One person, one vote. Most votes wins.", color: "#83eef0" },
               { icon: "🗳️", name: "Approval",  desc: "Vote for as many options as you support.", color: "#a78bfa" },
-              { icon: "⚡", name: "Quadratic", desc: "Allocate credits — costs more to concentrate.", color: "#f59e0b" },
+              { icon: "⚡", name: "Quadratic", desc: "Allocate credits; costs more to concentrate.", color: "#f59e0b" },
             ].map(m => (
               <div key={m.name} className="flex flex-col gap-1.5 p-3 rounded-xl" style={{ background: `${m.color}06`, border: `1px solid ${m.color}15` }}>
                 <div className="flex items-center gap-1.5">
@@ -1545,7 +1567,10 @@ export function Governance() {
                 <h1 className="text-2xl md:text-3xl font-extrabold" style={{ fontFamily: "'Plus_Jakarta_Sans',sans-serif", color: "#d4e9f3" }}>
                   MesoReef DAO
                 </h1>
-                <p className="text-sm" style={{ fontFamily: "'Inter',sans-serif", color: "#9aaeb8" }}>On-chain governance · Powered by Vocdoni</p>
+                <p className="flex items-center gap-1.5 text-sm" style={{ fontFamily: "'Inter',sans-serif", color: "#9aaeb8" }}>
+                  On-chain governance · Powered by
+                  <img src={vocdoniLogo} alt="Vocdoni" className="inline-block h-4 w-auto" style={{ filter: "brightness(0) invert(1)", opacity: 0.75 }} />
+                </p>
               </div>
             </div>
             {/* Desktop create button */}
@@ -1617,14 +1642,14 @@ export function Governance() {
                 <p className="text-sm leading-relaxed" style={{ fontFamily: "'Inter',sans-serif", color: "#9aaeb8" }}>
                   MesoReef DAO governance is powered by{" "}
                   <a href="https://vocdoni.io" target="_blank" rel="noopener noreferrer" className="font-semibold no-underline" style={{ color: "#83eef0" }}>Vocdoni</a>
-                  {" "}— gasless, censorship-resistant, on-chain voting. Proposals will appear here once the DAO org is live on Base.
+                  {": "}gasless, censorship-resistant, on-chain voting. Proposals will appear here once the DAO org is live on Base.
                 </p>
               </div>
 
               {/* Feature grid */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full max-w-lg">
                 {[
-                  { icon: <Zap size={18} style={{ color: "#83eef0" }} />, title: "Gasless", desc: "Zero gas fees — all voting is free", bg: "#83eef0" },
+                  { icon: <Zap size={18} style={{ color: "#83eef0" }} />, title: "Gasless", desc: "Zero gas fees, all voting is free", bg: "#83eef0" },
                   { icon: <Shield size={18} style={{ color: "#a78bfa" }} />, title: "On-chain", desc: "Every vote recorded on Vocdoni chain", bg: "#a78bfa" },
                   { icon: <Activity size={18} style={{ color: "#4ade80" }} />, title: "Verifiable", desc: "Results are transparent and auditable", bg: "#4ade80" },
                 ].map(f => (
@@ -1725,7 +1750,7 @@ export function Governance() {
                       <iframe
                         key={orgAddress}
                         src={`https://app.vocdoni.io/organization/${orgAddress}`}
-                        title="MesoReef DAO — Vocdoni App"
+                        title="MesoReef DAO: Vocdoni App"
                         className="w-full block"
                         style={{ height: "75vh", minHeight: "600px", border: "none", display: "block", background: "#000" }}
                         loading="lazy"

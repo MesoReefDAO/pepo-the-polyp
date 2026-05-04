@@ -27,9 +27,9 @@ Six parallel knowledge sources fused into every chat response:
 client/src/
   pages/
     Body.tsx                              — Main layout (header + sidebar + dashboard)
-    CommunityLeaderboard.tsx              — Community page: Leaderboard (left) + Profile cards (right); rows/cards are clickable divs navigating to /members/:id
+    CommunityLeaderboard.tsx              — Community page: Leaderboard (left) + Profile cards (right); cards show bio snippet, location, socials row, IPFS badge, wallet address, ORCID badge; rows/cards navigate to /members/:id
     Governance.tsx                        — /governance page: Adaptive DAO voting via Vocdoni. Three voting modes (Standard/Approval/Quadratic), two census modes (Open Wallet / Base Network Members), GitHub repo import for proposal options. Configured via VITE_VOCDONI_ORG_ADDRESS, VITE_VOCDONI_ENV, VITE_GITHUB_OWNER, VITE_GITHUB_REPO.
-    PublicProfile.tsx                     — Public member profile at /members/:id; shows avatar, bio, ORCID badge, stats, activity feed
+    PublicProfile.tsx                     — Public member profile at /members/:id; shows avatar, bio, ORCID badge, stats, activity feed, IPFS permanence card (CID + gateway links), wallet address card
     UserProfileDashboard.tsx              — My Profile edit page (bio, tags, links, ORCID linking)
     WorkspacePage.tsx                     — /workspace page: Fileverse dDocs + dSheets integration cards with launch buttons, About Fileverse section
     sections/
@@ -39,7 +39,7 @@ client/src/
   components/
     PrivyLoginButton.tsx                  — Calls login() for Privy's native modal
     OrcidLoginButton.tsx                  — ORCID OAuth login button (redirects to /api/auth/orcid)
-    ReefMap.tsx                           — Leaflet map: Esri Ocean basemap + Allen Coral Atlas WMS + GCRMN region polygons (10 regions, from GCRMN/gcrmn_regions shapefile via /api/gcrmn/regions) + NOAA CRW DHW toggle + community member pins
+    ReefMap.tsx                           — Leaflet map: Esri Ocean basemap + MarineRegions EEZ WMS + CoralMapping reef regions (29 polygons) + GCRMN region polygons (10 regions, shapefile via /api/gcrmn/regions) + GCRMN territory sites (CircleMarkers, static array) + WCS ReefCloud Sites (14,501 pts, purple #e056fd, /api/wcs/reefcloud-sites, off by default) + WCS Coral Cover Sites (4,766 pts, pink #ff6b9d, /api/wcs/cc-sites, off by default) + DAO member pins + reef photo markers. Expanded modal has a 240 px side panel with LayerToggles, GCRMN region legend, Map Key, WCS Marine Datasets SideSection, and full Data Sources list.
   hooks/
     use-profile-sync.ts                   — Auto-syncs Privy user to DB on login; awards first-login bonus points
     use-geolocation.ts                    — Requests browser geolocation once per session; POSTs to /api/profiles/location
@@ -88,14 +88,39 @@ Registered redirect URIs:
 
 ## Contribution Points System
 
-| Action | Points |
-|--------|--------|
-| First login | +50 |
-| Asking a question | +10 (once per day per user) |
-| Linking ORCID iD | +25 (once) |
+### One-time awards
+| Action | Points | Contribution type |
+|--------|--------|-------------------|
+| First login | +50 | `login` |
+| Set display name | +10 | `profile_name` |
+| Write a bio (≥10 chars) | +10 | `profile_bio` |
+| Upload avatar | +15 | `profile_avatar` |
+| Link ORCID iD | +25 | `verification` |
+| Sync profile to IPFS (first pin) | +30 | `resource` |
+| Submit first reef image | +20 | `submission` |
+| Reef image approved | +50 | `submission_approved` |
 
+### Per-event awards
+| Action | Points | Contribution type |
+|--------|--------|-------------------|
+| Daily coral clean | +10/day | `clean` |
+| Daily chat question | +10/day | `question` |
+| ORCID daily login | +10/day | `login` |
+| Curate a reef image | +5 each | `curation` |
+| Vote on governance proposal | +15 each | `vote_<electionId[:20]>` |
+
+- Guard: `hasContribution(profileId, type)` prevents double-awarding one-time events
+- Daily guard: `hasContributionToday(profileId, type)` for per-day limits
 - Leaderboard auto-refreshes every 30 seconds on the Community page
 - Points stored persistently in PostgreSQL `profiles.points`
+
+### Journey section (`JourneySection.tsx`)
+Displayed on the dashboard for all authenticated users. Shows:
+1. **Profile Setup** — 5 items (name, bio, avatar, ORCID, IPFS sync) with links
+2. **Community** — submit reef image, vote on governance proposal
+3. **Daily** — coral clean, chat question (both reset each day)
+4. **Points legend** — collapsible "How points work" section listing all rewards
+Stays visible even after completion so daily tasks remain accessible.
 
 ## Environment Variables / Secrets
 
@@ -131,33 +156,38 @@ Registered redirect URIs:
 | `/api/auth/orcid/session` | GET | Returns current ORCID session |
 | `/api/auth/orcid/logout` | POST | Destroys ORCID session |
 
-## IPFS / Helia Image Storage
+## IPFS / Pinata Storage
 
-Helia (the official js-IPFS successor) runs in offline mode on the server, backed by **in-memory stores** (`MemoryBlockstore` / `MemoryDatastore` from `blockstore-core` / `datastore-core`). No filesystem or libp2p networking required — works on ephemeral autoscale deployments.
+All IPFS content is pinned via **Pinata** using the `pinata` Web3 SDK. No Helia/Ceramic packages are used at runtime (those npm packages remain installed but are dead code).
 
-**Persistence**: uploaded image bytes are base64-encoded and saved to the `ipfs_blocks` PostgreSQL table. On a cold start, `/api/ipfs/cat/:cid` reads from DB and re-hydrates Helia memory, so images survive restarts. If a CID is not found locally, the endpoint redirects to `https://ipfs.io/ipfs/<cid>` as a final fallback.
+**Gateway**: configured via `PINATA_GATEWAY` env var (default: `gateway.pinata.cloud`). The Meso Reef DAO gateway is `teal-advisory-zebra-284.mypinata.cloud`.
+
+**Profile pinning**: every profile save auto-triggers `pinProfileAsync()` which uploads the profile JSON blob to Pinata, stores the CID in `profiles.ipfs_cid`, and (on first pin) awards 30 reef points.
 
 ### Server module
-- `server/ipfs.ts` — `uploadToIPFS(buffer)`, `getIPFSBytes(cid)`, `hydrateIPFS(buffer)` helpers; lazy-initialised Helia node using MemoryBlockstore/MemoryDatastore.
+- `server/ipfs.ts` — `uploadToIPFS(buffer, filename?)`, `gatewayUrl(cid)`, `gatewayUrls(cid)`, `primaryGatewayUrl(cid)` helpers; lazy-initialised `PinataSDK`.
 
 ### API routes
 | Route | Method | Description |
 |-------|--------|-------------|
-| `/api/ipfs/upload` | POST (multipart) | Accepts an image (≤10 MB), stores via Helia + saves base64 to `ipfs_blocks` DB, returns `{ cid, size, mimeType }` |
-| `/api/ipfs/cat/:cid` | GET | Serves raw bytes: memory → DB → 302 redirect to ipfs.io gateway |
-| `/api/ipfs/info` | GET | Returns Helia node status |
+| `/api/ipfs/upload` | POST (multipart) | Accepts an image (≤10 MB), pins via Pinata + caches in `ipfs_blocks` DB, returns `{ cid, url, gateways }` |
+| `/api/ipfs/cat/:cid` | GET | Serves from DB cache; falls back to Pinata gateway redirect |
+| `/api/ipfs/profile` | POST (JSON, Privy auth) | Pins profile JSON to Pinata, saves CID, awards first-pin points |
+| `/api/ipfs/info` | GET | Returns Pinata gateway status |
+| `/api/profiles/ipfs` | POST `{ ipfsCid }` | Saves a pre-computed CID to the user's profile |
 
 ### Frontend helpers
-- `client/src/lib/ipfs.ts` — `uploadImageToIPFS(file)`, `ipfsImageUrl(cid)` (local cat URL), `ipfsPublicUrl(cid)` (ipfs.io gateway)
+- `client/src/lib/ipfs.ts` — `uploadImageToIPFS(file)`, `ipfsImageUrl(cid)` (local cat URL), `ipfsPublicUrl(cid)` (Pinata gateway URL)
 - `client/src/components/IPFSImageUpload.tsx` — drag-and-drop upload widget (full and compact modes); shows CID + gateway links after upload
 
 ### Schema fields
+- `profiles.ipfs_cid text` — CID of the most recent pinned profile JSON (previously `ceramic_stream_id`)
 - `profiles.avatarCid text` — CID of the user's avatar image
 - `profiles.ipfsImages text[]` — array of CIDs for additional reef images
 - `ipfs_blocks` table — `cid` (PK), `data` (base64 text), `mimeType`, `uploadedAt`
 
 ### UI integration
-- **Profile page** (`/profile`) — Compact IPFS upload strip below the circular avatar preview; CID saved to `avatarCid` on Save Profile
+- **Profile page** (`/profile`) — "IPFS Storage" card shows live CID with a Pinata gateway link when synced; "Publish to IPFS" button for manual trigger; auto-syncs on every Save Profile
 - **Workspace page** (`/workspace`) — "Coral Reef Image Archive" section (full drag-and-drop uploader + session image grid)
 
 ## External Integrations

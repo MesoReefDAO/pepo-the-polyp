@@ -198,3 +198,27 @@
       "calt" 1;
   }
 }
+
+/* ── GCRMN Benthic Monitoring Network Site permanent labels ─────────────────── */
+/* Hidden by default; GcrmnZoomWatcher adds .gcrmn-labels-on at zoom ≥ 8       */
+.leaflet-tooltip.gcrmn-perm {
+  display: none;
+}
+.gcrmn-labels-on .leaflet-tooltip.gcrmn-perm {
+  display: block;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 2px;
+  white-space: nowrap;
+  pointer-events: none;
+  font-family: Inter, sans-serif;
+  font-size: 9px;
+  font-weight: 700;
+  color: #26de81;
+  text-shadow: 0 0 4px rgba(0,0,0,0.9), 0 0 2px rgba(0,0,0,0.9);
+  line-height: 1.3;
+}
+.gcrmn-labels-on .leaflet-tooltip.gcrmn-perm::before {
+  display: none !important;
+}

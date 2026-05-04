@@ -5,13 +5,106 @@ import multer from "multer";
 import { rateLimit } from "express-rate-limit";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { storage } from "./storage";
-import { uploadToIPFS, gatewayUrls, primaryGatewayUrl } from "./ipfs";
+import { uploadToIPFS, getPinata, gatewayUrls, primaryGatewayUrl } from "./ipfs";
 
 // ─── GCRMN regions GeoJSON cache (fetched once from GitHub, valid 24h) ─────────
 let _gcrmnCache: { geojson: object; expiresAt: number } | null = null;
 
 // ─── CoralMapping / GlobalMappingRegions cache ───────────────────────────────
 let _coralMappingCache: { geojson: object; expiresAt: number } | null = null;
+
+// ─── WCS Marine layer caches ──────────────────────────────────────────────────
+let _wcsReefCloudCache: { geojson: object; expiresAt: number } | null = null;
+let _wcsCcSitesCache:   { geojson: object; expiresAt: number } | null = null;
+let _reefCheckCache:    { geojson: object; expiresAt: number } | null = null;
+let _reefLifeCache:     { geojson: object; expiresAt: number } | null = null;
+let _gcrmnMonSitesCache: { geojson: object; expiresAt: number } | null = null;
+
+// ─── Natural Earth geography caches (for GCRMN reverse geocoding) ────────────
+type NeFeature = { name: string; polygons: number[][][][] };
+let _neCountries: NeFeature[] | null = null;
+let _neAdmin1:    NeFeature[] | null = null;
+
+/** Ray-casting point-in-polygon for a single GeoJSON ring. */
+function _raycast(lon: number, lat: number, ring: number[][]): boolean {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i], [xj, yj] = ring[j];
+    if ((yi > lat) !== (yj > lat) && lon < ((xj - xi) * (lat - yi)) / (yj - yi) + xi)
+      inside = !inside;
+  }
+  return inside;
+}
+
+/** Returns true if (lon, lat) is inside any polygon of a GeoJSON Multi/Polygon geometry. */
+function _pointInFeature(lon: number, lat: number, feature: NeFeature): boolean {
+  for (const poly of feature.polygons) {
+    if (_raycast(lon, lat, poly[0])) return true; // outer ring only (speed)
+  }
+  return false;
+}
+
+/**
+ * Find the nearest feature whose polygon boundary is within `maxDeg` degrees.
+ * Used as a fallback for ocean/reef points that sit outside all land polygons.
+ * Scanning polygon vertices is fast enough (~50k vertices) at the cell-cache scale.
+ */
+function _nearestByVertex(lon: number, lat: number, features: NeFeature[], maxDeg: number): string {
+  let best = "";
+  let minDist = maxDeg * maxDeg; // compare squared distance (avoids sqrt)
+  for (const feat of features) {
+    for (const poly of feat.polygons) {
+      for (const ring of poly) {
+        for (const v of ring) {
+          const d = (v[0] - lon) ** 2 + (v[1] - lat) ** 2;
+          if (d < minDist) { minDist = d; best = feat.name; }
+        }
+      }
+    }
+  }
+  return best;
+}
+
+/** Fetch + parse a Natural Earth GeoJSON, keeping only name + polygon rings. */
+async function _fetchNeGeoJSON(url: string, nameProps: string[]): Promise<NeFeature[]> {
+  const res = await fetch(url, { signal: AbortSignal.timeout(30_000) });
+  if (!res.ok) throw new Error(`Natural Earth fetch failed: ${res.status} ${url}`);
+  const gj = await res.json() as any;
+  return gj.features.map((f: any) => {
+    const name = nameProps.map(p => f.properties?.[p]).find(Boolean) ?? "";
+    const geom = f.geometry;
+    const polys: number[][][][] = geom.type === "MultiPolygon" ? geom.coordinates : [geom.coordinates];
+    return { name, polygons: polys };
+  });
+}
+
+/** Load (and cache forever) Natural Earth 50m countries. */
+async function loadNeCountries(): Promise<NeFeature[]> {
+  if (_neCountries) return _neCountries;
+  _neCountries = await _fetchNeGeoJSON(
+    "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_50m_admin_0_countries.geojson",
+    ["NAME"]
+  );
+  return _neCountries;
+}
+
+/** Load (and cache forever) Natural Earth 50m admin-1 states/provinces. */
+async function loadNeAdmin1(): Promise<NeFeature[]> {
+  if (_neAdmin1) return _neAdmin1;
+  _neAdmin1 = await _fetchNeGeoJSON(
+    "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_50m_admin_1_states_provinces.geojson",
+    ["name", "NAME"]
+  );
+  return _neAdmin1;
+}
+
+/** Return {country, location} for a (lat, lon) pair using Natural Earth polygons. */
+async function reverseGeocode(lat: number, lon: number): Promise<{ country: string; location: string }> {
+  const [countries, admin1] = await Promise.all([loadNeCountries(), loadNeAdmin1()]);
+  const country = countries.find(f => _pointInFeature(lon, lat, f))?.name ?? "";
+  const location = admin1.find(f => _pointInFeature(lon, lat, f))?.name ?? "";
+  return { country, location };
+}
 
 const CORAL_MAPPING_FILES = [
   { name: "Bermuda",                          path: "Bermuda.geojson" },
@@ -87,6 +180,308 @@ async function fetchGcrmnRegions(): Promise<object> {
   const geojson = await shapefile.read(Buffer.from(shpBuf), Buffer.from(dbfBuf));
 
   _gcrmnCache = { geojson, expiresAt: now + 24 * 60 * 60 * 1000 };
+  return geojson;
+}
+
+// ─── WCS Marine — ReefCloud monitoring sites (global-monitoring-maps) ─────────
+async function fetchWcsReefCloudSites(): Promise<object> {
+  const now = Date.now();
+  if (_wcsReefCloudCache && now < _wcsReefCloudCache.expiresAt) return _wcsReefCloudCache.geojson;
+
+  const url = "https://raw.githubusercontent.com/WCS-Marine/global-monitoring-maps/main/data/ReefCloud_Sites_Sep2024.geojson";
+  const res = await fetch(url, { signal: AbortSignal.timeout(30_000) });
+  if (!res.ok) throw new Error(`WCS ReefCloud fetch failed: ${res.status}`);
+  const geojson = await res.json();
+
+  _wcsReefCloudCache = { geojson, expiresAt: now + 24 * 60 * 60 * 1000 };
+  return geojson;
+}
+
+// ─── Quoted CSV parser (handles fields with commas inside double-quotes) ────────
+function parseCSVLine(line: string): string[] {
+  const res: string[] = [];
+  let cur = "", inQ = false;
+  for (const c of line) {
+    if (c === '"') { inQ = !inQ; }
+    else if (c === "," && !inQ) { res.push(cur); cur = ""; }
+    else { cur += c; }
+  }
+  res.push(cur);
+  return res;
+}
+
+// ─── WCS Marine — coral cover survey sites (global-monitoring-maps cc_sites.csv)
+async function fetchWcsCcSites(): Promise<object> {
+  const now = Date.now();
+  if (_wcsCcSitesCache && now < _wcsCcSitesCache.expiresAt) return _wcsCcSitesCache.geojson;
+
+  const url = "https://raw.githubusercontent.com/WCS-Marine/global-monitoring-maps/main/data/cc_sites.csv";
+  const res = await fetch(url, { signal: AbortSignal.timeout(30_000) });
+  if (!res.ok) throw new Error(`WCS cc_sites fetch failed: ${res.status}`);
+  const text = await res.text();
+
+  const lines = text.trim().split("\n");
+  const features: any[] = [];
+  for (let i = 1; i < lines.length; i++) {
+    const cols = lines[i].split(",");
+    if (cols.length < 5) continue;
+    const lon = parseFloat(cols[cols.length - 1]);
+    const lat = parseFloat(cols[cols.length - 2]);
+    if (!isFinite(lat) || !isFinite(lon)) continue;
+    const db      = cols[0].trim();
+    const country = cols[1].trim();
+    const site    = cols.slice(2, cols.length - 2).join(",").trim();
+    features.push({
+      type: "Feature",
+      geometry: { type: "Point", coordinates: [lon, lat] },
+      properties: { db, country, site },
+    });
+  }
+
+  const geojson = { type: "FeatureCollection", features };
+  _wcsCcSitesCache = { geojson, expiresAt: now + 24 * 60 * 60 * 1000 };
+  return geojson;
+}
+
+// ─── EEZ overrides — sourced once from Marine Regions REST API, baked in ──────
+// Covers the 47 1-degree cells that sit in open ocean beyond Natural Earth land
+// polygons.  Key format: "Math.round(lat),Math.round(lon)" — same as cellCache.
+const EEZ_CELL_OVERRIDES: Record<string, { country: string; location: string }> = {
+  "-1,73":   { country: "Maldives",                 location: "" },
+  "-1,74":   { country: "Maldives",                 location: "" },
+  "-10,51":  { country: "Seychelles",               location: "" },
+  "-15,-148":{ country: "France",                   location: "French Polynesia" },
+  "-15,-149":{ country: "France",                   location: "French Polynesia" },
+  "-15,-168":{ country: "United States of America", location: "American Samoa" },
+  "-16,55":  { country: "France",                   location: "Tromelin Island" },
+  "-16,60":  { country: "Mauritius",                location: "" },
+  "-17,119": { country: "Australia",                location: "Argo-Rowley Terrace" },
+  "-17,60":  { country: "Mauritius",                location: "Cargados Carajos" },
+  "-18,-163":{ country: "New Zealand",              location: "Cook Islands" },
+  "-20,63":  { country: "Mauritius",                location: "" },
+  "-21,153": { country: "Australia",                location: "Great Barrier Reef" },
+  "-21,40":  { country: "France",                   location: "Bassas da India" },
+  "-22,40":  { country: "France",                   location: "Ile Europa" },
+  "-23,-149":{ country: "France",                   location: "French Polynesia" },
+  "-3,73":   { country: "Maldives",                 location: "" },
+  "-3,74":   { country: "Maldives",                 location: "" },
+  "-30,40":  { country: "",                         location: "" },
+  "-4,-32":  { country: "Brazil",                   location: "" },
+  "-4,73":   { country: "Mauritius",                location: "Chagos Islands" },
+  "-4,74":   { country: "Mauritius",                location: "Chagos Islands" },
+  "-5,74":   { country: "Mauritius",                location: "Chagos Islands" },
+  "-6,53":   { country: "Seychelles",               location: "" },
+  "-7,52":   { country: "Seychelles",               location: "" },
+  "-7,53":   { country: "Seychelles",               location: "" },
+  "-9,46":   { country: "Seychelles",               location: "" },
+  "-9,51":   { country: "Seychelles",               location: "" },
+  "0,-160":  { country: "United States of America", location: "Jarvis Island" },
+  "0,-176":  { country: "United States of America", location: "Howland and Baker Islands" },
+  "0,73":    { country: "Maldives",                 location: "" },
+  "1,-177":  { country: "United States of America", location: "Howland and Baker Islands" },
+  "10,-109": { country: "France",                   location: "Clipperton Island" },
+  "13,-81":  { country: "Colombia",                 location: "" },
+  "16,-80":  { country: "Jamaica",                  location: "" },
+  "17,-169": { country: "United States of America", location: "Johnston Atoll" },
+  "17,-170": { country: "United States of America", location: "Johnston Atoll" },
+  "17,168":  { country: "Marshall Islands",         location: "" },
+  "18,168":  { country: "United States of America", location: "Wake Island" },
+  "19,167":  { country: "United States of America", location: "Wake Island" },
+  "24,-166": { country: "United States of America", location: "Hawaii" },
+  "26,-174": { country: "United States of America", location: "Hawaii" },
+  "26,131":  { country: "Japan",                    location: "" },
+  "28,-176": { country: "United States of America", location: "Hawaii" },
+  "28,-178": { country: "United States of America", location: "Hawaii" },
+  "6,-162":  { country: "United States of America", location: "Palmyra Atoll" },
+  "6,-87":   { country: "Costa Rica",               location: "Cocos Island" },
+};
+
+// ─── GCRMN monitoring sites — all-lat-long-no-mermaid.csv (db == 'gcrmn') ─────
+// Country + location are "NA" in the source CSV; we reverse-geocode each unique
+// 1-degree cell: EEZ overrides first, then NE polygon test, then nearest-vertex.
+// On the first cold start the geocoded result is written to gcrmn_sites in the DB;
+// all subsequent calls skip geocoding entirely and read straight from the DB.
+async function fetchGcrmnMonitoringSites(): Promise<object> {
+  const now = Date.now();
+  if (_gcrmnMonSitesCache && now < _gcrmnMonSitesCache.expiresAt) return _gcrmnMonSitesCache.geojson;
+
+  // ── DB-first: if the table is already populated, serve from there ───────────
+  const dbCount = await storage.getGcrmnSiteCount();
+  if (dbCount > 0) {
+    const rows = await storage.getAllGcrmnSites();
+    const features = rows.map(r => ({
+      type: "Feature",
+      geometry: { type: "Point", coordinates: [r.lon, r.lat] },
+      properties: { country: r.country, location: r.location, site: r.site },
+    }));
+    const geojson = { type: "FeatureCollection", features };
+    _gcrmnMonSitesCache = { geojson, expiresAt: now + 24 * 60 * 60 * 1000 };
+    console.log(`[gcrmnMonSites] served ${rows.length} sites from database`);
+    return geojson;
+  }
+
+  // ── First-run: geocode from source CSV, persist results to DB ───────────────
+  // Pre-load Natural Earth data (cached after first fetch)
+  const [countries, admin1] = await Promise.all([loadNeCountries(), loadNeAdmin1()]);
+
+  const url = "https://raw.githubusercontent.com/WCS-Marine/global-monitoring-maps/main/data/all-lat-long-no-mermaid.csv";
+  const res = await fetch(url, { signal: AbortSignal.timeout(30_000) });
+  if (!res.ok) throw new Error(`GCRMN sites fetch failed: ${res.status}`);
+  const text = await res.text();
+
+  const lines = text.trim().split("\n");
+  const features: any[] = [];
+  const seen = new Set<string>();
+
+  // 1-degree cell cache so each unique cell is only polygon-tested once
+  const cellCache = new Map<string, { country: string; location: string }>();
+
+  const lookupCell = (lat: number, lon: number) => {
+    const cellKey = `${Math.round(lat)},${Math.round(lon)}`;
+    if (cellCache.has(cellKey)) return cellCache.get(cellKey)!;
+    // 1. EEZ authoritative override (Marine Regions API, baked in)
+    if (EEZ_CELL_OVERRIDES[cellKey]) {
+      cellCache.set(cellKey, EEZ_CELL_OVERRIDES[cellKey]);
+      return EEZ_CELL_OVERRIDES[cellKey];
+    }
+    // 2. Natural Earth point-in-polygon (land polygons, 50m scale)
+    const clat = Math.round(lat);
+    const clon = Math.round(lon);
+    let country  = countries.find(f => _pointInFeature(clon, clat, f))?.name ?? "";
+    let location = admin1.find(f => _pointInFeature(clon, clat, f))?.name ?? "";
+    // 3. Nearest polygon vertex fallback — 2.5° country, 1.0° location
+    if (!country)  country  = _nearestByVertex(clon, clat, countries, 2.5);
+    if (!location) location = _nearestByVertex(clon, clat, admin1,    1.0);
+    const result = { country, location };
+    cellCache.set(cellKey, result);
+    return result;
+  };
+
+  for (let i = 1; i < lines.length; i++) {
+    const cols = lines[i].split(",");
+    if (cols.length < 6) continue;
+    if (cols[0].trim() !== "gcrmn") continue;
+    const lat = parseFloat(cols[4]);
+    const lon = parseFloat(cols[5]);
+    if (!isFinite(lat) || !isFinite(lon)) continue;
+    const key = `${lat.toFixed(4)},${lon.toFixed(4)}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const geo = lookupCell(lat, lon);
+    const site = cols[3].trim().replace(/^"|"$/g, "").replace(/^NA$/i, "");
+    features.push({
+      type: "Feature",
+      geometry: { type: "Point", coordinates: [lon, lat] },
+      properties: { country: geo.country, location: geo.location, site },
+    });
+  }
+
+  console.log(`[gcrmnMonSites] ${features.length} sites, ${cellCache.size} cells geocoded via Natural Earth`);
+
+  // Persist geocoded results to DB so future restarts skip geocoding entirely
+  try {
+    const rows = features.map((f: any) => ({
+      lat:      f.geometry.coordinates[1] as number,
+      lon:      f.geometry.coordinates[0] as number,
+      site:     (f.properties.site     ?? "") as string,
+      location: (f.properties.location ?? "") as string,
+      country:  (f.properties.country  ?? "") as string,
+    }));
+    await storage.bulkInsertGcrmnSites(rows);
+    console.log(`[gcrmnMonSites] persisted ${rows.length} sites to database`);
+  } catch (err) {
+    console.error("[gcrmnMonSites] DB persist failed (non-fatal):", err);
+  }
+
+  const geojson = { type: "FeatureCollection", features };
+  _gcrmnMonSitesCache = { geojson, expiresAt: now + 24 * 60 * 60 * 1000 };
+  return geojson;
+}
+
+// ─── Reef Check sites — global-monitoring-maps/reef_check_all.csv ─────────────
+// Deduplicates by Reef_Check_ID; keeps most recent year + avg coral/bleaching
+async function fetchReefCheckSites(): Promise<object> {
+  const now = Date.now();
+  if (_reefCheckCache && now < _reefCheckCache.expiresAt) return _reefCheckCache.geojson;
+
+  const url = "https://raw.githubusercontent.com/WCS-Marine/global-monitoring-maps/main/data/reef_check_all.csv";
+  const res = await fetch(url, { signal: AbortSignal.timeout(30_000) });
+  if (!res.ok) throw new Error(`Reef Check fetch failed: ${res.status}`);
+  const text = await res.text();
+
+  const lines = text.trim().split("\n");
+  // cols: 0=new_id 1=Reef_Check_ID 2=Lat 3=Long 4=Depth 5=Date 6=Year 7=Location 8=macro 9=parrot 10=bleaching 11=coral
+  const sites = new Map<string, { lat: number; lon: number; location: string; year: number; coral: number | null; bleaching: number | null; count: number }>();
+
+  for (let i = 1; i < lines.length; i++) {
+    const cols = parseCSVLine(lines[i]);
+    if (cols.length < 12) continue;
+    const id       = cols[1].trim().replace(/^"|"$/g, "");
+    const lat      = parseFloat(cols[2]);
+    const lon      = parseFloat(cols[3]);
+    const year     = parseInt(cols[6], 10);
+    const location = cols[7].trim().replace(/^"|"$/g, "");
+    const coralStr = cols[11].trim();
+    const bleachStr = cols[10].trim();
+    if (!isFinite(lat) || !isFinite(lon) || !id) continue;
+
+    const coral     = coralStr    === "NA" ? null : parseFloat(coralStr);
+    const bleaching = bleachStr   === "NA" ? null : parseFloat(bleachStr);
+
+    const existing = sites.get(id);
+    if (!existing || year > existing.year) {
+      sites.set(id, { lat, lon, location, year, coral, bleaching, count: (existing?.count ?? 0) + 1 });
+    } else {
+      existing.count++;
+    }
+  }
+
+  const features = Array.from(sites.values()).map(({ lat, lon, location, year, coral, bleaching, count }) => ({
+    type: "Feature",
+    geometry: { type: "Point", coordinates: [lon, lat] },
+    properties: { location, year, coral, bleaching, surveys: count },
+  }));
+
+  const geojson = { type: "FeatureCollection", features };
+  _reefCheckCache = { geojson, expiresAt: now + 24 * 60 * 60 * 1000 };
+  return geojson;
+}
+
+// ─── Reef Life Survey sites — global-monitoring-maps/reef_life_site_info.csv ──
+async function fetchReefLifeSites(): Promise<object> {
+  const now = Date.now();
+  if (_reefLifeCache && now < _reefLifeCache.expiresAt) return _reefLifeCache.geojson;
+
+  const url = "https://raw.githubusercontent.com/WCS-Marine/global-monitoring-maps/main/data/reef_life_site_info.csv";
+  const res = await fetch(url, { signal: AbortSignal.timeout(30_000) });
+  if (!res.ok) throw new Error(`Reef Life Survey fetch failed: ${res.status}`);
+  const text = await res.text();
+
+  const lines = text.trim().split("\n");
+  // cols: 0=FID 1=country 2=area 3=location 4=site_code 5=site_name 6=old_site_codes 7=latitude 8=longitude 9=realm 10=province 11=ecoregion 12=lat_zone 13=programs 14=geom
+  const features: any[] = [];
+  for (let i = 1; i < lines.length; i++) {
+    const cols = parseCSVLine(lines[i]);
+    if (cols.length < 14) continue;
+    const lat       = parseFloat(cols[7]);
+    const lon       = parseFloat(cols[8]);
+    if (!isFinite(lat) || !isFinite(lon)) continue;
+    features.push({
+      type: "Feature",
+      geometry: { type: "Point", coordinates: [lon, lat] },
+      properties: {
+        site_name:  cols[5].trim(),
+        country:    cols[1].trim(),
+        location:   cols[3].trim(),
+        realm:      cols[9].trim(),
+        ecoregion:  cols[11].trim(),
+        programs:   cols[13].trim(),
+      },
+    });
+  }
+
+  const geojson = { type: "FeatureCollection", features };
+  _reefLifeCache = { geojson, expiresAt: now + 24 * 60 * 60 * 1000 };
   return geojson;
 }
 
@@ -195,6 +590,38 @@ function sanitizeString(value: unknown, maxLength = 2000): string | null {
   return trimmed;
 }
 
+// ─── IPFS profile pinning (background, fire-and-forget) ───────────────────────
+async function pinProfileAsync(profile: Record<string, unknown>, profileId: string): Promise<void> {
+  try {
+    const isFirstPin = !profile.ipfsCid;
+    const jsonStr = JSON.stringify({
+      ...profile,
+      schema: "pepo-profile-v2",
+      pinnedAt: Date.now(),
+    });
+    const buf = Buffer.from(jsonStr, "utf-8");
+    const filename = `pepo-profile-${profileId}-${Date.now()}.json`;
+    const pinata = getPinata();
+    const file = new File([buf], filename, { type: "application/json" });
+    const result = await pinata.upload.public.file(file);
+    const cid = result.cid;
+    await storage.saveIpfsBlock(cid, buf.toString("base64"), "application/json");
+    await storage.saveIpfsCid(profileId, cid);
+    // Award one-time points on first IPFS sync
+    if (isFirstPin) {
+      await storage.addContribution({
+        profileId,
+        type: "resource",
+        description: "Synced profile to IPFS via Pinata",
+        points: 30,
+      });
+    }
+    console.log(`[IPFS] Profile pinned for ${profileId}: ${cid}`);
+  } catch (err) {
+    console.error("[IPFS] pinProfileAsync failed:", err);
+  }
+}
+
 // ─── Routes ────────────────────────────────────────────────────────────────────
 export async function registerRoutes(
   httpServer: Server,
@@ -269,6 +696,54 @@ export async function registerRoutes(
       gateway: process.env.PINATA_GATEWAY || "gateway.pinata.cloud",
       repo: "https://github.com/PinataCloud",
     });
+  });
+
+  // POST /api/ipfs/profile — pin a profile JSON blob to Pinata; requires Privy auth
+  app.post("/api/ipfs/profile", async (req: Request, res: Response) => {
+    const token = (req.headers["x-privy-token"] as string) || "";
+    if (!token) return res.status(401).json({ error: "Authentication required" });
+    const verify = await verifyPrivyToken(token);
+    if (!verify.valid) return res.status(401).json({ error: "Invalid token" });
+
+    try {
+      const profileData = req.body;
+      if (!profileData || typeof profileData !== "object") {
+        return res.status(400).json({ error: "Invalid profile data" });
+      }
+
+      const jsonStr = JSON.stringify({ ...profileData, pinnedAt: Date.now() });
+      const buf = Buffer.from(jsonStr, "utf-8");
+
+      // Upload to Pinata
+      const pinata = getPinata();
+      const filename = `pepo-profile-${verify.userId}-${Date.now()}.json`;
+      const file = new File([buf], filename, { type: "application/json" });
+      const result = await pinata.upload.public.file(file);
+      const cid = result.cid;
+
+      // Cache in DB so /api/ipfs/cat can serve it without a Pinata round-trip
+      await storage.saveIpfsBlock(cid, buf.toString("base64"), "application/json");
+
+      const gatewayBase = process.env.PINATA_GATEWAY || "gateway.pinata.cloud";
+      const url = `https://${gatewayBase}/ipfs/${cid}`;
+
+      // Persist CID + award one-time points
+      const existing = await storage.getProfile(verify.userId!);
+      await storage.saveIpfsCid(verify.userId!, cid);
+      if (existing && !existing.ipfsCid) {
+        await storage.addContribution({
+          profileId: verify.userId!,
+          type: "resource",
+          description: "Synced profile to IPFS via Pinata",
+          points: 30,
+        });
+      }
+
+      return res.json({ cid, url, gateways: gatewayUrls(cid) });
+    } catch (err: any) {
+      console.error("[IPFS profile] error:", err);
+      return res.status(500).json({ error: err.message || "Failed to pin profile" });
+    }
   });
 
   // Proxy: fetch knowledge graph data
@@ -436,6 +911,36 @@ export async function registerRoutes(
     }
   });
 
+  // GET /api/profiles/me — current authenticated user's own profile
+  // Must be registered BEFORE /:id to avoid being swallowed by the wildcard.
+  app.get("/api/profiles/me", async (req: Request, res: Response) => {
+    try {
+      // Privy token takes priority
+      const token = (req.headers["x-privy-token"] as string) || "";
+      if (token) {
+        const verify = await verifyPrivyToken(token);
+        if (verify.valid && verify.userId) {
+          const profile = await storage.getProfile(verify.userId);
+          if (!profile) return res.status(404).json({ error: "Profile not found" });
+          const contribs = await storage.getContributions(verify.userId);
+          return res.json({ profile, contributions: contribs });
+        }
+      }
+      // ORCID session fallback
+      if (req.session?.orcid?.profileId) {
+        const pid = req.session.orcid.profileId;
+        const profile = await storage.getProfile(pid);
+        if (!profile) return res.status(404).json({ error: "Profile not found" });
+        const contribs = await storage.getContributions(pid);
+        return res.json({ profile, contributions: contribs });
+      }
+      return res.status(401).json({ error: "Not authenticated" });
+    } catch (err) {
+      console.error("[profiles/me]", err);
+      return res.status(500).json({ error: "Failed to fetch profile" });
+    }
+  });
+
   // GET /api/profiles/:id — single profile with contributions
   app.get("/api/profiles/:id", async (req: Request, res: Response) => {
     try {
@@ -456,10 +961,14 @@ export async function registerRoutes(
     const verify = await verifyPrivyToken(token);
     if (!verify.valid) return res.status(401).json({ error: "Unauthorized" });
 
-    const { displayName, bio, location, website, avatarUrl, avatarCid, ipfsImages, tags, isPublic } = req.body;
+    const { displayName, bio, location, website, avatarUrl, avatarCid, ipfsImages, tags, isPublic, twitterHandle, linkedinUrl, githubHandle, instagramHandle, walletAddress } = req.body;
+    const uid = verify.userId!;
     try {
+      // Snapshot the profile BEFORE changes so we can detect newly completed fields
+      const before = await storage.getProfile(uid);
+
       const profile = await storage.upsertProfile({
-        id: verify.userId!,
+        id: uid,
         displayName: sanitizeString(displayName) || "Explorer",
         bio: sanitizeString(bio, 500) || "",
         location: sanitizeString(location, 100) || "",
@@ -470,7 +979,35 @@ export async function registerRoutes(
         tags: Array.isArray(tags) ? tags.slice(0, 10).map(String) : [],
         points: undefined, // preserved by DB default
         isPublic: isPublic !== false,
+        twitterHandle: sanitizeString(twitterHandle, 50) || "",
+        linkedinUrl: sanitizeString(linkedinUrl, 200) || "",
+        githubHandle: sanitizeString(githubHandle, 50) || "",
+        instagramHandle: sanitizeString(instagramHandle, 50) || "",
+        walletAddress: sanitizeString(walletAddress, 100) || "",
       });
+
+      // ── Award one-time points for newly completed profile fields ──────────
+      const newName = sanitizeString(displayName) || "";
+      const hadName = !!(before?.displayName && before.displayName !== "Explorer" && before.displayName !== "Researcher" && before.displayName.length > 0);
+      const hasName = newName !== "" && newName !== "Explorer" && newName !== "Researcher";
+      if (hasName && !hadName && !(await storage.hasContribution(uid, "profile_name"))) {
+        await storage.addContribution({ profileId: uid, type: "profile_name", description: "Set display name", points: 10 });
+      }
+
+      const newBio = sanitizeString(bio, 500) || "";
+      const hadBio = !!(before?.bio && before.bio.length >= 10);
+      if (newBio.length >= 10 && !hadBio && !(await storage.hasContribution(uid, "profile_bio"))) {
+        await storage.addContribution({ profileId: uid, type: "profile_bio", description: "Wrote a bio", points: 10 });
+      }
+
+      const newAvatarCid = sanitizeString(avatarCid, 200) || "";
+      const newAvatarUrl = sanitizeString(avatarUrl, 500) || "";
+      const hadAvatar = !!(before?.avatarCid || before?.avatarUrl);
+      if ((newAvatarCid || newAvatarUrl) && !hadAvatar && !(await storage.hasContribution(uid, "profile_avatar"))) {
+        await storage.addContribution({ profileId: uid, type: "profile_avatar", description: "Uploaded a profile photo", points: 15 });
+      }
+
+      void pinProfileAsync(profile as Record<string, unknown>, uid);
       return res.json(profile);
     } catch (err) {
       console.error("[upsertProfile]", err);
@@ -506,12 +1043,40 @@ export async function registerRoutes(
           description: "First time joining the Reef network",
           points: 50,
         });
+        // Pin new profile to IPFS in background (awards 30 pts on first pin)
+        void pinProfileAsync(profile as Record<string, unknown>, verify.userId!);
         return res.json({ profile, newUser: true });
       }
+      // Returning user — pin updated profile to IPFS in background on every login
+      void pinProfileAsync(existing as Record<string, unknown>, verify.userId!);
       return res.json({ profile: existing, newUser: false });
     } catch (err) {
       console.error("[syncProfile]", err);
       return res.status(500).json({ error: "Failed to sync profile" });
+    }
+  });
+
+  // POST /api/profiles/pin-all — batch-pin all profiles without an IPFS CID
+  // Protected by PEPO_API_KEY header
+  app.post("/api/profiles/pin-all", async (req: Request, res: Response) => {
+    const apiKey = req.headers["x-api-key"] as string;
+    if (!apiKey || apiKey !== process.env.PEPO_API_KEY) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    try {
+      const all = await storage.getAllProfilesRaw();
+      const unpinned = all.filter(p => !p.ipfsCid);
+      for (const p of unpinned) {
+        void pinProfileAsync(p as Record<string, unknown>, p.id);
+      }
+      return res.json({
+        message: `Queued ${unpinned.length} profiles for IPFS pinning`,
+        total: all.length,
+        alreadyPinned: all.length - unpinned.length,
+      });
+    } catch (err) {
+      console.error("[pin-all]", err);
+      return res.status(500).json({ error: "Failed to queue pins" });
     }
   });
 
@@ -564,33 +1129,32 @@ export async function registerRoutes(
     }
   });
 
-  // POST /api/profiles/ceramic — save Ceramic stream ID + DID to profile
-  app.post("/api/profiles/ceramic", async (req: Request, res: Response) => {
+  // POST /api/profiles/ipfs — save Pinata IPFS CID to profile
+  app.post("/api/profiles/ipfs", async (req: Request, res: Response) => {
     const token = (req.headers["x-privy-token"] as string) || "";
     const verify = await verifyPrivyToken(token);
     if (!verify.valid) return res.status(401).json({ error: "Unauthorized" });
 
-    const streamId = sanitizeString(req.body?.ceramicStreamId, 200) || "";
-    const ceramicDid = sanitizeString(req.body?.ceramicDid, 200) || "";
-    if (!streamId) return res.status(400).json({ error: "ceramicStreamId required" });
+    const cid = sanitizeString(req.body?.ipfsCid, 200) || "";
+    if (!cid) return res.status(400).json({ error: "ipfsCid required" });
 
     try {
-      const profile = await storage.saveCeramic(verify.userId!, streamId, ceramicDid);
-
-      // Award points first time decentralised storage is activated
       const existing = await storage.getProfile(verify.userId!);
-      if (existing && !existing.ceramicStreamId) {
+      const profile = await storage.saveIpfsCid(verify.userId!, cid);
+
+      // Award points the first time IPFS storage is activated
+      if (existing && !existing.ipfsCid) {
         await storage.addContribution({
           profileId: verify.userId!,
           type: "resource",
-          description: "Activated Ceramic decentralised profile storage",
+          description: "Synced profile to IPFS via Pinata",
           points: 30,
         });
       }
       return res.json({ profile });
     } catch (err) {
-      console.error("[saveCeramic]", err);
-      return res.status(500).json({ error: "Failed to save Ceramic data" });
+      console.error("[saveIpfsCid]", err);
+      return res.status(500).json({ error: "Failed to save IPFS CID" });
     }
   });
 
@@ -631,10 +1195,32 @@ export async function registerRoutes(
     }
   });
 
-  // GET /api/reef-images — public; returns all geo-tagged IPFS images for the map
+  // GET /api/reef-images/mine — returns all reef images submitted by the authenticated user
+  // Must be registered BEFORE /api/reef-images to avoid any future /:id wildcard conflicts.
+  app.get("/api/reef-images/mine", async (req: Request, res: Response) => {
+    let profileId: string | null = null;
+    const token = (req.headers["x-privy-token"] as string) || "";
+    if (token) {
+      const verify = await verifyPrivyToken(token);
+      if (verify.valid) profileId = verify.userId!;
+    }
+    if (!profileId && (req as any).session?.orcid?.profileId) {
+      profileId = (req as any).session.orcid.profileId;
+    }
+    if (!profileId) return res.status(401).json({ error: "Authentication required" });
+    try {
+      const images = await storage.getReefImagesByProfile(profileId);
+      return res.json(images);
+    } catch (err) {
+      console.error("[reefImages/mine]", err);
+      return res.status(500).json({ error: "Failed to fetch your submissions" });
+    }
+  });
+
+  // GET /api/reef-images — public; returns approved geo-tagged IPFS images for the map
   app.get("/api/reef-images", async (_req: Request, res: Response) => {
     try {
-      const images = await storage.getReefImages();
+      const images = await storage.getReefImages("approved");
       return res.json(images);
     } catch (err) {
       console.error("[reefImages GET]", err);
@@ -642,9 +1228,9 @@ export async function registerRoutes(
     }
   });
 
-  // POST /api/reef-images — pin an IPFS image with coordinates (auth optional for attribution)
+  // POST /api/reef-images — submit an IPFS image with coordinates (goes into pending queue)
   app.post("/api/reef-images", generalLimiter, async (req: Request, res: Response) => {
-    const { cid, latitude, longitude, title = "", author = "" } = req.body;
+    const { cid, latitude, longitude, title = "", author = "", description = "" } = req.body;
     if (!cid || typeof cid !== "string" || cid.trim().length === 0) {
       return res.status(400).json({ error: "cid is required" });
     }
@@ -674,12 +1260,104 @@ export async function registerRoutes(
         longitude: lon,
         title: String(title).slice(0, 120),
         author: String(author).slice(0, 120),
+        description: String(description).slice(0, 500),
         profileId: profileId ?? undefined,
       });
+
+      // Award submission points to the authenticated user
+      if (profileId) {
+        await storage.addContribution({
+          profileId,
+          type: "submission",
+          description: `Submitted reef image for curation: ${img.title || img.cid.slice(0, 12)}`,
+          points: 20,
+        });
+      }
+
       return res.status(201).json(img);
     } catch (err) {
       console.error("[reefImages POST]", err);
       return res.status(500).json({ error: "Failed to save reef image" });
+    }
+  });
+
+  // GET /api/curation/queue — returns pending reef images for ORCID-verified curators
+  app.get("/api/curation/queue", async (req: Request, res: Response) => {
+    // Accept either Privy token or ORCID session
+    let profileId: string | null = null;
+    const token = (req.headers["x-privy-token"] as string) || "";
+    if (token) {
+      const verify = await verifyPrivyToken(token);
+      if (verify.valid) profileId = verify.userId!;
+    } else if ((req as any).session?.orcid?.profileId) {
+      profileId = (req as any).session.orcid.profileId;
+    }
+    if (!profileId) return res.status(401).json({ error: "Authentication required" });
+
+    // Must have an ORCID iD linked
+    const profile = await storage.getProfile(profileId);
+    if (!profile?.orcidId) {
+      return res.status(403).json({ error: "An ORCID iD is required to access the curation queue" });
+    }
+
+    try {
+      const queue = await storage.getCurationQueue();
+      return res.json(queue);
+    } catch (err) {
+      console.error("[curation queue]", err);
+      return res.status(500).json({ error: "Failed to fetch curation queue" });
+    }
+  });
+
+  // POST /api/curation/:id — approve or reject a pending reef image
+  app.post("/api/curation/:id", async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { decision, curatorNote } = req.body; // 'approved' | 'rejected', optional note
+    if (decision !== "approved" && decision !== "rejected") {
+      return res.status(400).json({ error: "decision must be 'approved' or 'rejected'" });
+    }
+
+    let profileId: string | null = null;
+    const token = (req.headers["x-privy-token"] as string) || "";
+    if (token) {
+      const verify = await verifyPrivyToken(token);
+      if (verify.valid) profileId = verify.userId!;
+    } else if ((req as any).session?.orcid?.profileId) {
+      profileId = (req as any).session.orcid.profileId;
+    }
+    if (!profileId) return res.status(401).json({ error: "Authentication required" });
+
+    const profile = await storage.getProfile(profileId);
+    if (!profile?.orcidId) {
+      return res.status(403).json({ error: "An ORCID iD is required to curate images" });
+    }
+
+    try {
+      const updated = await storage.curateReefImage(id, decision, profileId, typeof curatorNote === "string" ? curatorNote.slice(0, 500) : "");
+      if (!updated) return res.status(404).json({ error: "Image not found" });
+
+      // Award points to the curator (5 pts per decision)
+      await storage.addContribution({
+        profileId,
+        type: "curation",
+        description: `Curated reef image: ${decision}`,
+        points: 5,
+      });
+
+      // If approved, award the submitter a 50 pt bonus
+      if (decision === "approved" && updated.profileId && updated.profileId !== profileId) {
+        await storage.addContribution({
+          profileId: updated.profileId,
+          type: "submission_approved",
+          description: `Reef image approved: ${updated.title || updated.cid.slice(0, 12)}`,
+          points: 50,
+        });
+      }
+
+      return res.json(updated);
+    } catch (err) {
+      console.error("[curation vote]", err);
+      return res.status(500).json({ error: "Failed to update image status" });
     }
   });
 
@@ -704,6 +1382,66 @@ export async function registerRoutes(
     } catch (err) {
       console.error("[coralMappingRegions]", err);
       return res.status(500).json({ error: "Failed to fetch CoralMapping regions" });
+    }
+  });
+
+  // GET /api/wcs/reefcloud-sites — WCS-Marine/global-monitoring-maps ReefCloud monitoring sites
+  app.get("/api/wcs/reefcloud-sites", async (_req: Request, res: Response) => {
+    try {
+      const geojson = await fetchWcsReefCloudSites();
+      res.set("Cache-Control", "public, max-age=86400");
+      return res.json(geojson);
+    } catch (err) {
+      console.error("[wcsReefCloud]", err);
+      return res.status(500).json({ error: "Failed to fetch WCS ReefCloud sites" });
+    }
+  });
+
+  // GET /api/wcs/cc-sites — WCS-Marine/global-monitoring-maps coral cover sites (CSV→GeoJSON)
+  app.get("/api/wcs/cc-sites", async (_req: Request, res: Response) => {
+    try {
+      const geojson = await fetchWcsCcSites();
+      res.set("Cache-Control", "public, max-age=86400");
+      return res.json(geojson);
+    } catch (err) {
+      console.error("[wcsCcSites]", err);
+      return res.status(500).json({ error: "Failed to fetch WCS coral cover sites" });
+    }
+  });
+
+  // GET /api/wcs/gcrmn-mon-sites — GCRMN monitoring sites (all-lat-long-no-mermaid.csv, db=gcrmn)
+  app.get("/api/wcs/gcrmn-mon-sites", async (_req: Request, res: Response) => {
+    try {
+      const geojson = await fetchGcrmnMonitoringSites();
+      res.set("Cache-Control", "public, max-age=86400");
+      return res.json(geojson);
+    } catch (err) {
+      console.error("[gcrmnMonSites]", err);
+      return res.status(500).json({ error: "Failed to fetch GCRMN monitoring sites" });
+    }
+  });
+
+  // GET /api/wcs/reef-check — Reef Check survey sites (global-monitoring-maps/reef_check_all.csv)
+  app.get("/api/wcs/reef-check", async (_req: Request, res: Response) => {
+    try {
+      const geojson = await fetchReefCheckSites();
+      res.set("Cache-Control", "public, max-age=86400");
+      return res.json(geojson);
+    } catch (err) {
+      console.error("[reefCheck]", err);
+      return res.status(500).json({ error: "Failed to fetch Reef Check sites" });
+    }
+  });
+
+  // GET /api/wcs/reef-life — Reef Life Survey sites (global-monitoring-maps/reef_life_site_info.csv)
+  app.get("/api/wcs/reef-life", async (_req: Request, res: Response) => {
+    try {
+      const geojson = await fetchReefLifeSites();
+      res.set("Cache-Control", "public, max-age=86400");
+      return res.json(geojson);
+    } catch (err) {
+      console.error("[reefLife]", err);
+      return res.status(500).json({ error: "Failed to fetch Reef Life Survey sites" });
     }
   });
 
@@ -882,6 +1620,39 @@ export async function registerRoutes(
     }
   });
 
+  // POST /api/governance/vote-recorded — awards points after a successful on-chain vote
+  // Votes are verified on Vocdoni chain; this just records the points event (one-time per election)
+  app.post("/api/governance/vote-recorded", generalLimiter, async (req: Request, res: Response) => {
+    let profileId: string | null = null;
+    const token = (req.headers["x-privy-token"] as string) || "";
+    if (token) {
+      const verify = await verifyPrivyToken(token);
+      if (verify.valid) profileId = verify.userId!;
+    } else if ((req as any).session?.orcid?.profileId) {
+      profileId = (req as any).session.orcid.profileId;
+    }
+    if (!profileId) return res.status(401).json({ error: "Authentication required" });
+
+    const { electionId } = req.body;
+    if (!electionId || typeof electionId !== "string" || electionId.length < 8) {
+      return res.status(400).json({ error: "electionId required" });
+    }
+
+    // Use a per-election type key to prevent double-awarding
+    const voteType = `vote_${electionId.slice(0, 20)}`;
+    if (await storage.hasContribution(profileId, voteType)) {
+      return res.json({ alreadyRewarded: true, points: 0 });
+    }
+
+    await storage.addContribution({
+      profileId,
+      type: voteType,
+      description: `Voted on governance proposal`,
+      points: 15,
+    });
+    return res.json({ alreadyRewarded: false, points: 15 });
+  });
+
   // ─── Vocdoni API proxy ─────────────────────────────────────────────────────
   // Proxying avoids CORS issues and keeps the org address server-side.
   const _VOCDONI_ENV = process.env.VOCDONI_ENV || "prod";
@@ -890,6 +1661,17 @@ export async function registerRoutes(
     _VOCDONI_ENV === "prod" ? "https://api.vocdoni.io/v2"
     : _VOCDONI_ENV === "dev" ? "https://api-dev.vocdoni.net/v2"
     : "https://api-stg.vocdoni.net/v2";
+
+  // POST /api/admin/sync-points — backfill + recalculate points for all users
+  app.post("/api/admin/sync-points", generalLimiter, async (_req: Request, res: Response) => {
+    try {
+      const result = await storage.syncAllUserPoints();
+      return res.json({ ok: true, ...result });
+    } catch (err: any) {
+      console.error("[sync-points]", err);
+      return res.status(500).json({ error: err.message || "sync failed" });
+    }
+  });
 
   app.get("/api/governance/info", (_req: Request, res: Response) => {
     res.json({ orgAddress: _VOCDONI_ORG, env: _VOCDONI_ENV, configured: !!_VOCDONI_ORG });
@@ -1014,7 +1796,7 @@ export async function registerRoutes(
           : name || "";
 
       // Upsert the profile
-      await storage.upsertProfile({
+      const upserted = await storage.upsertProfile({
         id: profileId,
         displayName: resolvedDisplayName,
         bio: existing?.bio || "",
@@ -1026,8 +1808,7 @@ export async function registerRoutes(
         isPublic: existing?.isPublic ?? true,
         orcidId: orcid,
         orcidName: name,
-        ceramicStreamId: existing?.ceramicStreamId || "",
-        ceramicDid: existing?.ceramicDid || "",
+        ipfsCid: existing?.ipfsCid || "",
       });
 
       // Award first-time verification bonus (25 pts, one-time for brand-new accounts)
@@ -1040,6 +1821,9 @@ export async function registerRoutes(
       if (!alreadyToday) {
         await storage.addContribution({ profileId, type: "login", description: "ORCID sign-in", points: 10 });
       }
+
+      // Pin profile to IPFS in background on every ORCID sign-in (30 pts one-time)
+      void pinProfileAsync(upserted as Record<string, unknown>, profileId);
 
       // Establish session — store access token securely server-side (never sent to client)
       req.session.orcid = { orcidId: orcid, orcidName: name, profileId, accessToken, tokenExpiresAt };
@@ -1075,7 +1859,7 @@ export async function registerRoutes(
       return res.status(401).json({ error: "No active ORCID session" });
     }
     const { profileId } = req.session.orcid;
-    const { displayName, bio, location, website, avatarUrl, avatarCid, ipfsImages, tags, isPublic } = req.body;
+    const { displayName, bio, location, website, avatarUrl, avatarCid, ipfsImages, tags, isPublic, twitterHandle, linkedinUrl, githubHandle, instagramHandle } = req.body;
     try {
       const existing = await storage.getProfile(profileId);
       const profile = await storage.upsertProfile({
@@ -1092,9 +1876,13 @@ export async function registerRoutes(
         isPublic: isPublic !== false,
         orcidId: existing?.orcidId || req.session.orcid.orcidId,
         orcidName: existing?.orcidName || req.session.orcid.orcidName,
-        ceramicStreamId: existing?.ceramicStreamId || "",
-        ceramicDid: existing?.ceramicDid || "",
+        ipfsCid: existing?.ipfsCid || "",
+        twitterHandle: sanitizeString(twitterHandle, 50) || existing?.twitterHandle || "",
+        linkedinUrl: sanitizeString(linkedinUrl, 200) || existing?.linkedinUrl || "",
+        githubHandle: sanitizeString(githubHandle, 50) || existing?.githubHandle || "",
+        instagramHandle: sanitizeString(instagramHandle, 50) || existing?.instagramHandle || "",
       });
+      void pinProfileAsync(profile as Record<string, unknown>, profileId);
       return res.json(profile);
     } catch (err) {
       console.error("[sessionProfile]", err);

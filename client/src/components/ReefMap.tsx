@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
 import { MapContainer, TileLayer, WMSTileLayer, Marker, Popup, GeoJSON, CircleMarker, useMap, useMapEvents } from "react-leaflet";
@@ -273,6 +273,20 @@ function FitBounds({ markers }: { markers: { latitude: number; longitude: number
   return null;
 }
 
+/** Toggles .gcrmn-labels-on on the map container when zoom ≥ minZoom so that
+ *  permanent GCRMN site labels (class gcrmn-perm) become visible via CSS. */
+function GcrmnZoomWatcher({ enabled, minZoom = 5 }: { enabled: boolean; minZoom?: number }) {
+  const map = useMap();
+  const update = useCallback(() => {
+    const c = map.getContainer();
+    const show = enabled && map.getZoom() >= minZoom;
+    c.classList.toggle("gcrmn-labels-on", show);
+  }, [map, enabled, minZoom]);
+  useMapEvents({ zoomend: update });
+  useEffect(() => { update(); }, [update]);
+  return null;
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface MapMarker {
   id: string;
@@ -399,12 +413,12 @@ function WdparClickHandler({ active }: { active: boolean }) {
           p.MARINE === "2" ? "Wholly marine" :
           p.MARINE === "1" ? "Partially marine" : String(p.MARINE ?? "");
         const areaFmt = p.REP_AREA
-          ? `${Number(p.REP_AREA).toLocaleString()} km²` : "—";
-        const iucn   = p.IUCN_CAT || "—";
+          ? `${Number(p.REP_AREA).toLocaleString()} km²` : "-";
+        const iucn   = p.IUCN_CAT || "-";
         const name   = p.NAME || "Marine Protected Area";
-        const desig  = p.DESIG_ENG || p.DESIG || "—";
-        const yr     = p.STATUS_YR || "—";
-        const wdpaid = p.WDPAID || "—";
+        const desig  = p.DESIG_ENG || p.DESIG || "-";
+        const yr     = p.STATUS_YR || "-";
+        const wdpaid = p.WDPAID || "-";
 
         const html = `
           <div style="font-family:Inter,sans-serif;font-size:11.5px;min-width:170px;max-width:240px;color:#d4e9f3">
@@ -440,12 +454,22 @@ function ExpandedMapModal({
   reefImgs,
   gcrmnGeoJson,
   coralMappingGeoJson,
+  wcsReefCloudGeoJson,
+  wcsCcSitesGeoJson,
+  reefCheckGeoJson,
+  reefLifeGeoJson,
+  gcrmnMonSitesGeoJson,
   onClose,
 }: {
   markers: MapMarker[];
   reefImgs: ReefImageMarker[];
   gcrmnGeoJson: GeoJSON.FeatureCollection | undefined;
   coralMappingGeoJson: GeoJSON.FeatureCollection | undefined;
+  wcsReefCloudGeoJson: GeoJSON.FeatureCollection | undefined;
+  wcsCcSitesGeoJson: GeoJSON.FeatureCollection | undefined;
+  reefCheckGeoJson: GeoJSON.FeatureCollection | undefined;
+  reefLifeGeoJson: GeoJSON.FeatureCollection | undefined;
+  gcrmnMonSitesGeoJson: GeoJSON.FeatureCollection | undefined;
   onClose: () => void;
 }) {
   const [showGcrmn,          setShowGcrmn]          = useState(true);
@@ -453,8 +477,30 @@ function ExpandedMapModal({
   const [showMarineRegions,  setShowMarineRegions]  = useState(true);
   const [showImgs,           setShowImgs]           = useState(true);
   const [showGcrmnSites,     setShowGcrmnSites]     = useState(true);
+  const [showWcsReefCloud,   setShowWcsReefCloud]   = useState(true);
+  const [showWcsCcSites,     setShowWcsCcSites]     = useState(true);
+  const [showReefCheck,      setShowReefCheck]      = useState(true);
+  const [showReefLife,       setShowReefLife]        = useState(true);
+  const [showGcrmnMonSites,  setShowGcrmnMonSites]  = useState(true);
 
-  const activeLayers = (showGcrmn ? 1 : 0) + (showCoralMapping ? 1 : 0) + (showMarineRegions ? 1 : 0) + (showImgs ? 1 : 0) + (showGcrmnSites ? 1 : 0) + 1;
+  const activeLayers = (showGcrmn ? 1 : 0) + (showCoralMapping ? 1 : 0) + (showMarineRegions ? 1 : 0) + (showImgs ? 1 : 0) + (showGcrmnSites ? 1 : 0) + (showWcsReefCloud ? 1 : 0) + (showWcsCcSites ? 1 : 0) + (showReefCheck ? 1 : 0) + (showReefLife ? 1 : 0) + (showGcrmnMonSites ? 1 : 0) + 1;
+
+  // Country breakdown for GCRMN legend — derived from live GeoJSON
+  const gcrmnCountryStats = useMemo(() => {
+    if (!gcrmnMonSitesGeoJson) return [];
+    const counts: Record<string, number> = {};
+    for (const f of gcrmnMonSitesGeoJson.features) {
+      const c = (f.properties?.country as string) || "";
+      if (c) counts[c] = (counts[c] || 0) + 1;
+    }
+    return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 12);
+  }, [gcrmnMonSitesGeoJson]);
+
+  const gcrmnUniqueCountries = useMemo(() => {
+    if (!gcrmnMonSitesGeoJson) return 0;
+    const s = new Set(gcrmnMonSitesGeoJson.features.map(f => f.properties?.country).filter(Boolean));
+    return s.size;
+  }, [gcrmnMonSitesGeoJson]);
 
   return createPortal(
     <div
@@ -587,7 +633,139 @@ function ExpandedMapModal({
                 </Popup>
               </Marker>
             ))}
+            {showWcsReefCloud && wcsReefCloudGeoJson && (
+              <GeoJSON
+                key="wcs-reefcloud-expanded"
+                data={wcsReefCloudGeoJson}
+                pointToLayer={(_feature, latlng) =>
+                  L.circleMarker(latlng, {
+                    radius: 2.5, color: "#e056fd", weight: 0.8,
+                    fillColor: "#e056fd", fillOpacity: 0.55, opacity: 0.8,
+                  })
+                }
+              />
+            )}
+            {showWcsCcSites && wcsCcSitesGeoJson && (
+              <GeoJSON
+                key="wcs-cc-expanded"
+                data={wcsCcSitesGeoJson}
+                pointToLayer={(feature, latlng) => {
+                  const m = L.circleMarker(latlng, {
+                    radius: 3, color: "#ff6b9d", weight: 0.8,
+                    fillColor: "#ff6b9d", fillOpacity: 0.6, opacity: 0.85,
+                  });
+                  const p = feature.properties ?? {};
+                  m.bindPopup(
+                    `<div style="font-family:Inter,sans-serif;font-size:11px;min-width:150px;color:#d4e9f3">
+                      <div style="font-weight:700;color:#ff6b9d;font-size:12px;margin-bottom:4px">🪸 ${p.site || "Survey site"}</div>
+                      <div style="font-size:10px;color:#aaa;margin-bottom:4px">${p.country || ""}</div>
+                      <div style="font-size:9px;color:#666;border-top:1px solid rgba(131,238,240,0.12);padding-top:4px">Dataset: ${p.db || "-"}</div>
+                      <div style="font-size:8px;color:#555;margin-top:2px">WCS-Marine / global-monitoring-maps</div>
+                    </div>`,
+                    { maxWidth: 220 }
+                  );
+                  return m;
+                }}
+              />
+            )}
+            {showReefCheck && reefCheckGeoJson && (
+              <GeoJSON
+                key="reef-check-expanded"
+                data={reefCheckGeoJson}
+                pointToLayer={(feature, latlng) => {
+                  const m = L.circleMarker(latlng, {
+                    radius: 3, color: "#fd9644", weight: 0.8,
+                    fillColor: "#fd9644", fillOpacity: 0.6, opacity: 0.85,
+                  });
+                  const p = feature.properties ?? {};
+                  const coralPct = p.coral != null ? `${(p.coral * 100).toFixed(1)}%` : "-";
+                  const bleachPct = p.bleaching != null ? `${(p.bleaching * 100).toFixed(1)}%` : "-";
+                  m.bindPopup(
+                    `<div style="font-family:Inter,sans-serif;font-size:11px;min-width:155px;color:#d4e9f3">
+                      <div style="font-weight:700;color:#fd9644;font-size:12px;margin-bottom:4px">🐠 ${p.location || "Reef Check site"}</div>
+                      <table style="border-collapse:collapse;width:100%;font-size:10px">
+                        <tr><td style="color:#888;padding:1px 6px 1px 0">Latest year</td><td style="font-weight:700;color:#ffd32a">${p.year ?? "-"}</td></tr>
+                        <tr><td style="color:#888;padding:1px 6px 1px 0">Coral cover</td><td style="font-weight:700;color:#55efc4">${coralPct}</td></tr>
+                        <tr><td style="color:#888;padding:1px 6px 1px 0">Bleaching</td><td style="font-weight:700;color:#ff7675">${bleachPct}</td></tr>
+                        <tr><td style="color:#888;padding:1px 6px 1px 0">Surveys</td><td>${p.surveys ?? 1}</td></tr>
+                      </table>
+                      <div style="font-size:8px;color:#555;border-top:1px solid rgba(131,238,240,0.12);padding-top:4px;margin-top:4px">Reef Check · WCS-Marine / global-monitoring-maps</div>
+                    </div>`,
+                    { maxWidth: 230 }
+                  );
+                  return m;
+                }}
+              />
+            )}
+            {showReefLife && reefLifeGeoJson && (
+              <GeoJSON
+                key="reef-life-expanded"
+                data={reefLifeGeoJson}
+                pointToLayer={(feature, latlng) => {
+                  const m = L.circleMarker(latlng, {
+                    radius: 3, color: "#45aaf2", weight: 0.8,
+                    fillColor: "#45aaf2", fillOpacity: 0.6, opacity: 0.85,
+                  });
+                  const p = feature.properties ?? {};
+                  m.bindPopup(
+                    `<div style="font-family:Inter,sans-serif;font-size:11px;min-width:160px;color:#d4e9f3">
+                      <div style="font-weight:700;color:#45aaf2;font-size:12px;margin-bottom:4px">🌊 ${p.site_name || "RLS site"}</div>
+                      <table style="border-collapse:collapse;width:100%;font-size:10px">
+                        <tr><td style="color:#888;padding:1px 6px 1px 0">Country</td><td>${p.country || "-"}</td></tr>
+                        <tr><td style="color:#888;padding:1px 6px 1px 0">Ecoregion</td><td style="font-size:9px">${p.ecoregion || "-"}</td></tr>
+                        <tr><td style="color:#888;padding:1px 6px 1px 0">Realm</td><td>${p.realm || "-"}</td></tr>
+                        <tr><td style="color:#888;padding:1px 6px 1px 0">Programs</td><td>${p.programs || "-"}</td></tr>
+                      </table>
+                      <div style="font-size:8px;color:#555;border-top:1px solid rgba(131,238,240,0.12);padding-top:4px;margin-top:4px">Reef Life Survey · WCS-Marine / global-monitoring-maps</div>
+                    </div>`,
+                    { maxWidth: 230 }
+                  );
+                  return m;
+                }}
+              />
+            )}
+            {showGcrmnMonSites && gcrmnMonSitesGeoJson && (
+              <GeoJSON
+                key="gcrmn-mon-sites-expanded"
+                data={gcrmnMonSitesGeoJson}
+                pointToLayer={(feature, latlng) => {
+                  const m = L.circleMarker(latlng, {
+                    radius: 3, color: "#26de81", weight: 0.8,
+                    fillColor: "#26de81", fillOpacity: 0.6, opacity: 0.85,
+                  });
+                  const p = feature.properties ?? {};
+                  const country  = (p.country  as string) || "";
+                  const location = (p.location as string) || "";
+                  // Permanent label — visible via CSS when map zoom ≥ 5 (GcrmnZoomWatcher)
+                  if (country) {
+                    const labelHtml = location
+                      ? `${country}<br/><span style="font-weight:400;color:#d4e9f3aa;font-size:8px">${location}</span>`
+                      : country;
+                    m.bindTooltip(labelHtml, {
+                      permanent: true,
+                      direction: "right",
+                      offset: [5, 0],
+                      className: "gcrmn-perm",
+                      interactive: false,
+                    });
+                  }
+                  m.bindPopup(
+                    `<div style="font-family:Inter,sans-serif;font-size:11px;min-width:155px;color:#d4e9f3">
+                      <div style="font-weight:700;color:#26de81;font-size:12px;margin-bottom:4px">🔬 GCRMN Benthic Site</div>
+                      <table style="border-collapse:collapse;width:100%;font-size:10px">
+                        ${country  ? `<tr><td style="color:#888;padding:1px 6px 1px 0">Country</td><td style="font-weight:600">${country}</td></tr>`  : ""}
+                        ${location ? `<tr><td style="color:#888;padding:1px 6px 1px 0">Location</td><td>${location}</td></tr>` : ""}
+                      </table>
+                      <div style="font-size:8px;color:#555;border-top:1px solid rgba(131,238,240,0.12);padding-top:4px;margin-top:4px">GCRMN Benthic Sites · WCS-Marine / global-monitoring-maps</div>
+                    </div>`,
+                    { maxWidth: 240 }
+                  );
+                  return m;
+                }}
+              />
+            )}
             {markers.length > 0 && <FitBounds markers={markers} />}
+            <GcrmnZoomWatcher enabled={showGcrmnMonSites} />
           </MapContainer>
         </div>
 
@@ -600,46 +778,52 @@ function ExpandedMapModal({
           overflowY: "auto",
         }}>
           <SideSection title="Layers">
-            <LayerToggle
-              label="EEZ Boundaries (Marine Regions)"
-              sublabel="Exclusive Economic Zones · MarineRegions.org · VLIZ"
-              active={showMarineRegions}
-              color="#fdcb6e"
-              onClick={() => setShowMarineRegions((v) => !v)}
-              testId="expanded-toggle-marine-regions"
-            />
-            <LayerToggle
-              label="CoralMapping Reef Regions"
-              sublabel="29 global mapped reef zones · UQ / Allen Coral Atlas"
-              active={showCoralMapping}
-              color="#fd7272"
-              onClick={() => setShowCoralMapping((v) => !v)}
-              testId="expanded-toggle-coral-mapping"
-            />
-            <LayerToggle
-              label="GCRMN Sites 2026"
-              sublabel={`${GCRMN_SITES_2026.length} territories · ${GCRMN_TOTALS.surveys.toLocaleString()} surveys`}
-              active={showGcrmnSites}
-              color="#A6CE39"
-              onClick={() => setShowGcrmnSites((v) => !v)}
-              testId="expanded-toggle-gcrmn-sites"
-            />
-            <LayerToggle
-              label="GCRMN Regions"
-              sublabel="10 GCRMN monitoring zones"
-              active={showGcrmn}
-              color="#1dd1a1"
-              onClick={() => setShowGcrmn((v) => !v)}
-              testId="expanded-toggle-gcrmn"
-            />
-            <LayerToggle
-              label="Reef Photos"
-              sublabel={`${reefImgs.length} community images`}
-              active={showImgs}
-              color="#ff9f43"
-              onClick={() => setShowImgs((v) => !v)}
-              testId="expanded-toggle-imgs"
-            />
+            {/* ── Quick presets ── */}
+            <div style={{ display: "flex", gap: 5, marginBottom: 10, paddingBottom: 10, borderBottom: "1px solid rgba(131,238,240,0.08)" }}>
+              <button
+                data-testid="expanded-toggle-all-layers"
+                onClick={() => { setShowMarineRegions(true); setShowCoralMapping(true); setShowGcrmn(true); setShowGcrmnSites(true); setShowGcrmnMonSites(true); setShowWcsReefCloud(true); setShowWcsCcSites(true); setShowReefCheck(true); setShowReefLife(true); setShowImgs(true); }}
+                style={{ flex: 1, fontSize: 9, fontFamily: "Inter,sans-serif", fontWeight: 700, background: "rgba(131,238,240,0.12)", border: "1px solid rgba(131,238,240,0.3)", borderRadius: 6, padding: "4px 0", color: "#83eef0", cursor: "pointer" }}
+              >All On</button>
+              <button
+                data-testid="expanded-toggle-no-layers"
+                onClick={() => { setShowMarineRegions(false); setShowCoralMapping(false); setShowGcrmn(false); setShowGcrmnSites(false); setShowGcrmnMonSites(false); setShowWcsReefCloud(false); setShowWcsCcSites(false); setShowReefCheck(false); setShowReefLife(false); setShowImgs(false); }}
+                style={{ flex: 1, fontSize: 9, fontFamily: "Inter,sans-serif", fontWeight: 700, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 6, padding: "4px 0", color: "#d4e9f355", cursor: "pointer" }}
+              >All Off</button>
+            </div>
+
+            {/* ── Boundaries ── */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+              <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#d4e9f340" }}>Boundaries</span>
+              <button
+                onClick={() => { const all = showCoralMapping && showMarineRegions && showGcrmn; setShowCoralMapping(!all); setShowMarineRegions(!all); setShowGcrmn(!all); }}
+                style={{ fontSize: 8, background: "none", border: "none", color: "#83eef066", cursor: "pointer", fontFamily: "Inter,sans-serif", fontWeight: 600 }}
+              >{showCoralMapping && showMarineRegions && showGcrmn ? "off" : "all"}</button>
+            </div>
+            <LayerToggle label="Coral Reef Regions"  sublabel="29 global mapped reef zones · UQ / Allen Coral Atlas"                                   active={showCoralMapping}  color="#fd7272" onClick={() => setShowCoralMapping(v => !v)}  testId="expanded-toggle-coral-mapping" />
+            <LayerToggle label="EEZ Boundaries"      sublabel="Exclusive Economic Zones · MarineRegions.org · VLIZ"                                     active={showMarineRegions} color="#fdcb6e" onClick={() => setShowMarineRegions(v => !v)} testId="expanded-toggle-marine-regions" />
+            <LayerToggle label="GCRMN Regions"       sublabel="10 GCRMN monitoring zones"                                                               active={showGcrmn}         color="#1dd1a1" onClick={() => setShowGcrmn(v => !v)}         testId="expanded-toggle-gcrmn" />
+
+            {/* ── Monitoring ── */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "10px 0 4px" }}>
+              <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#d4e9f340" }}>Monitoring</span>
+              <button
+                onClick={() => { const all = showGcrmnMonSites && showGcrmnSites && showReefCheck && showReefLife && showWcsCcSites && showWcsReefCloud; [setShowGcrmnMonSites, setShowGcrmnSites, setShowReefCheck, setShowReefLife, setShowWcsCcSites, setShowWcsReefCloud].forEach(fn => fn(!all)); }}
+                style={{ fontSize: 8, background: "none", border: "none", color: "#83eef066", cursor: "pointer", fontFamily: "Inter,sans-serif", fontWeight: 600 }}
+              >{showGcrmnMonSites && showGcrmnSites && showReefCheck && showReefLife && showWcsCcSites && showWcsReefCloud ? "off" : "all"}</button>
+            </div>
+            <LayerToggle label="GCRMN Benthic Sites" sublabel="GCRMN program stations · gcrmndb_benthos"                                                active={showGcrmnMonSites} color="#26de81" onClick={() => setShowGcrmnMonSites(v => !v)} testId="expanded-toggle-gcrmn-mon-sites" />
+            <LayerToggle label="GCRMN Sites 2026"    sublabel={`${GCRMN_SITES_2026.length} territories · ${GCRMN_TOTALS.surveys.toLocaleString()} surveys`} active={showGcrmnSites}    color="#A6CE39" onClick={() => setShowGcrmnSites(v => !v)}    testId="expanded-toggle-gcrmn-sites" />
+            <LayerToggle label="Reef Check"          sublabel="~6,200 unique stations · coral cover + bleaching"                                         active={showReefCheck}     color="#fd9644" onClick={() => setShowReefCheck(v => !v)}     testId="expanded-toggle-reef-check" />
+            <LayerToggle label="Reef Life Survey"    sublabel="4,147 sites · ecoregion + realm metadata"                                                 active={showReefLife}      color="#45aaf2" onClick={() => setShowReefLife(v => !v)}      testId="expanded-toggle-reef-life" />
+            <LayerToggle label="WCS Coral Cover"     sublabel="4,766 field survey sites · WCS-Marine"                                                    active={showWcsCcSites}    color="#ff6b9d" onClick={() => setShowWcsCcSites(v => !v)}    testId="expanded-toggle-wcs-cc-sites" />
+            <LayerToggle label="WCS ReefCloud"       sublabel="14,501 global monitoring stations · WCS-Marine"                                           active={showWcsReefCloud}  color="#e056fd" onClick={() => setShowWcsReefCloud(v => !v)}  testId="expanded-toggle-wcs-reefcloud" />
+
+            {/* ── Community ── */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "10px 0 4px" }}>
+              <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#d4e9f340" }}>Community</span>
+            </div>
+            <LayerToggle label="Reef Photos"         sublabel={`${reefImgs.length} community images`}                                                   active={showImgs}          color="#ff9f43" onClick={() => setShowImgs(v => !v)}          testId="expanded-toggle-imgs" />
           </SideSection>
 
           {showGcrmn && (
@@ -684,7 +868,96 @@ function ExpandedMapModal({
               <span style={{ width:13,height:13,borderRadius:3,background:"#ff9f43",border:"1.5px solid #ffb347",display:"inline-block",flexShrink:0 }}/>
               <span style={{ fontSize: 10.5, color: "#d4e9f3bb" }}>Community reef photo</span>
             </div>
+            {showWcsReefCloud && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "3px 0" }}>
+                <span style={{ width:9,height:9,borderRadius:"50%",background:"rgba(224,86,253,0.45)",border:"1.5px solid #e056fd",display:"inline-block",flexShrink:0 }}/>
+                <span style={{ fontSize: 10.5, color: "#d4e9f3bb" }}>WCS ReefCloud monitoring site</span>
+              </div>
+            )}
+            {showWcsCcSites && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "3px 0" }}>
+                <span style={{ width:9,height:9,borderRadius:"50%",background:"rgba(255,107,157,0.45)",border:"1.5px solid #ff6b9d",display:"inline-block",flexShrink:0 }}/>
+                <span style={{ fontSize: 10.5, color: "#d4e9f3bb" }}>WCS coral cover survey site</span>
+              </div>
+            )}
+            {showReefCheck && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "3px 0" }}>
+                <span style={{ width:9,height:9,borderRadius:"50%",background:"rgba(253,150,68,0.45)",border:"1.5px solid #fd9644",display:"inline-block",flexShrink:0 }}/>
+                <span style={{ fontSize: 10.5, color: "#d4e9f3bb" }}>Reef Check monitoring station</span>
+              </div>
+            )}
+            {showReefLife && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "3px 0" }}>
+                <span style={{ width:9,height:9,borderRadius:"50%",background:"rgba(69,170,242,0.45)",border:"1.5px solid #45aaf2",display:"inline-block",flexShrink:0 }}/>
+                <span style={{ fontSize: 10.5, color: "#d4e9f3bb" }}>Reef Life Survey site</span>
+              </div>
+            )}
+            {showGcrmnMonSites && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "3px 0" }}>
+                <span style={{ width:9,height:9,borderRadius:"50%",background:"rgba(38,222,129,0.45)",border:"1.5px solid #26de81",display:"inline-block",flexShrink:0 }}/>
+                <span style={{ fontSize: 10.5, color: "#d4e9f3bb" }}>GCRMN Benthic Site</span>
+              </div>
+            )}
           </SideSection>
+
+          {showGcrmnMonSites && gcrmnCountryStats.length > 0 && (
+            <SideSection title="GCRMN Sites by Country">
+              <div style={{ fontSize: 9, color: "#26de8188", marginBottom: 7 }}>
+                Top countries · {gcrmnUniqueCountries} countries total · hover dots for details
+              </div>
+              {gcrmnCountryStats.map(([country, count]) => (
+                <div key={country} style={{ marginBottom: 5 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 2 }}>
+                    <span style={{ fontSize: 9.5, color: "#d4e9f3cc", maxWidth: 158, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{country}</span>
+                    <span style={{ fontSize: 9, color: "#26de81", fontWeight: 700, flexShrink: 0, marginLeft: 4 }}>{count.toLocaleString()}</span>
+                  </div>
+                  <div style={{ height: 3, background: "rgba(38,222,129,0.1)", borderRadius: 2 }}>
+                    <div style={{ height: "100%", width: `${(count / gcrmnCountryStats[0][1]) * 100}%`, background: "#26de81", borderRadius: 2, opacity: 0.65 }} />
+                  </div>
+                </div>
+              ))}
+              <div style={{ fontSize: 8.5, color: "#d4e9f333", marginTop: 4, borderTop: "1px solid rgba(38,222,129,0.08)", paddingTop: 5 }}>
+                Geocoded via Natural Earth 50m + Marine Regions EEZ
+              </div>
+            </SideSection>
+          )}
+
+          {(showWcsReefCloud || showWcsCcSites || showReefCheck || showReefLife || showGcrmnMonSites) && (
+            <SideSection title="WCS Marine Datasets">
+              <div style={{ fontSize: 9.5, color: "#d4e9f3aa", lineHeight: 1.5, marginBottom: 8 }}>
+                Wildlife Conservation Society (WCS) Marine Program global reef monitoring data. Includes ReefCloud stations, coral cover field records, Reef Check surveys with coral cover and bleaching metrics, and Reef Life Survey sites with full ecoregion and realm metadata, the same input datasets used by the WCS <em>global-reef-data-layers</em> analysis pipeline.
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 8px", marginBottom: 8 }}>
+                {[
+                  ["ReefCloud Sites", "14,501"],
+                  ["CC Survey Sites", "4,766"],
+                  ["Reef Check Stns", "~6,200"],
+                  ["RLS Sites", "4,147"],
+                  ["GCRMN Stns", "11,619"],
+                ].map(([k, v]) => (
+                  <div key={String(k)} style={{ background: "rgba(224,86,253,0.07)", border: "1px solid rgba(224,86,253,0.25)", borderRadius: 6, padding: "5px 7px" }}>
+                    <div style={{ fontSize: 7.5, color: "#e056fd88", textTransform: "uppercase", letterSpacing: "0.07em" }}>{k}</div>
+                    <div style={{ fontSize: 12, fontWeight: 800, color: "#e056fd" }}>{v}</div>
+                  </div>
+                ))}
+              </div>
+              {[
+                { label: "WCS.org: Marine Program", href: "https://www.wcs.org/", color: "#e056fd" },
+                { label: "WCS-Marine / global-monitoring-maps", href: "https://github.com/WCS-Marine/global-monitoring-maps", color: "#e056fdbb" },
+                { label: "WCS-Marine / global-reef-data-layers", href: "https://github.com/WCS-Marine/global-reef-data-layers", color: "#e056fdbb" },
+                { label: "ReefCloud: AIMS reef monitoring", href: "https://reefcloud.ai", color: "#ff6b9d" },
+                { label: "Reef Check International", href: "https://www.reefcheck.org", color: "#fd9644" },
+                { label: "Reef Life Survey", href: "https://reeflifesurvey.com", color: "#45aaf2" },
+                { label: "GCRMN / gcrmndb_benthos", href: "https://github.com/GCRMN/gcrmndb_benthos", color: "#26de81" },
+              ].map(({ label, href, color }) => (
+                <a key={label} href={href} target="_blank" rel="noopener noreferrer"
+                  style={{ display: "block", fontSize: 9, color, textDecoration: "none", padding: "2px 0", marginBottom: 2 }}
+                >
+                  ↗ {label}
+                </a>
+              ))}
+            </SideSection>
+          )}
 
           <SideSection title="GCRMN Benthos Dataset">
             <div style={{ fontSize: 9.5, color: "#d4e9f3aa", lineHeight: 1.5, marginBottom: 8 }}>
@@ -722,7 +995,7 @@ function ExpandedMapModal({
 
           <SideSection title="Marine Regions · EEZ">
             <div style={{ fontSize: 9.5, color: "#d4e9f3aa", lineHeight: 1.5, marginBottom: 8 }}>
-              Marine Regions is a standard reference list of marine place names and geographic areas from the world's seas and oceans, maintained by VLIZ. The EEZ layer shows Exclusive Economic Zones — maritime boundaries within which coastal nations exercise sovereign rights over resources.
+              Marine Regions is a standard reference list of marine place names and geographic areas from the world's seas and oceans, maintained by VLIZ. The EEZ layer shows Exclusive Economic Zones, maritime boundaries within which coastal nations exercise sovereign rights over resources.
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 8px", marginBottom: 8 }}>
               {[
@@ -740,12 +1013,12 @@ function ExpandedMapModal({
             <div style={{ marginBottom: 8 }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: "#fdcb6e", marginBottom: 2 }}>mregions2</div>
               <div style={{ fontSize: 9, color: "#d4e9f377", lineHeight: 1.4 }}>
-                rOpenSci R package for querying the Marine Regions Gazetteer and GeoServer — returns EEZ, IHO Sea Areas, Large Marine Ecosystems, Marine Ecoregions, and 27,000+ other standardised marine place names with geometry.
+                rOpenSci R package for querying the Marine Regions Gazetteer and GeoServer. Returns EEZ, IHO Sea Areas, Large Marine Ecosystems, Marine Ecoregions, and 27,000+ other standardised marine place names with geometry.
               </div>
             </div>
             {[
               { label: "MarineRegions.org (VLIZ)",        href: "https://www.marineregions.org",                                          color: "#fdcb6e" },
-              { label: "mregions2 — rOpenSci (GitHub)",   href: "https://github.com/ropensci/mregions2",                                  color: "#ffeaa7" },
+              { label: "mregions2: rOpenSci (GitHub)",    href: "https://github.com/ropensci/mregions2",                                  color: "#ffeaa7" },
               { label: "mregions2 documentation",         href: "https://docs.ropensci.org/mregions2/",                                   color: "#ffeaa7" },
               { label: "Marine Regions Gazetteer",        href: "https://www.marineregions.org/gazetteer.php",                            color: "#ffeaa7" },
               { label: "EEZ GeoServer layer",             href: "https://geo.vliz.be/geoserver/MarineRegions/wms?SERVICE=WMS&REQUEST=GetCapabilities", color: "#ffeaa7" },
@@ -767,7 +1040,7 @@ function ExpandedMapModal({
             <div style={{ marginBottom: 8 }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: "#fd7272", marginBottom: 2 }}>GlobalMappingRegions</div>
               <div style={{ fontSize: 9, color: "#d4e9f377", lineHeight: 1.4 }}>
-                GeoJSON region mask files covering 29 reef zones — from the Great Barrier Reef and Hawaiian Islands to the Red Sea, Coral Sea, and Mesoamerican Reef.
+                GeoJSON region mask files covering 29 reef zones, from the Great Barrier Reef and Hawaiian Islands to the Red Sea, Coral Sea, and Mesoamerican Reef.
               </div>
             </div>
             <div style={{ marginBottom: 8 }}>
@@ -796,6 +1069,9 @@ function ExpandedMapModal({
               { label: "CoralMapping / GlobalMappingRegions",          href: "https://github.com/CoralMapping/GlobalMappingRegions",     color: "#fd7272" },
               { label: "CoralMapping / proc_gee_utils",                href: "https://github.com/CoralMapping/proc_gee_utils",           color: "#fdcb6e" },
               { label: "GCRMN gcrmndb_benthos",                        href: "https://github.com/GCRMN/gcrmndb_benthos#6-description-of-the-synthetic-dataset", color: "#A6CE39" },
+              { label: "WCS-Marine / global-monitoring-maps",          href: "https://github.com/WCS-Marine/global-monitoring-maps",     color: "#e056fd" },
+              { label: "WCS-Marine / global-reef-data-layers",         href: "https://github.com/WCS-Marine/global-reef-data-layers",    color: "#ff6b9d" },
+              { label: "WCS.org: Marine Program",                      href: "https://www.wcs.org/",                                    color: "#e056fdaa" },
               { label: "Esri Ocean Basemap",                           href: "https://www.arcgis.com",                                  color: "#83eef099" },
               { label: "GCRMN Regions",                                href: "https://gcrmn.net",                                       color: "#83eef099" },
               { label: "NOAA Coral Reef Watch",                        href: "https://coralreefwatch.noaa.gov",                         color: "#83eef099" },
@@ -888,6 +1164,12 @@ export function ReefMap({
   const [showMarineRegions, setShowMarineRegions] = useState(true);
   const [showImgs,          setShowImgs]          = useState(true);
   const [showGcrmnSites,    setShowGcrmnSites]    = useState(true);
+  const [showWcsReefCloud,  setShowWcsReefCloud]  = useState(true);
+  const [showWcsCcSites,    setShowWcsCcSites]    = useState(true);
+  const [showReefCheck,     setShowReefCheck]     = useState(true);
+  const [showReefLife,      setShowReefLife]       = useState(true);
+  const [showGcrmnMonSites, setShowGcrmnMonSites] = useState(true);
+  const [showLayerMenu,     setShowLayerMenu]     = useState(false);
   const [internalExpanded,  setInternalExpanded]  = useState(false);
 
   const expanded  = externalExpanded !== undefined ? externalExpanded : internalExpanded;
@@ -913,6 +1195,36 @@ export function ReefMap({
   const { data: coralMappingGeoJson } = useQuery<GeoJSON.FeatureCollection>({
     queryKey: ["/api/coral-mapping/regions"],
     staleTime: 24 * 60 * 60 * 1000,
+  });
+
+  const { data: wcsReefCloudGeoJson } = useQuery<GeoJSON.FeatureCollection>({
+    queryKey: ["/api/wcs/reefcloud-sites"],
+    staleTime: 24 * 60 * 60 * 1000,
+    enabled: showWcsReefCloud,
+  });
+
+  const { data: wcsCcSitesGeoJson } = useQuery<GeoJSON.FeatureCollection>({
+    queryKey: ["/api/wcs/cc-sites"],
+    staleTime: 24 * 60 * 60 * 1000,
+    enabled: showWcsCcSites,
+  });
+
+  const { data: reefCheckGeoJson } = useQuery<GeoJSON.FeatureCollection>({
+    queryKey: ["/api/wcs/reef-check"],
+    staleTime: 24 * 60 * 60 * 1000,
+    enabled: showReefCheck,
+  });
+
+  const { data: reefLifeGeoJson } = useQuery<GeoJSON.FeatureCollection>({
+    queryKey: ["/api/wcs/reef-life"],
+    staleTime: 24 * 60 * 60 * 1000,
+    enabled: showReefLife,
+  });
+
+  const { data: gcrmnMonSitesGeoJson } = useQuery<GeoJSON.FeatureCollection>({
+    queryKey: ["/api/wcs/gcrmn-mon-sites"],
+    staleTime: 24 * 60 * 60 * 1000,
+    enabled: showGcrmnMonSites,
   });
 
   return (
@@ -996,6 +1308,73 @@ export function ReefMap({
               </Popup>
             </CircleMarker>
           ))}
+          {showWcsReefCloud && wcsReefCloudGeoJson && (
+            <GeoJSON
+              key="wcs-reefcloud-compact"
+              data={wcsReefCloudGeoJson}
+              pointToLayer={(_feature, latlng) =>
+                L.circleMarker(latlng, {
+                  radius: 1.5, color: "#e056fd", weight: 0.5,
+                  fillColor: "#e056fd", fillOpacity: 0.45, opacity: 0.7,
+                })
+              }
+            />
+          )}
+          {showWcsCcSites && wcsCcSitesGeoJson && (
+            <GeoJSON
+              key="wcs-cc-compact"
+              data={wcsCcSitesGeoJson}
+              pointToLayer={(_feature, latlng) =>
+                L.circleMarker(latlng, {
+                  radius: 2, color: "#ff6b9d", weight: 0.5,
+                  fillColor: "#ff6b9d", fillOpacity: 0.5, opacity: 0.75,
+                })
+              }
+            />
+          )}
+          {showReefCheck && reefCheckGeoJson && (
+            <GeoJSON
+              key="reef-check-compact"
+              data={reefCheckGeoJson}
+              pointToLayer={(_feature, latlng) =>
+                L.circleMarker(latlng, {
+                  radius: 2, color: "#fd9644", weight: 0.5,
+                  fillColor: "#fd9644", fillOpacity: 0.5, opacity: 0.75,
+                })
+              }
+            />
+          )}
+          {showReefLife && reefLifeGeoJson && (
+            <GeoJSON
+              key="reef-life-compact"
+              data={reefLifeGeoJson}
+              pointToLayer={(_feature, latlng) =>
+                L.circleMarker(latlng, {
+                  radius: 2, color: "#45aaf2", weight: 0.5,
+                  fillColor: "#45aaf2", fillOpacity: 0.5, opacity: 0.75,
+                })
+              }
+            />
+          )}
+          {showGcrmnMonSites && gcrmnMonSitesGeoJson && (
+            <GeoJSON
+              key="gcrmn-mon-sites-compact"
+              data={gcrmnMonSitesGeoJson}
+              pointToLayer={(feature, latlng) => {
+                const m = L.circleMarker(latlng, {
+                  radius: 2, color: "#26de81", weight: 0.5,
+                  fillColor: "#26de81", fillOpacity: 0.5, opacity: 0.75,
+                });
+                const p = feature.properties ?? {};
+                const ttParts = [p.country, p.location].filter(Boolean).join(" · ");
+                if (ttParts) m.bindTooltip(
+                  `<span style="font-family:Inter,sans-serif;font-size:10px;color:#26de81;font-weight:700">🔬</span> <span style="font-size:10px;color:#d4e9f3cc">${ttParts}</span>`,
+                  { direction: "top", offset: [0, -3] }
+                );
+                return m;
+              }}
+            />
+          )}
           {markers.map((m) => (
             <Marker key={m.id} position={[m.latitude, m.longitude]} icon={makePin()}>
               <Popup>
@@ -1015,77 +1394,98 @@ export function ReefMap({
           {markers.length > 0 && <FitBounds markers={markers} />}
         </MapContainer>
 
-        {/* ── Layer toggles ── */}
+        {/* ── Minimal layer menu ── */}
         <div
-          className="absolute top-2 left-2 flex flex-col gap-1 pointer-events-auto"
+          className="absolute top-2 left-2 pointer-events-auto"
           style={{ zIndex: 500 }}
         >
           <button
-            data-testid="toggle-marine-regions-layer"
-            onClick={() => setShowMarineRegions((v) => !v)}
+            data-testid="toggle-layer-menu"
+            onClick={() => setShowLayerMenu(v => !v)}
             style={{
-              background: showMarineRegions ? "rgba(253,203,110,0.82)" : "rgba(0,19,28,0.75)",
-              border: `1px solid ${showMarineRegions ? "#fdcb6e" : "rgba(253,203,110,0.4)"}`,
-              borderRadius: 6, padding: "2px 7px", fontSize: 9,
-              color: showMarineRegions ? "#00131c" : "#fdcb6ecc",
-              fontFamily: "Inter,sans-serif", fontWeight: 700, cursor: "pointer", letterSpacing: "0.05em",
+              background: showLayerMenu ? "rgba(131,238,240,0.15)" : "rgba(0,19,28,0.85)",
+              border: `1px solid ${showLayerMenu ? "rgba(131,238,240,0.45)" : "rgba(131,238,240,0.22)"}`,
+              borderRadius: 7, padding: "4px 9px",
+              display: "flex", alignItems: "center", gap: 5,
+              cursor: "pointer", color: "#83eef0cc",
+              fontSize: 9, fontFamily: "Inter,sans-serif", fontWeight: 600,
             }}
           >
-            EEZ
+            <Layers size={10} color="#83eef0" />
+            Layers
           </button>
-          <button
-            data-testid="toggle-coral-mapping-layer"
-            onClick={() => setShowCoralMapping((v) => !v)}
-            style={{
-              background: showCoralMapping ? "rgba(253,114,114,0.82)" : "rgba(0,19,28,0.75)",
-              border: `1px solid ${showCoralMapping ? "#fd7272" : "rgba(253,114,114,0.4)"}`,
-              borderRadius: 6, padding: "2px 7px", fontSize: 9,
-              color: showCoralMapping ? "#fff" : "#fd7272cc",
-              fontFamily: "Inter,sans-serif", fontWeight: 700, cursor: "pointer", letterSpacing: "0.05em",
-            }}
-          >
-            Reef
-          </button>
-          <button
-            data-testid="toggle-gcrmn-sites-layer"
-            onClick={() => setShowGcrmnSites((v) => !v)}
-            style={{
-              background: showGcrmnSites ? "rgba(166,206,57,0.82)" : "rgba(0,19,28,0.75)",
-              border: `1px solid ${showGcrmnSites ? "#A6CE39" : "rgba(166,206,57,0.4)"}`,
-              borderRadius: 6, padding: "2px 7px", fontSize: 9,
-              color: showGcrmnSites ? "#fff" : "#A6CE39cc",
-              fontFamily: "Inter,sans-serif", fontWeight: 700, cursor: "pointer", letterSpacing: "0.05em",
-            }}
-          >
-            Sites
-          </button>
-          <button
-            data-testid="toggle-gcrmn-layer"
-            onClick={() => setShowGcrmn((v) => !v)}
-            style={{
-              background: showGcrmn ? "rgba(29,209,161,0.85)" : "rgba(0,19,28,0.75)",
-              border: `1px solid ${showGcrmn ? "#1dd1a1" : "rgba(29,209,161,0.4)"}`,
-              borderRadius: 6, padding: "2px 7px", fontSize: 9,
-              color: showGcrmn ? "#fff" : "#1dd1a1cc",
-              fontFamily: "Inter,sans-serif", fontWeight: 700, cursor: "pointer", letterSpacing: "0.05em",
-            }}
-          >
-            GCRMN
-          </button>
-          <button
-            data-testid="toggle-imgs-layer"
-            onClick={() => setShowImgs((v) => !v)}
-            style={{
-              background: showImgs ? "rgba(255,159,67,0.85)" : "rgba(0,19,28,0.75)",
-              border: `1px solid ${showImgs ? "#ff9f43" : "rgba(255,159,67,0.4)"}`,
-              borderRadius: 6, padding: "2px 7px", fontSize: 9,
-              color: showImgs ? "#fff" : "#ff9f43cc",
-              fontFamily: "Inter,sans-serif", fontWeight: 700, cursor: "pointer", letterSpacing: "0.05em",
-              display: "flex", alignItems: "center", gap: 3,
-            }}
-          >
-            <Camera size={8} /> Photos
-          </button>
+
+          {showLayerMenu && (
+            <div style={{
+              marginTop: 5,
+              background: "rgba(0,14,22,0.97)",
+              border: "1px solid rgba(131,238,240,0.14)",
+              borderRadius: 9, padding: "8px 6px",
+              minWidth: 200, boxShadow: "0 6px 28px rgba(0,0,0,0.55)",
+            }}>
+              {/* ── Quick presets ── */}
+              <div style={{ display: "flex", gap: 4, marginBottom: 8, paddingBottom: 7, borderBottom: "1px solid rgba(131,238,240,0.08)" }}>
+                <button
+                  data-testid="toggle-all-layers"
+                  onClick={() => { setShowMarineRegions(true); setShowCoralMapping(true); setShowGcrmn(true); setShowGcrmnSites(true); setShowGcrmnMonSites(true); setShowWcsReefCloud(true); setShowWcsCcSites(true); setShowReefCheck(true); setShowReefLife(true); setShowImgs(true); }}
+                  style={{ flex: 1, fontSize: 8.5, fontFamily: "Inter,sans-serif", fontWeight: 700, background: "rgba(131,238,240,0.12)", border: "1px solid rgba(131,238,240,0.28)", borderRadius: 5, padding: "3px 0", color: "#83eef0", cursor: "pointer" }}
+                >All</button>
+                <button
+                  data-testid="toggle-no-layers"
+                  onClick={() => { setShowMarineRegions(false); setShowCoralMapping(false); setShowGcrmn(false); setShowGcrmnSites(false); setShowGcrmnMonSites(false); setShowWcsReefCloud(false); setShowWcsCcSites(false); setShowReefCheck(false); setShowReefLife(false); setShowImgs(false); }}
+                  style={{ flex: 1, fontSize: 8.5, fontFamily: "Inter,sans-serif", fontWeight: 700, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 5, padding: "3px 0", color: "#d4e9f355", cursor: "pointer" }}
+                >None</button>
+              </div>
+
+              {/* ── Layer groups (alphabetical within each) ── */}
+              {[
+                { group: "Boundaries", layers: [
+                  { testId: "toggle-coral-mapping-layer",   label: "Coral Reef Regions",  color: "#fd7272", active: showCoralMapping,  toggle: () => setShowCoralMapping(v => !v)  },
+                  { testId: "toggle-marine-regions-layer",  label: "EEZ Boundaries",      color: "#fdcb6e", active: showMarineRegions, toggle: () => setShowMarineRegions(v => !v) },
+                  { testId: "toggle-gcrmn-layer",           label: "GCRMN Regions",       color: "#1dd1a1", active: showGcrmn,         toggle: () => setShowGcrmn(v => !v)         },
+                ]},
+                { group: "Monitoring", layers: [
+                  { testId: "toggle-gcrmn-mon-sites-layer", label: "GCRMN Benthic Sites", color: "#26de81", active: showGcrmnMonSites, toggle: () => setShowGcrmnMonSites(v => !v) },
+                  { testId: "toggle-gcrmn-sites-layer",     label: "GCRMN Sites 2026",    color: "#A6CE39", active: showGcrmnSites,    toggle: () => setShowGcrmnSites(v => !v)    },
+                  { testId: "toggle-reef-check-layer",      label: "Reef Check",          color: "#fd9644", active: showReefCheck,     toggle: () => setShowReefCheck(v => !v)     },
+                  { testId: "toggle-reef-life-layer",       label: "Reef Life Survey",    color: "#45aaf2", active: showReefLife,      toggle: () => setShowReefLife(v => !v)      },
+                  { testId: "toggle-wcs-cc-layer",          label: "WCS Coral Cover",     color: "#ff6b9d", active: showWcsCcSites,    toggle: () => setShowWcsCcSites(v => !v)    },
+                  { testId: "toggle-wcs-reefcloud-layer",   label: "WCS ReefCloud",       color: "#e056fd", active: showWcsReefCloud,  toggle: () => setShowWcsReefCloud(v => !v)  },
+                ]},
+                { group: "Community", layers: [
+                  { testId: "toggle-imgs-layer",            label: "Reef Photos",         color: "#ff9f43", active: showImgs,          toggle: () => setShowImgs(v => !v)          },
+                ]},
+              ].map(({ group, layers }) => {
+                const allActive = layers.every(l => l.active);
+                return (
+                  <div key={group} style={{ marginBottom: 6 }}>
+                    {/* Group header */}
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 6px 3px" }}>
+                      <span style={{ fontSize: 7.5, fontFamily: "Inter,sans-serif", fontWeight: 700, letterSpacing: "0.09em", textTransform: "uppercase", color: "#d4e9f340" }}>
+                        {group}
+                      </span>
+                      <button
+                        onClick={() => { const turnOn = !allActive; layers.forEach(l => { if (l.active !== turnOn) l.toggle(); }); }}
+                        style={{ fontSize: 7.5, fontFamily: "Inter,sans-serif", fontWeight: 600, background: "none", border: "none", color: allActive ? "#d4e9f350" : "#83eef077", cursor: "pointer", padding: "0 2px" }}
+                      >{allActive ? "off" : "all"}</button>
+                    </div>
+                    {/* Layer rows */}
+                    {layers.map(({ testId, label, color, active, toggle }) => (
+                      <button
+                        key={testId}
+                        data-testid={testId}
+                        onClick={toggle}
+                        style={{ display: "flex", alignItems: "center", gap: 7, background: active ? `${color}14` : "transparent", border: "1px solid transparent", borderRadius: 6, padding: "3px 8px", cursor: "pointer", textAlign: "left", width: "100%" }}
+                      >
+                        <span style={{ width: 7, height: 7, borderRadius: "50%", flexShrink: 0, background: color, opacity: active ? 0.9 : 0.2, boxShadow: active ? `0 0 4px ${color}77` : "none", transition: "opacity 0.15s" }} />
+                        <span style={{ fontSize: 9.5, fontFamily: "Inter,sans-serif", fontWeight: active ? 600 : 400, color: active ? "#d4e9f3dd" : "#d4e9f340" }}>{label}</span>
+                      </button>
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* ── Expand button ── */}
@@ -1120,6 +1520,11 @@ export function ReefMap({
             {showGcrmn         && <span title="GCRMN region" style={{ width:10,height:6,background:"rgba(29,209,161,0.35)",border:"1.5px solid #1dd1a1",borderRadius:2,display:"inline-block" }}/>}
             <span title="DAO member" style={{ width:8,height:8,borderRadius:"50%",background:"#83eef0",border:"2px solid #83eef0",display:"inline-block" }}/>
             {showImgs && reefImgs.length > 0 && <span title="Reef photo" style={{ width:8,height:8,borderRadius:2,background:"#ff9f43",border:"1.5px solid #ffb347",display:"inline-block" }}/>}
+            {showWcsReefCloud  && <span title="WCS ReefCloud site" style={{ width:7,height:7,borderRadius:"50%",background:"rgba(224,86,253,0.4)",border:"1.5px solid #e056fd",display:"inline-block" }}/>}
+            {showWcsCcSites    && <span title="WCS coral cover site" style={{ width:7,height:7,borderRadius:"50%",background:"rgba(255,107,157,0.4)",border:"1.5px solid #ff6b9d",display:"inline-block" }}/>}
+            {showReefCheck     && <span title="Reef Check site" style={{ width:7,height:7,borderRadius:"50%",background:"rgba(253,150,68,0.4)",border:"1.5px solid #fd9644",display:"inline-block" }}/>}
+            {showReefLife      && <span title="Reef Life Survey site" style={{ width:7,height:7,borderRadius:"50%",background:"rgba(69,170,242,0.4)",border:"1.5px solid #45aaf2",display:"inline-block" }}/>}
+            {showGcrmnMonSites && <span title="GCRMN Benthic Site" style={{ width:7,height:7,borderRadius:"50%",background:"rgba(38,222,129,0.4)",border:"1.5px solid #26de81",display:"inline-block" }}/>}
           </div>
           {/* Log in button */}
           {!authenticated && (
@@ -1171,6 +1576,11 @@ export function ReefMap({
           reefImgs={reefImgs}
           gcrmnGeoJson={gcrmnGeoJson}
           coralMappingGeoJson={coralMappingGeoJson}
+          wcsReefCloudGeoJson={wcsReefCloudGeoJson}
+          wcsCcSitesGeoJson={wcsCcSitesGeoJson}
+          reefCheckGeoJson={reefCheckGeoJson}
+          reefLifeGeoJson={reefLifeGeoJson}
+          gcrmnMonSitesGeoJson={gcrmnMonSitesGeoJson}
           onClose={() => setExpanded(false)}
         />
       )}

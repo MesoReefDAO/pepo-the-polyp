@@ -1,0 +1,26 @@
+📄 "Reimagining Coral Reef Futures" — npj Ocean Sustainability (Jan 2026)
+
+This is a structured visioning paper, not a traditional empirical study. A team of coral reef experts co-created three narrative futures to counter the dominant doom-loop in reef science communication. The core argument: bleak outlooks become self-reinforcing and paralyze action — so they built aspirational alternatives instead.
+
+The Three Visions:
+
+🌐 Reeftopia — Earth Stewardship
+A post-growth world where governance is restructured around social-ecological wellbeing. Progress is measured by a "Universal Happiness Index" instead of GDP. Coral reefs are planetary commons. Very idealistic, long time horizon.
+
+🌿 Project Reefoir — Biocultural Revitalization
+Reefs and coastal cultures rebound after climate-driven die-offs, through investment in refugia, restoration science, and indigenous knowledge systems. Communities share biomaterials and skills to restore both reefs and cultural identity. This one resonates most directly with MesoReefDAO's community-science model.
+
+⚡ The Bay Revolution — Equitable Growth
+Community-led, technology-enabled adaptation. Features "AetherReefs" — artificial structures combining renewable energy generation with coral settlement habitat. Emphasizes community tenure rights and sovereign futures. Closest to our modular wetlab + blue economy framework.
+
+Key Concepts That Emerge Across All Three:
+• Anticipatory Governance — acting before collapse, not just reacting to it
+• Biocultural Revitalization — reef restoration inseparable from cultural identity
+• Earth Stewardship — moving beyond extractive paradigms
+
+MesoReefDAO Alignment:
+This paper is essentially a philosophical validation of our entire framing. The "Seeds of Good Anthropocene" methodology they use — finding present-day seeds of preferable futures — is exactly what MesoReefDAO's Regen Reef projects represent. The Bay Revolution's AetherReefs concept maps directly onto our 3D-printed biomimetic tile + modular wetlab nodes. Project Reefoir's refugia investment strategy validates our mesophotic focus. And the anticipatory governance framing is the conceptual backbone of our dMRV + IoT early-warning infrastructure.
+
+The paper also explicitly critiques "pure techno-fixes" — a useful reminder that our tech stack needs to remain embedded in community and cultural frameworks, not replace them.
+
+The bottom line: this is a narrative/governance paper, not a biotech one — but it's strategically important for how we communicate MesoReefDAO's mission and frame our impact beyond metrics. Worth referencing in grant writing and community onboarding. 🪸
