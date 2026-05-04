@@ -1123,27 +1123,116 @@ function LayerToggle({
 }: {
   label: string; sublabel: string; active: boolean; color: string; onClick: () => void; testId: string;
 }) {
+  const [hovered, setHovered] = useState(false);
   return (
     <button
       data-testid={testId}
       onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       style={{
-        width: "100%", display: "flex", alignItems: "center", gap: 10,
-        background: active ? `${color}18` : "transparent",
-        border: `1px solid ${active ? color + "55" : "rgba(131,238,240,0.1)"}`,
-        borderRadius: 8, padding: "7px 10px", cursor: "pointer", marginBottom: 6,
-        textAlign: "left",
+        width: "100%", display: "flex", alignItems: "flex-start", gap: 10,
+        background: active ? `${color}15` : hovered ? "rgba(131,238,240,0.05)" : "transparent",
+        border: `1px solid ${active ? color + "44" : hovered ? "rgba(131,238,240,0.16)" : "rgba(131,238,240,0.08)"}`,
+        borderRadius: 9, padding: "8px 10px", cursor: "pointer", marginBottom: 5,
+        textAlign: "left", transition: "background 0.15s, border-color 0.15s",
+        boxShadow: active ? `inset 0 1px 0 ${color}18` : "none",
       }}
     >
-      <span style={{
-        width: 10, height: 10, borderRadius: "50%", flexShrink: 0,
+      {/* Checkbox */}
+      <div style={{
+        width: 15, height: 15, borderRadius: 4, flexShrink: 0, marginTop: 1,
+        background: active ? color : hovered ? "rgba(131,238,240,0.06)" : "transparent",
+        border: `1.5px solid ${active ? color : hovered ? color + "55" : color + "33"}`,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        boxShadow: active ? `0 0 8px ${color}44` : "none",
+        transition: "all 0.18s",
+      }}>
+        {active && (
+          <svg width="9" height="7" viewBox="0 0 9 7" fill="none">
+            <path d="M1 3.5L3.5 6L8 1" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        )}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{
+          fontSize: 11.5, fontWeight: 600, fontFamily: "Inter,sans-serif",
+          color: active ? "#d4e9f3" : hovered ? "#d4e9f377" : "#d4e9f355",
+          transition: "color 0.15s",
+        }}>{label}</div>
+        <div style={{
+          fontSize: 9, color: active ? "#d4e9f340" : "#d4e9f328", marginTop: 2,
+          fontFamily: "Inter,sans-serif", lineHeight: 1.4,
+        }}>{sublabel}</div>
+      </div>
+    </button>
+  );
+}
+
+// ─── Compact layer row (checkbox + hover state) ────────────────────────────────
+function CompactLayerRow({
+  testId, label, sublabel, color, active, toggle,
+}: {
+  testId: string; label: string; sublabel?: string; color: string; active: boolean; toggle: () => void;
+}) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <button
+      data-testid={testId}
+      onClick={toggle}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        display: "flex", alignItems: "center", gap: 9,
+        width: "100%", textAlign: "left", cursor: "pointer",
+        padding: "5px 9px", borderRadius: 7,
+        background: active
+          ? `${color}16`
+          : hovered
+          ? "rgba(131,238,240,0.045)"
+          : "transparent",
+        border: `1px solid ${active ? color + "38" : hovered ? "rgba(131,238,240,0.13)" : "transparent"}`,
+        transition: "background 0.13s, border-color 0.13s",
+        marginBottom: 2,
+      }}
+    >
+      {/* Checkbox */}
+      <div style={{
+        width: 13, height: 13, borderRadius: 3, flexShrink: 0,
         background: active ? color : "transparent",
-        border: `2px solid ${active ? color : color + "66"}`,
-        transition: "background 0.2s",
+        border: `1.5px solid ${active ? color : hovered ? color + "66" : color + "33"}`,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        boxShadow: active ? `0 0 6px ${color}55` : "none",
+        transition: "all 0.15s",
+      }}>
+        {active && (
+          <svg width="8" height="6" viewBox="0 0 8 6" fill="none">
+            <path d="M1 3L3 5L7 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        )}
+      </div>
+      {/* Color swatch */}
+      <div style={{
+        width: 8, height: 8, borderRadius: 2, flexShrink: 0,
+        background: color,
+        opacity: active ? 0.85 : 0.25,
+        transition: "opacity 0.15s",
       }}/>
-      <div>
-        <div style={{ fontSize: 11, fontWeight: 600, color: active ? "#d4e9f3" : "#d4e9f366" }}>{label}</div>
-        <div style={{ fontSize: 9, color: "#d4e9f344", marginTop: 1 }}>{sublabel}</div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{
+          fontSize: 10.5, fontFamily: "Inter,sans-serif",
+          fontWeight: active ? 600 : 400,
+          color: active ? "#d4e9f3ee" : hovered ? "#d4e9f366" : "#d4e9f344",
+          transition: "color 0.13s",
+          whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+        }}>{label}</div>
+        {sublabel && (
+          <div style={{
+            fontSize: 8, fontFamily: "Inter,sans-serif",
+            color: active ? "#d4e9f330" : "#d4e9f322",
+            marginTop: 0.5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+          }}>{sublabel}</div>
+        )}
       </div>
     </button>
   );
@@ -1417,73 +1506,104 @@ export function ReefMap({
 
           {showLayerMenu && (
             <div style={{
-              marginTop: 5,
-              background: "rgba(0,14,22,0.97)",
-              border: "1px solid rgba(131,238,240,0.14)",
-              borderRadius: 9, padding: "8px 6px",
-              minWidth: 200, boxShadow: "0 6px 28px rgba(0,0,0,0.55)",
+              marginTop: 6,
+              background: "rgba(0,10,18,0.97)",
+              border: "1px solid rgba(131,238,240,0.16)",
+              borderRadius: 12,
+              boxShadow: "0 8px 32px rgba(0,0,0,0.65), 0 0 0 0.5px rgba(131,238,240,0.06)",
+              minWidth: 232,
+              backdropFilter: "blur(12px)",
+              overflow: "hidden",
             }}>
-              {/* ── Quick presets ── */}
-              <div style={{ display: "flex", gap: 4, marginBottom: 8, paddingBottom: 7, borderBottom: "1px solid rgba(131,238,240,0.08)" }}>
+              {/* ── Panel header ── */}
+              <div style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                padding: "9px 12px 8px",
+                borderBottom: "1px solid rgba(131,238,240,0.08)",
+                background: "rgba(131,238,240,0.03)",
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <Layers size={11} color="#83eef0" />
+                  <span style={{ fontSize: 11, fontFamily: "Inter,sans-serif", fontWeight: 700, color: "#d4e9f3bb", letterSpacing: "0.02em" }}>
+                    Map Layers
+                  </span>
+                </div>
+                <span style={{
+                  fontSize: 9, fontFamily: "Inter,sans-serif", fontWeight: 600,
+                  color: "#83eef0", background: "rgba(131,238,240,0.12)",
+                  border: "1px solid rgba(131,238,240,0.25)",
+                  borderRadius: 10, padding: "1px 7px",
+                }}>
+                  {[showCoralMapping, showMarineRegions, showGcrmn, showGcrmnMonSites, showGcrmnSites, showReefCheck, showReefLife, showWcsCcSites, showWcsReefCloud, showImgs].filter(Boolean).length} / 10
+                </span>
+              </div>
+
+              {/* ── Preset buttons ── */}
+              <div style={{ display: "flex", gap: 5, padding: "7px 10px 6px", borderBottom: "1px solid rgba(131,238,240,0.07)" }}>
                 <button
                   data-testid="toggle-all-layers"
                   onClick={() => { setShowMarineRegions(true); setShowCoralMapping(true); setShowGcrmn(true); setShowGcrmnSites(true); setShowGcrmnMonSites(true); setShowWcsReefCloud(true); setShowWcsCcSites(true); setShowReefCheck(true); setShowReefLife(true); setShowImgs(true); }}
-                  style={{ flex: 1, fontSize: 8.5, fontFamily: "Inter,sans-serif", fontWeight: 700, background: "rgba(131,238,240,0.12)", border: "1px solid rgba(131,238,240,0.28)", borderRadius: 5, padding: "3px 0", color: "#83eef0", cursor: "pointer" }}
-                >All</button>
+                  style={{ flex: 1, fontSize: 9, fontFamily: "Inter,sans-serif", fontWeight: 700, background: "rgba(131,238,240,0.11)", border: "1px solid rgba(131,238,240,0.28)", borderRadius: 6, padding: "4px 0", color: "#83eef0", cursor: "pointer", transition: "background 0.15s" }}
+                >Select All</button>
                 <button
                   data-testid="toggle-no-layers"
                   onClick={() => { setShowMarineRegions(false); setShowCoralMapping(false); setShowGcrmn(false); setShowGcrmnSites(false); setShowGcrmnMonSites(false); setShowWcsReefCloud(false); setShowWcsCcSites(false); setShowReefCheck(false); setShowReefLife(false); setShowImgs(false); }}
-                  style={{ flex: 1, fontSize: 8.5, fontFamily: "Inter,sans-serif", fontWeight: 700, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 5, padding: "3px 0", color: "#d4e9f355", cursor: "pointer" }}
-                >None</button>
+                  style={{ flex: 1, fontSize: 9, fontFamily: "Inter,sans-serif", fontWeight: 700, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 6, padding: "4px 0", color: "#d4e9f355", cursor: "pointer", transition: "background 0.15s" }}
+                >Clear All</button>
               </div>
 
-              {/* ── Layer groups (alphabetical within each) ── */}
-              {[
-                { group: "Boundaries", layers: [
-                  { testId: "toggle-coral-mapping-layer",   label: "Coral Reef Regions",  color: "#fd7272", active: showCoralMapping,  toggle: () => setShowCoralMapping(v => !v)  },
-                  { testId: "toggle-marine-regions-layer",  label: "EEZ Boundaries",      color: "#fdcb6e", active: showMarineRegions, toggle: () => setShowMarineRegions(v => !v) },
-                  { testId: "toggle-gcrmn-layer",           label: "GCRMN Regions",       color: "#1dd1a1", active: showGcrmn,         toggle: () => setShowGcrmn(v => !v)         },
-                ]},
-                { group: "Monitoring", layers: [
-                  { testId: "toggle-gcrmn-mon-sites-layer", label: "GCRMN Benthic Sites", color: "#26de81", active: showGcrmnMonSites, toggle: () => setShowGcrmnMonSites(v => !v) },
-                  { testId: "toggle-gcrmn-sites-layer",     label: "GCRMN Sites 2026",    color: "#A6CE39", active: showGcrmnSites,    toggle: () => setShowGcrmnSites(v => !v)    },
-                  { testId: "toggle-reef-check-layer",      label: "Reef Check",          color: "#fd9644", active: showReefCheck,     toggle: () => setShowReefCheck(v => !v)     },
-                  { testId: "toggle-reef-life-layer",       label: "Reef Life Survey",    color: "#45aaf2", active: showReefLife,      toggle: () => setShowReefLife(v => !v)      },
-                  { testId: "toggle-wcs-cc-layer",          label: "WCS Coral Cover",     color: "#ff6b9d", active: showWcsCcSites,    toggle: () => setShowWcsCcSites(v => !v)    },
-                  { testId: "toggle-wcs-reefcloud-layer",   label: "WCS ReefCloud",       color: "#e056fd", active: showWcsReefCloud,  toggle: () => setShowWcsReefCloud(v => !v)  },
-                ]},
-                { group: "Community", layers: [
-                  { testId: "toggle-imgs-layer",            label: "Reef Photos",         color: "#ff9f43", active: showImgs,          toggle: () => setShowImgs(v => !v)          },
-                ]},
-              ].map(({ group, layers }) => {
-                const allActive = layers.every(l => l.active);
-                return (
-                  <div key={group} style={{ marginBottom: 6 }}>
-                    {/* Group header */}
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 6px 3px" }}>
-                      <span style={{ fontSize: 7.5, fontFamily: "Inter,sans-serif", fontWeight: 700, letterSpacing: "0.09em", textTransform: "uppercase", color: "#d4e9f340" }}>
-                        {group}
-                      </span>
-                      <button
-                        onClick={() => { const turnOn = !allActive; layers.forEach(l => { if (l.active !== turnOn) l.toggle(); }); }}
-                        style={{ fontSize: 7.5, fontFamily: "Inter,sans-serif", fontWeight: 600, background: "none", border: "none", color: allActive ? "#d4e9f350" : "#83eef077", cursor: "pointer", padding: "0 2px" }}
-                      >{allActive ? "off" : "all"}</button>
+              {/* ── Layer groups ── */}
+              <div style={{ padding: "6px 6px 8px", maxHeight: 360, overflowY: "auto" }}>
+                {([
+                  { group: "Boundaries", icon: "◈", layers: [
+                    { testId: "toggle-coral-mapping-layer",   label: "Coral Reef Regions",  sublabel: "29 zones · UQ / Allen Coral Atlas",  color: "#fd7272", active: showCoralMapping,  toggle: () => setShowCoralMapping(v => !v)  },
+                    { testId: "toggle-marine-regions-layer",  label: "EEZ Boundaries",      sublabel: "Excl. Economic Zones · VLIZ",         color: "#fdcb6e", active: showMarineRegions, toggle: () => setShowMarineRegions(v => !v) },
+                    { testId: "toggle-gcrmn-layer",           label: "GCRMN Regions",       sublabel: "10 global monitoring zones",          color: "#1dd1a1", active: showGcrmn,         toggle: () => setShowGcrmn(v => !v)         },
+                  ]},
+                  { group: "Monitoring", icon: "◉", layers: [
+                    { testId: "toggle-gcrmn-mon-sites-layer", label: "GCRMN Benthic Sites", sublabel: "gcrmndb_benthos program stations",     color: "#26de81", active: showGcrmnMonSites, toggle: () => setShowGcrmnMonSites(v => !v) },
+                    { testId: "toggle-gcrmn-sites-layer",     label: "GCRMN Sites 2026",    sublabel: `${GCRMN_SITES_2026.length} territories`, color: "#A6CE39", active: showGcrmnSites, toggle: () => setShowGcrmnSites(v => !v)    },
+                    { testId: "toggle-reef-check-layer",      label: "Reef Check",          sublabel: "~6,200 stations · coral + bleaching", color: "#fd9644", active: showReefCheck,     toggle: () => setShowReefCheck(v => !v)     },
+                    { testId: "toggle-reef-life-layer",       label: "Reef Life Survey",    sublabel: "4,147 sites · ecoregion metadata",    color: "#45aaf2", active: showReefLife,      toggle: () => setShowReefLife(v => !v)      },
+                    { testId: "toggle-wcs-cc-layer",          label: "WCS Coral Cover",     sublabel: "4,766 field survey sites · WCS",      color: "#ff6b9d", active: showWcsCcSites,    toggle: () => setShowWcsCcSites(v => !v)    },
+                    { testId: "toggle-wcs-reefcloud-layer",   label: "WCS ReefCloud",       sublabel: "14,501 monitoring stations · WCS",    color: "#e056fd", active: showWcsReefCloud,  toggle: () => setShowWcsReefCloud(v => !v)  },
+                  ]},
+                  { group: "Community", icon: "●", layers: [
+                    { testId: "toggle-imgs-layer",            label: "Reef Photos",         sublabel: "Community-submitted images",          color: "#ff9f43", active: showImgs,          toggle: () => setShowImgs(v => !v)          },
+                  ]},
+                ] as const).map(({ group, icon, layers }) => {
+                  const allActive = (layers as any[]).every((l: any) => l.active);
+                  return (
+                    <div key={group} style={{ marginBottom: 4 }}>
+                      {/* Group header */}
+                      <div style={{
+                        display: "flex", alignItems: "center", justifyContent: "space-between",
+                        padding: "5px 10px 3px",
+                      }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                          <span style={{ fontSize: 8, color: "#d4e9f333" }}>{icon}</span>
+                          <span style={{ fontSize: 8, fontFamily: "Inter,sans-serif", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#d4e9f340" }}>
+                            {group}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => { const turnOn = !allActive; (layers as any[]).forEach((l: any) => { if (l.active !== turnOn) l.toggle(); }); }}
+                          style={{
+                            fontSize: 8, fontFamily: "Inter,sans-serif", fontWeight: 600,
+                            background: "none", border: "none", cursor: "pointer", padding: "1px 5px",
+                            color: allActive ? "#d4e9f344" : "#83eef088",
+                            borderRadius: 4,
+                          }}
+                        >{allActive ? "Hide all" : "Show all"}</button>
+                      </div>
+                      {/* Layer rows */}
+                      {(layers as any[]).map((l: any) => (
+                        <CompactLayerRow key={l.testId} {...l} />
+                      ))}
                     </div>
-                    {/* Layer rows */}
-                    {layers.map(({ testId, label, color, active, toggle }) => (
-                      <button
-                        key={testId}
-                        data-testid={testId}
-                        onClick={toggle}
-                        style={{ display: "flex", alignItems: "center", gap: 7, background: active ? `${color}14` : "transparent", border: "1px solid transparent", borderRadius: 6, padding: "3px 8px", cursor: "pointer", textAlign: "left", width: "100%" }}
-                      >
-                        <span style={{ width: 7, height: 7, borderRadius: "50%", flexShrink: 0, background: color, opacity: active ? 0.9 : 0.2, boxShadow: active ? `0 0 4px ${color}77` : "none", transition: "opacity 0.15s" }} />
-                        <span style={{ fontSize: 9.5, fontFamily: "Inter,sans-serif", fontWeight: active ? 600 : 400, color: active ? "#d4e9f3dd" : "#d4e9f340" }}>{label}</span>
-                      </button>
-                    ))}
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>
