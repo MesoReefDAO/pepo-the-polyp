@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
-import { MapContainer, TileLayer, WMSTileLayer, Marker, Popup, GeoJSON, CircleMarker, useMap, useMapEvents } from "react-leaflet";
+import { MapContainer, TileLayer, WMSTileLayer, Marker, Popup, GeoJSON, CircleMarker, Polyline, Polygon, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { Maximize2, X, Users, Globe, Layers, Camera } from "lucide-react";
@@ -307,6 +307,48 @@ function MapBoundsTracker({ onBoundsChange }: { onBoundsChange: (b: L.LatLngBoun
   return null;
 }
 
+// ─── Map tools helpers ────────────────────────────────────────────────────────
+function haversineDist(a: L.LatLng, b: L.LatLng): number {
+  return a.distanceTo(b) / 1000; // km
+}
+function polygonAreaKm2(pts: L.LatLng[]): number {
+  if (pts.length < 3) return 0;
+  const R = 6371;
+  let area = 0;
+  const n = pts.length;
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n;
+    const xi = pts[i].lng * Math.PI / 180;
+    const yi = pts[i].lat * Math.PI / 180;
+    const xj = pts[j].lng * Math.PI / 180;
+    const yj = pts[j].lat * Math.PI / 180;
+    area += (xj - xi) * (Math.sin(yi) + Math.sin(yj));
+  }
+  return Math.abs(area * R * R / 2);
+}
+
+type MapTool = 'points' | 'lines' | 'areas' | 'import' | 'settings';
+
+function MapToolHandler({ activeTool, onMapClick }: {
+  activeTool: MapTool | null;
+  onMapClick: (latlng: L.LatLng) => void;
+}) {
+  const map = useMap();
+  useEffect(() => {
+    map.getContainer().style.cursor =
+      activeTool === 'points' || activeTool === 'lines' || activeTool === 'areas'
+        ? 'crosshair' : '';
+  }, [map, activeTool]);
+  useMapEvents({
+    click: e => {
+      if (activeTool === 'points' || activeTool === 'lines' || activeTool === 'areas') {
+        onMapClick(e.latlng);
+      }
+    },
+  });
+  return null;
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface MapMarker {
   id: string;
@@ -522,6 +564,12 @@ type LiveLayer = {
   product: string; dataset: string; elevation: number | null;
   time: () => string; toolboxId: string;
   group: string;
+  // Dataset metadata shown in the metrics card
+  productTitle: string;
+  resolution: string;
+  cadence: string;
+  depthRange: string;
+  coverage: string;
 };
 type LiveVar =
   | "thetao" | "so" | "sea_water_velocity" | "zos" | "siconc"
@@ -548,72 +596,93 @@ const LIVE_LAYERS: LiveLayer[] = [
   // ── SST NRT ────────────────────────────────────────────────────────────────
   { var: "analysed_sst",      label: "Sea Surface Temp.",   unit: "°C · NRT daily",           color: "#ff6b6b", cmap: "thermal",
     product: SST, dataset: "METOFFICE-GLO-SST-L4-NRT-OBS-SST-V2",
-    elevation: null,   time: () => liveDate(2),              toolboxId: SST,                                   group: "SST NRT" },
+    elevation: null,   time: () => liveDate(2),              toolboxId: SST,                                   group: "SST NRT",
+    productTitle: "OSTIA Global SST (Met Office · CMEMS)", resolution: "0.05° · 6 km", cadence: "Daily · NRT observations", depthRange: "Surface", coverage: "Global · 1981–NRT" },
   // ── Ocean Physics — Model (PHY_001_024) ───────────────────────────────────
   { var: "thetao",            label: "Temperature",         unit: "°C · 6H · 0.5 m",          color: "#e17055", cmap: "thermal",
     product: PHY, dataset: "cmems_mod_glo_phy-thetao_anfc_0.083deg_PT6H-i_202406",
-    elevation: -0.494, time: () => liveDate(1),              toolboxId: "cmems_mod_glo_phy-thetao_anfc_0.083deg_PT6H-i_202406", group: "Physics Forecast" },
+    elevation: -0.494, time: () => liveDate(1),              toolboxId: "cmems_mod_glo_phy-thetao_anfc_0.083deg_PT6H-i_202406", group: "Physics Forecast",
+    productTitle: "Global Ocean Physics Analysis and Forecast", resolution: "1/12° · ~9 km", cadence: "6-hourly forecast", depthRange: "0–5727 m · 50 levels", coverage: "Global · 2019–NRT" },
   { var: "so",                label: "Salinity",            unit: "PSU · 6H · 0.5 m",          color: "#a29bfe", cmap: "haline",
     product: PHY, dataset: "cmems_mod_glo_phy-so_anfc_0.083deg_PT6H-i_202406",
-    elevation: -0.494, time: () => liveDate(1),              toolboxId: "cmems_mod_glo_phy-so_anfc_0.083deg_PT6H-i_202406",    group: "Physics Forecast" },
+    elevation: -0.494, time: () => liveDate(1),              toolboxId: "cmems_mod_glo_phy-so_anfc_0.083deg_PT6H-i_202406",    group: "Physics Forecast",
+    productTitle: "Global Ocean Physics Analysis and Forecast", resolution: "1/12° · ~9 km", cadence: "6-hourly forecast", depthRange: "0–5727 m · 50 levels", coverage: "Global · 2019–NRT" },
   { var: "sea_water_velocity",label: "Currents",            unit: "m s⁻¹ · hourly · 0.5 m",   color: "#00cec9", cmap: "speed",
     product: PHY, dataset: "cmems_mod_glo_phy_anfc_0.083deg_PT1H-m_202406",
-    elevation: -0.494, time: () => liveDate(1),              toolboxId: "cmems_mod_glo_phy_anfc_0.083deg_PT1H-m_202406",       group: "Physics Forecast" },
+    elevation: -0.494, time: () => liveDate(1),              toolboxId: "cmems_mod_glo_phy_anfc_0.083deg_PT1H-m_202406",       group: "Physics Forecast",
+    productTitle: "Global Ocean Physics Analysis and Forecast", resolution: "1/12° · ~9 km", cadence: "Hourly forecast", depthRange: "0–5727 m · 50 levels", coverage: "Global · 2019–NRT" },
   { var: "zos",               label: "SSH · Model",         unit: "m · hourly forecast",        color: "#74b9ff", cmap: "balance",
     product: PHY, dataset: "cmems_mod_glo_phy_anfc_0.083deg_PT1H-m_202406",
-    elevation: null,   time: () => liveDate(1),              toolboxId: "cmems_mod_glo_phy_anfc_0.083deg_PT1H-m_202406",       group: "Physics Forecast" },
+    elevation: null,   time: () => liveDate(1),              toolboxId: "cmems_mod_glo_phy_anfc_0.083deg_PT1H-m_202406",       group: "Physics Forecast",
+    productTitle: "Global Ocean Physics Analysis and Forecast", resolution: "1/12° · ~9 km", cadence: "Hourly forecast", depthRange: "Surface", coverage: "Global · 2019–NRT" },
   { var: "siconc",            label: "Sea Ice",             unit: "fraction · daily",            color: "#dfe6e9", cmap: "ice",
     product: PHY, dataset: "cmems_mod_glo_phy_anfc_0.083deg_P1D-m_202406",
-    elevation: null,   time: () => liveDate(2),              toolboxId: "cmems_mod_glo_phy_anfc_0.083deg_P1D-m_202406",        group: "Physics Forecast" },
+    elevation: null,   time: () => liveDate(2),              toolboxId: "cmems_mod_glo_phy_anfc_0.083deg_P1D-m_202406",        group: "Physics Forecast",
+    productTitle: "Global Ocean Physics Analysis and Forecast", resolution: "1/12° · ~9 km", cadence: "Daily forecast", depthRange: "Surface", coverage: "Global · 2019–NRT" },
   // ── Multi-observation Physics — ARMOR3D (MULTIOBS_015_012) ────────────────
   { var: "to_obs", wmtsVar: "to", label: "Temp. (Obs.)",   unit: "°C · weekly multi-obs",     color: "#fab1a0", cmap: "thermal",
     product: MULTIOBS, dataset: "dataset-armor-3d-nrt-weekly",
-    elevation: -0.494, time: () => liveDate(7),              toolboxId: "dataset-armor-3d-nrt-weekly",                         group: "Observation · Multi-sensor" },
+    elevation: -0.494, time: () => liveDate(7),              toolboxId: "dataset-armor-3d-nrt-weekly",                         group: "Observation · Multi-sensor",
+    productTitle: "ARMOR3D Multi-Observation Physics (NRT)", resolution: "1/4° · ~25 km", cadence: "Weekly · multi-obs fusion", depthRange: "0–5500 m · 33 levels", coverage: "Global · NRT" },
   { var: "ugo",               label: "Geostr. Velocity",   unit: "m s⁻¹ · weekly obs",         color: "#55efc4", cmap: "speed",
     product: MULTIOBS, dataset: "dataset-armor-3d-nrt-weekly",
-    elevation: -0.494, time: () => liveDate(7),              toolboxId: "dataset-armor-3d-nrt-weekly",                         group: "Observation · Multi-sensor" },
+    elevation: -0.494, time: () => liveDate(7),              toolboxId: "dataset-armor-3d-nrt-weekly",                         group: "Observation · Multi-sensor",
+    productTitle: "ARMOR3D Multi-Observation Physics (NRT)", resolution: "1/4° · ~25 km", cadence: "Weekly · multi-obs fusion", depthRange: "0–5500 m · 33 levels", coverage: "Global · NRT" },
   // ── Sea Level Altimetry (SEALEVEL_008_047) ────────────────────────────────
   { var: "adt",               label: "Abs. Sea Level",     unit: "m · L4 altimetry daily",     color: "#0984e3", cmap: "balance",
     product: SEALEVEL, dataset: "cmems_obs-sl_glo_phy-ssh_my_allsat-l4-duacs-0.125deg_P1D",
-    elevation: null,   time: () => liveDate(3),              toolboxId: SEALEVEL,                                              group: "Sea Level Altimetry" },
+    elevation: null,   time: () => liveDate(3),              toolboxId: SEALEVEL,                                              group: "Sea Level Altimetry",
+    productTitle: "DUACS Altimetry Sea Level — Multimission L4", resolution: "1/8° · ~14 km", cadence: "Daily · multi-satellite", depthRange: "Surface", coverage: "Global · 1993–present" },
   { var: "sla",               label: "Sea Level Anomaly",  unit: "m · L4 altimetry daily",     color: "#6c5ce7", cmap: "diff",
     product: SEALEVEL, dataset: "cmems_obs-sl_glo_phy-ssh_my_allsat-l4-duacs-0.125deg_P1D",
-    elevation: null,   time: () => liveDate(3),              toolboxId: SEALEVEL,                                              group: "Sea Level Altimetry" },
+    elevation: null,   time: () => liveDate(3),              toolboxId: SEALEVEL,                                              group: "Sea Level Altimetry",
+    productTitle: "DUACS Altimetry Sea Level — Multimission L4", resolution: "1/8° · ~14 km", cadence: "Daily · multi-satellite", depthRange: "Surface", coverage: "Global · 1993–present" },
   // ── Wave & Wind (WAV_001_027 + WIND_L4_NRT) ──────────────────────────────
   { var: "VHM0",              label: "Wave Height",        unit: "m · 3H forecast",             color: "#6c5ce7", cmap: "matter",
     product: WAV, dataset: "cmems_mod_glo_wav_anfc_0.083deg_PT3H-i_202411",
-    elevation: null,   time: () => liveDate(1, "03:00:00"), toolboxId: "cmems_mod_glo_wav_anfc_0.083deg_PT3H-i_202411",       group: "Wave & Wind" },
+    elevation: null,   time: () => liveDate(1, "03:00:00"), toolboxId: "cmems_mod_glo_wav_anfc_0.083deg_PT3H-i_202411",       group: "Wave & Wind",
+    productTitle: "Global Ocean Waves Analysis and Forecast", resolution: "1/12° · ~9 km", cadence: "3-hourly forecast", depthRange: "Surface", coverage: "Global · 2019–NRT" },
   { var: "VTPK",              label: "Peak Wave Period",   unit: "s · 3H forecast",             color: "#81ecec", cmap: "ice",
     product: WAV, dataset: "cmems_mod_glo_wav_anfc_0.083deg_PT3H-i_202411",
-    elevation: null,   time: () => liveDate(1, "03:00:00"), toolboxId: "cmems_mod_glo_wav_anfc_0.083deg_PT3H-i_202411",       group: "Wave & Wind" },
+    elevation: null,   time: () => liveDate(1, "03:00:00"), toolboxId: "cmems_mod_glo_wav_anfc_0.083deg_PT3H-i_202411",       group: "Wave & Wind",
+    productTitle: "Global Ocean Waves Analysis and Forecast", resolution: "1/12° · ~9 km", cadence: "3-hourly forecast", depthRange: "Surface", coverage: "Global · 2019–NRT" },
   { var: "VMDR",              label: "Wave Direction",     unit: "deg · 3H forecast",           color: "#b2bec3", cmap: "phase",
     product: WAV, dataset: "cmems_mod_glo_wav_anfc_0.083deg_PT3H-i_202411",
-    elevation: null,   time: () => liveDate(1, "03:00:00"), toolboxId: "cmems_mod_glo_wav_anfc_0.083deg_PT3H-i_202411",       group: "Wave & Wind" },
+    elevation: null,   time: () => liveDate(1, "03:00:00"), toolboxId: "cmems_mod_glo_wav_anfc_0.083deg_PT3H-i_202411",       group: "Wave & Wind",
+    productTitle: "Global Ocean Waves Analysis and Forecast", resolution: "1/12° · ~9 km", cadence: "3-hourly forecast", depthRange: "Surface", coverage: "Global · 2019–NRT" },
   { var: "wind",              label: "Wind Speed",         unit: "m s⁻¹ · hourly NRT",         color: "#fdcb6e", cmap: "speed",
     product: WND, dataset: "cmems_obs-wind_glo_phy_nrt_l4_0.125deg_PT1H_202207",
-    elevation: null,   time: () => "2023-11-20T00:00:00Z",  toolboxId: "cmems_obs-wind_glo_phy_nrt_l4_0.125deg_PT1H_202207", group: "Wave & Wind" },
+    elevation: null,   time: () => "2023-11-20T00:00:00Z",  toolboxId: "cmems_obs-wind_glo_phy_nrt_l4_0.125deg_PT1H_202207", group: "Wave & Wind",
+    productTitle: "Global Ocean Wind L4 NRT (Copernicus)", resolution: "1/8° · ~14 km", cadence: "Hourly · NRT obs", depthRange: "10 m above sea level", coverage: "Global · 2007–NRT" },
   // ── Ocean BGC — Model (BGC_001_028) ───────────────────────────────────────
   { var: "ph",                label: "Acidity (pH)",       unit: "pH · monthly",               color: "#fd79a8", cmap: "ice",
     product: BGC, dataset: "cmems_mod_glo_bgc-car_anfc_0.25deg_P1M-m_202311",
-    elevation: -0.494, time: () => "2024-01-01T00:00:00Z",  toolboxId: "cmems_mod_glo_bgc-car_anfc_0.25deg_P1M-m_202311",    group: "BGC Forecast" },
+    elevation: -0.494, time: () => "2024-01-01T00:00:00Z",  toolboxId: "cmems_mod_glo_bgc-car_anfc_0.25deg_P1M-m_202311",    group: "BGC Forecast",
+    productTitle: "Global Ocean Biogeochemistry Analysis and Forecast", resolution: "1/4° · ~25 km", cadence: "Monthly forecast", depthRange: "0–5727 m · 50 levels", coverage: "Global · 2019–NRT" },
   { var: "o2",                label: "Oxygen",             unit: "mmol m⁻³ · monthly",         color: "#55efc4", cmap: "dense",
     product: BGC, dataset: "cmems_mod_glo_bgc-bio_anfc_0.25deg_P1M-m_202311",
-    elevation: -0.494, time: () => "2024-01-01T00:00:00Z",  toolboxId: "cmems_mod_glo_bgc-bio_anfc_0.25deg_P1M-m_202311",    group: "BGC Forecast" },
+    elevation: -0.494, time: () => "2024-01-01T00:00:00Z",  toolboxId: "cmems_mod_glo_bgc-bio_anfc_0.25deg_P1M-m_202311",    group: "BGC Forecast",
+    productTitle: "Global Ocean Biogeochemistry Analysis and Forecast", resolution: "1/4° · ~25 km", cadence: "Monthly forecast", depthRange: "0–5727 m · 50 levels", coverage: "Global · 2019–NRT" },
   { var: "phyc",              label: "Biomass",            unit: "mgC m⁻³ · monthly",          color: "#26de81", cmap: "amp",
     product: BGC, dataset: "cmems_mod_glo_bgc-pft_anfc_0.25deg_P1M-m_202311",
-    elevation: null,   time: () => "2024-01-01T00:00:00Z",  toolboxId: "cmems_mod_glo_bgc-pft_anfc_0.25deg_P1M-m_202311",    group: "BGC Forecast" },
+    elevation: null,   time: () => "2024-01-01T00:00:00Z",  toolboxId: "cmems_mod_glo_bgc-pft_anfc_0.25deg_P1M-m_202311",    group: "BGC Forecast",
+    productTitle: "Global Ocean Biogeochemistry Analysis and Forecast", resolution: "1/4° · ~25 km", cadence: "Monthly forecast", depthRange: "Surface", coverage: "Global · 2019–NRT" },
   { var: "nppv",              label: "Primary Production", unit: "mgC m⁻³ d⁻¹ · monthly",     color: "#00b894", cmap: "algae",
     product: BGC, dataset: "cmems_mod_glo_bgc-bio_anfc_0.25deg_P1M-m_202311",
-    elevation: null,   time: () => "2024-01-01T00:00:00Z",  toolboxId: "cmems_mod_glo_bgc-bio_anfc_0.25deg_P1M-m_202311",    group: "BGC Forecast" },
+    elevation: null,   time: () => "2024-01-01T00:00:00Z",  toolboxId: "cmems_mod_glo_bgc-bio_anfc_0.25deg_P1M-m_202311",    group: "BGC Forecast",
+    productTitle: "Global Ocean Biogeochemistry Analysis and Forecast", resolution: "1/4° · ~25 km", cadence: "Monthly forecast", depthRange: "Surface", coverage: "Global · 2019–NRT" },
   { var: "no3",               label: "Nitrate",            unit: "mmol m⁻³ · monthly",         color: "#fd9644", cmap: "matter",
     product: BGC, dataset: "cmems_mod_glo_bgc-nut_anfc_0.25deg_P1M-m_202311",
-    elevation: -0.494, time: () => "2024-01-01T00:00:00Z",  toolboxId: "cmems_mod_glo_bgc-nut_anfc_0.25deg_P1M-m_202311",    group: "BGC Forecast" },
+    elevation: -0.494, time: () => "2024-01-01T00:00:00Z",  toolboxId: "cmems_mod_glo_bgc-nut_anfc_0.25deg_P1M-m_202311",    group: "BGC Forecast",
+    productTitle: "Global Ocean Biogeochemistry Analysis and Forecast", resolution: "1/4° · ~25 km", cadence: "Monthly forecast", depthRange: "0–5727 m · 50 levels", coverage: "Global · 2019–NRT" },
   { var: "po4",               label: "Phosphate",          unit: "mmol m⁻³ · monthly",         color: "#a29bfe", cmap: "tempo",
     product: BGC, dataset: "cmems_mod_glo_bgc-nut_anfc_0.25deg_P1M-m_202311",
-    elevation: -0.494, time: () => "2024-01-01T00:00:00Z",  toolboxId: "cmems_mod_glo_bgc-nut_anfc_0.25deg_P1M-m_202311",    group: "BGC Forecast" },
+    elevation: -0.494, time: () => "2024-01-01T00:00:00Z",  toolboxId: "cmems_mod_glo_bgc-nut_anfc_0.25deg_P1M-m_202311",    group: "BGC Forecast",
+    productTitle: "Global Ocean Biogeochemistry Analysis and Forecast", resolution: "1/4° · ~25 km", cadence: "Monthly forecast", depthRange: "0–5727 m · 50 levels", coverage: "Global · 2019–NRT" },
   { var: "si",                label: "Silicate",           unit: "mmol m⁻³ · monthly",         color: "#74b9ff", cmap: "deep",
     product: BGC, dataset: "cmems_mod_glo_bgc-nut_anfc_0.25deg_P1M-m_202311",
-    elevation: -0.494, time: () => "2024-01-01T00:00:00Z",  toolboxId: "cmems_mod_glo_bgc-nut_anfc_0.25deg_P1M-m_202311",    group: "BGC Forecast" },
+    elevation: -0.494, time: () => "2024-01-01T00:00:00Z",  toolboxId: "cmems_mod_glo_bgc-nut_anfc_0.25deg_P1M-m_202311",    group: "BGC Forecast",
+    productTitle: "Global Ocean Biogeochemistry Analysis and Forecast", resolution: "1/4° · ~25 km", cadence: "Monthly forecast", depthRange: "0–5727 m · 50 levels", coverage: "Global · 2019–NRT" },
 ];
 
 const LIVE_GROUPS = [
@@ -662,6 +731,29 @@ function ExpandedMapModal({
   const [toolboxTab,         setToolboxTab]         = useState<'cli'|'python'>('cli');
   const [activeLiveVar,      setActiveLiveVar]      = useState<LiveVar|null>(null);
   const [mapBounds,          setMapBounds]          = useState<L.LatLngBounds | null>(null);
+  const [activeTool,         setActiveTool]         = useState<MapTool | null>(null);
+  const [toolPoints,         setToolPoints]         = useState<L.LatLng[]>([]);
+  const [toolLine,           setToolLine]           = useState<L.LatLng[]>([]);
+  const [toolArea,           setToolArea]           = useState<L.LatLng[]>([]);
+  const [importedGeoJson,    setImportedGeoJson]    = useState<GeoJSON.FeatureCollection | null>(null);
+  const [layerOpacity,       setLayerOpacity]       = useState(0.72);
+  const importInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileImport = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = evt => {
+      try {
+        const json = JSON.parse(evt.target?.result as string);
+        if (json.type === 'FeatureCollection') setImportedGeoJson(json);
+        else if (json.type === 'Feature') setImportedGeoJson({ type: 'FeatureCollection', features: [json] });
+        else setImportedGeoJson({ type: 'FeatureCollection', features: [{ type: 'Feature', geometry: json, properties: {} }] });
+      } catch { alert('Could not parse file as GeoJSON'); }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  }, []);
 
   // ── GeoJSON data — each layer fetched lazily when its toggle is enabled ──────
   const { data: gcrmnGeoJson } = useQuery<GeoJSON.FeatureCollection>({
@@ -802,7 +894,7 @@ function ExpandedMapModal({
               <TileLayer
                 key={cmsTileUrl}
                 url={cmsTileUrl}
-                opacity={0.72}
+                opacity={layerOpacity}
                 maxZoom={10}
                 attribution='© <a href="https://marine.copernicus.eu">Copernicus Marine Service · Mercator Ocean International</a>'
               />
@@ -811,7 +903,7 @@ function ExpandedMapModal({
               <TileLayer
                 key={liveTileUrl}
                 url={liveTileUrl}
-                opacity={0.72}
+                opacity={layerOpacity}
                 maxZoom={10}
                 attribution='© <a href="https://marine.copernicus.eu">Copernicus Marine Service · Mercator Ocean International</a>'
               />
@@ -1015,7 +1107,186 @@ function ExpandedMapModal({
             {markers.length > 0 && <FitBounds markers={markers} />}
             <GcrmnZoomWatcher enabled={showGcrmnMonSites} />
             <MapBoundsTracker onBoundsChange={setMapBounds} />
+
+            {/* ── Map tool handler ── */}
+            <MapToolHandler
+              activeTool={activeTool}
+              onMapClick={latlng => {
+                if (activeTool === 'points') setToolPoints(v => [...v, latlng]);
+                else if (activeTool === 'lines') setToolLine(v => v.length < 50 ? [...v, latlng] : v);
+                else if (activeTool === 'areas') setToolArea(v => [...v, latlng]);
+              }}
+            />
+
+            {/* ── Points tool markers ── */}
+            {toolPoints.map((pt, i) => (
+              <CircleMarker key={`tp-${i}`} center={pt} radius={6}
+                pathOptions={{ color: "#00b894", fillColor: "#00b894", fillOpacity: 0.85, weight: 2 }}>
+                <Popup>
+                  <div style={{ fontFamily: "Inter,sans-serif", fontSize: 11, lineHeight: 1.6 }}>
+                    <div style={{ fontWeight: 700, color: "#00b894", marginBottom: 3 }}>📍 Point {i + 1}</div>
+                    <div>Lat: <b>{pt.lat.toFixed(6)}°</b></div>
+                    <div>Lon: <b>{pt.lng.toFixed(6)}°</b></div>
+                  </div>
+                </Popup>
+              </CircleMarker>
+            ))}
+
+            {/* ── Lines tool ── */}
+            {toolLine.length >= 2 && (
+              <Polyline positions={toolLine} pathOptions={{ color: "#fdcb6e", weight: 2.5, dashArray: "7 4" }} />
+            )}
+            {toolLine.map((pt, i) => i === 0 ? null : (
+              <CircleMarker key={`tl-${i}`} center={pt} radius={4}
+                pathOptions={{ color: "#fdcb6e", fillColor: "#fdcb6e", fillOpacity: 0.9, weight: 1.5 }}>
+                <Popup>
+                  <div style={{ fontFamily: "Inter,sans-serif", fontSize: 11, lineHeight: 1.6 }}>
+                    <div style={{ fontWeight: 700, color: "#fdcb6e", marginBottom: 3 }}>📏 Segment {i}</div>
+                    <div>Distance: <b>{haversineDist(toolLine[i - 1], pt).toFixed(2)} km</b></div>
+                  </div>
+                </Popup>
+              </CircleMarker>
+            ))}
+
+            {/* ── Areas tool ── */}
+            {toolArea.length >= 3 && (
+              <Polygon positions={toolArea}
+                pathOptions={{ color: "#74b9ff", fillColor: "#74b9ff", fillOpacity: 0.12, weight: 2 }} />
+            )}
+            {toolArea.map((pt, i) => (
+              <CircleMarker key={`ta-${i}`} center={pt} radius={3}
+                pathOptions={{ color: "#74b9ff", fillColor: "#74b9ff", fillOpacity: 0.8, weight: 1 }} />
+            ))}
+
+            {/* ── Imported GeoJSON ── */}
+            {importedGeoJson && (
+              <GeoJSON
+                key={`import-${importedGeoJson.features.length}-${JSON.stringify(importedGeoJson.features[0]?.geometry).slice(0, 20)}`}
+                data={importedGeoJson}
+                style={() => ({ color: "#ff9f43", weight: 2.5, fillOpacity: 0.15, fillColor: "#ff9f43" })}
+              />
+            )}
           </MapContainer>
+
+          {/* ── Map Tools Floating Toolbar ── */}
+          <div style={{
+            position: "absolute", left: 14, top: 14, zIndex: 900,
+            display: "flex", flexDirection: "column", gap: 6,
+            pointerEvents: "auto",
+          }}>
+            {/* Tool result readout — Points */}
+            {activeTool === 'points' && toolPoints.length > 0 && (
+              <div style={{ background: "rgba(0,10,18,0.92)", border: "1px solid rgba(0,184,148,0.4)", borderRadius: 8, padding: "8px 11px", minWidth: 150, backdropFilter: "blur(8px)", fontFamily: "Inter,sans-serif" }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: "#00b894", marginBottom: 5 }}>📍 Points ({toolPoints.length})</div>
+                {toolPoints.slice(-3).map((pt, i) => (
+                  <div key={i} style={{ fontSize: 8.5, color: "#d4e9f3aa", marginBottom: 2 }}>
+                    {pt.lat.toFixed(4)}°N, {pt.lng.toFixed(4)}°E
+                  </div>
+                ))}
+                {toolPoints.length > 3 && <div style={{ fontSize: 8, color: "#d4e9f333" }}>+{toolPoints.length - 3} more</div>}
+                <button onClick={() => setToolPoints([])} style={{ marginTop: 6, fontSize: 8, background: "none", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 4, color: "#d4e9f366", cursor: "pointer", padding: "2px 8px", width: "100%", fontFamily: "Inter,sans-serif" }}>Clear</button>
+              </div>
+            )}
+
+            {/* Tool result readout — Lines */}
+            {activeTool === 'lines' && toolLine.length >= 2 && (
+              <div style={{ background: "rgba(0,10,18,0.92)", border: "1px solid rgba(253,203,110,0.4)", borderRadius: 8, padding: "8px 11px", minWidth: 150, backdropFilter: "blur(8px)", fontFamily: "Inter,sans-serif" }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: "#fdcb6e", marginBottom: 5 }}>📏 Distance</div>
+                {toolLine.slice(1).map((pt, i) => (
+                  <div key={i} style={{ fontSize: 8.5, color: "#d4e9f3aa", marginBottom: 2 }}>
+                    Seg {i + 1}: {haversineDist(toolLine[i], pt).toFixed(2)} km
+                  </div>
+                ))}
+                {toolLine.length > 2 && (
+                  <div style={{ fontSize: 9, fontWeight: 700, color: "#fdcb6e", marginTop: 5, borderTop: "1px solid rgba(253,203,110,0.2)", paddingTop: 5 }}>
+                    Total: {toolLine.slice(1).reduce((acc, pt, i) => acc + haversineDist(toolLine[i], pt), 0).toFixed(2)} km
+                  </div>
+                )}
+                <button onClick={() => setToolLine([])} style={{ marginTop: 6, fontSize: 8, background: "none", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 4, color: "#d4e9f366", cursor: "pointer", padding: "2px 8px", width: "100%", fontFamily: "Inter,sans-serif" }}>Clear</button>
+              </div>
+            )}
+
+            {/* Tool result readout — Areas */}
+            {activeTool === 'areas' && toolArea.length >= 3 && (
+              <div style={{ background: "rgba(0,10,18,0.92)", border: "1px solid rgba(116,185,255,0.4)", borderRadius: 8, padding: "8px 11px", minWidth: 150, backdropFilter: "blur(8px)", fontFamily: "Inter,sans-serif" }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: "#74b9ff", marginBottom: 5 }}>▱ Area</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#74b9ff" }}>{polygonAreaKm2(toolArea).toFixed(1)} km²</div>
+                <div style={{ fontSize: 8, color: "#d4e9f355", marginTop: 2 }}>{toolArea.length} vertices</div>
+                <button onClick={() => setToolArea([])} style={{ marginTop: 6, fontSize: 8, background: "none", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 4, color: "#d4e9f366", cursor: "pointer", padding: "2px 8px", width: "100%", fontFamily: "Inter,sans-serif" }}>Clear</button>
+              </div>
+            )}
+
+            {/* Settings panel */}
+            {activeTool === 'settings' && (
+              <div style={{ background: "rgba(0,10,18,0.92)", border: "1px solid rgba(131,238,240,0.3)", borderRadius: 8, padding: "10px 12px", minWidth: 168, backdropFilter: "blur(8px)", fontFamily: "Inter,sans-serif" }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: "#83eef0", marginBottom: 10 }}>⚙ Layer Settings</div>
+                {(activeCmsVar || activeLiveVar) ? (
+                  <>
+                    <div style={{ fontSize: 8, color: "#d4e9f355", marginBottom: 6 }}>
+                      Opacity — <span style={{ color: "#83eef0", fontWeight: 700 }}>{Math.round(layerOpacity * 100)}%</span>
+                    </div>
+                    <input
+                      type="range" min={0} max={100} value={Math.round(layerOpacity * 100)}
+                      onChange={e => setLayerOpacity(parseInt(e.target.value) / 100)}
+                      style={{ width: "100%", accentColor: "#83eef0", marginBottom: 4 }}
+                    />
+                  </>
+                ) : (
+                  <div style={{ fontSize: 9, color: "#d4e9f355", lineHeight: 1.5 }}>Enable a Copernicus layer to adjust opacity.</div>
+                )}
+                {importedGeoJson && (
+                  <button onClick={() => setImportedGeoJson(null)} style={{ marginTop: 8, fontSize: 8, background: "rgba(253,121,168,0.1)", border: "1px solid rgba(253,121,168,0.3)", borderRadius: 4, color: "#fd79a8", cursor: "pointer", padding: "3px 8px", width: "100%", fontFamily: "Inter,sans-serif", fontWeight: 600 }}>
+                    Remove imported layer
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Toolbar buttons — MyOceanPro style */}
+            {([
+              { id: 'points',   icon: '⊕', label: 'Points',   color: '#00b894' },
+              { id: 'lines',    icon: '━', label: 'Lines',    color: '#fdcb6e' },
+              { id: 'areas',    icon: '▱', label: 'Areas',    color: '#74b9ff' },
+              { id: 'import',   icon: '↑', label: 'Import',   color: '#a29bfe' },
+              { id: 'settings', icon: '⚙', label: 'Settings', color: '#83eef0' },
+            ] as const).map(tool => (
+              <button
+                key={tool.id}
+                data-testid={`map-tool-${tool.id}`}
+                onClick={() => {
+                  if (tool.id === 'import') { importInputRef.current?.click(); return; }
+                  setActiveTool(v => v === tool.id ? null : tool.id as MapTool);
+                }}
+                title={tool.label}
+                style={{
+                  display: "flex", alignItems: "center", gap: 10,
+                  background: activeTool === tool.id ? `rgba(0,10,18,0.94)` : "rgba(0,10,18,0.82)",
+                  border: `1.5px solid ${activeTool === tool.id ? `${tool.color}99` : "rgba(255,255,255,0.14)"}`,
+                  borderRadius: 10, padding: "7px 13px 7px 9px", cursor: "pointer",
+                  backdropFilter: "blur(8px)", transition: "all 0.14s",
+                  fontFamily: "Inter,sans-serif", minWidth: 132,
+                  boxShadow: activeTool === tool.id ? `0 0 0 1px ${tool.color}33` : "none",
+                }}
+              >
+                <span style={{
+                  width: 28, height: 28, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",
+                  background: activeTool === tool.id ? `${tool.color}22` : "rgba(255,255,255,0.07)",
+                  border: `1px solid ${activeTool === tool.id ? `${tool.color}55` : "rgba(255,255,255,0.1)"}`,
+                  fontSize: 13, color: activeTool === tool.id ? tool.color : "#d4e9f3aa", flexShrink: 0,
+                }}>{tool.icon}</span>
+                <span style={{ fontSize: 11, fontWeight: 600, color: activeTool === tool.id ? tool.color : "#d4e9f3cc" }}>{tool.label}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Hidden file input for Import tool */}
+          <input
+            ref={importInputRef}
+            type="file"
+            accept=".geojson,.json"
+            style={{ display: "none" }}
+            onChange={handleFileImport}
+          />
 
           {/* ── Copernicus Marine Toolbox panel ── */}
           {showToolbox && (activeCmsLayer || activeLiveLayer) && (() => {
@@ -1227,6 +1498,42 @@ function ExpandedMapModal({
                 ))}
               </div>
 
+              {/* Dataset info card — shown when CMS layer active */}
+              {activeCmsVar && activeCmsLayer && (
+                <div style={{
+                  background: `${activeCmsLayer.color}0d`,
+                  border: `1px solid ${activeCmsLayer.color}33`,
+                  borderRadius: 7, padding: "8px 10px", marginBottom: 7,
+                  fontFamily: "Inter,sans-serif",
+                }}>
+                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 4, marginBottom: 5 }}>
+                    <div style={{ fontSize: 8.5, fontWeight: 700, color: activeCmsLayer.color, lineHeight: 1.35, flex: 1 }}>
+                      Global Ocean Colour (Copernicus-GlobColour) from Satellite Observations
+                    </div>
+                    <span style={{
+                      fontSize: 6.5, fontWeight: 800, letterSpacing: "0.07em",
+                      background: "rgba(0,184,148,0.18)", border: "1px solid rgba(0,184,148,0.45)",
+                      borderRadius: 4, padding: "1px 5px", color: "#00b894", whiteSpace: "nowrap", flexShrink: 0,
+                    }}>L4</span>
+                  </div>
+                  <div style={{ fontSize: 6.5, color: "#d4e9f333", marginBottom: 6, fontFamily: "monospace" }}>
+                    OCEANCOLOUR_GLO_BGC_L4_MY_009_104
+                  </div>
+                  {([
+                    ["Variable",   `${activeCmsVar} — ${activeCmsLayer.label} (${activeCmsLayer.unit})`],
+                    ["Resolution", "4 km · Level 4 gapfilled"],
+                    ["Cadence",    `Monthly · ${cmsMonthLabel(cmsYYYYMM)}`],
+                    ["Depth",      "Surface · Euphotic zone"],
+                    ["Coverage",   "Global · Sep 1997 – Mar 2026"],
+                  ] as [string, string][]).map(([k, v]) => (
+                    <div key={k} style={{ display: "flex", gap: 6, marginBottom: 2.5 }}>
+                      <span style={{ fontSize: 7.5, color: "#d4e9f333", minWidth: 64, fontWeight: 600, flexShrink: 0 }}>{k}</span>
+                      <span style={{ fontSize: 7.5, color: "#d4e9f3aa", lineHeight: 1.3 }}>{v}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {/* Time navigator — only shown when a layer is active */}
               {activeCmsVar && (
                 <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 8 }}>
@@ -1317,9 +1624,49 @@ function ExpandedMapModal({
 
               {activeLiveVar && activeLiveLayer && (
                 <div style={{ marginBottom: 6 }}>
-                  <div style={{ fontSize: 8, color: "#d4e9f355", marginBottom: 4, fontFamily: "Inter,sans-serif" }}>
-                    <span style={{ color: activeLiveLayer.color, fontWeight: 700 }}>● </span>
-                    {activeLiveLayer.unit}
+                  {/* ── Dataset info card ── */}
+                  <div style={{
+                    background: `${activeLiveLayer.color}0d`,
+                    border: `1px solid ${activeLiveLayer.color}33`,
+                    borderRadius: 7, padding: "8px 10px", marginBottom: 7,
+                    fontFamily: "Inter,sans-serif",
+                  }}>
+                    {/* Title + NRT badge */}
+                    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 4, marginBottom: 5 }}>
+                      <div style={{ fontSize: 8.5, fontWeight: 700, color: activeLiveLayer.color, lineHeight: 1.35, flex: 1 }}>
+                        {activeLiveLayer.productTitle}
+                      </div>
+                      {activeLiveLayer.coverage.includes("NRT") && (
+                        <span style={{
+                          fontSize: 6.5, fontWeight: 800, letterSpacing: "0.07em",
+                          background: "rgba(0,184,148,0.18)", border: "1px solid rgba(0,184,148,0.45)",
+                          borderRadius: 4, padding: "1px 5px", color: "#00b894", whiteSpace: "nowrap", flexShrink: 0,
+                        }}>NRT</span>
+                      )}
+                    </div>
+                    {/* Product ID */}
+                    <div style={{ fontSize: 6.5, color: "#d4e9f333", marginBottom: 6, fontFamily: "monospace", letterSpacing: "0.02em" }}>
+                      {activeLiveLayer.product}
+                    </div>
+                    {/* Metrics grid */}
+                    {([
+                      ["Resolution", activeLiveLayer.resolution],
+                      ["Cadence",    activeLiveLayer.cadence],
+                      ["Depth",      activeLiveLayer.depthRange],
+                      ["Coverage",   activeLiveLayer.coverage],
+                      ["Variable",   `${activeLiveLayer.wmtsVar ?? activeLiveLayer.var} · ${activeLiveLayer.unit}`],
+                    ] as [string, string][]).map(([k, v]) => (
+                      <div key={k} style={{ display: "flex", gap: 6, marginBottom: 2.5 }}>
+                        <span style={{ fontSize: 7.5, color: "#d4e9f333", minWidth: 64, fontWeight: 600, flexShrink: 0 }}>{k}</span>
+                        <span style={{ fontSize: 7.5, color: "#d4e9f3aa", lineHeight: 1.3 }}>{v}</span>
+                      </div>
+                    ))}
+                    {/* Depth indicator if applicable */}
+                    {activeLiveLayer.elevation != null && (
+                      <div style={{ marginTop: 6, paddingTop: 5, borderTop: `1px solid ${activeLiveLayer.color}22`, fontSize: 7.5, color: "#d4e9f355" }}>
+                        Showing level: <span style={{ color: activeLiveLayer.color, fontWeight: 700 }}>{Math.abs(activeLiveLayer.elevation)} m depth</span>
+                      </div>
+                    )}
                   </div>
                   <button
                     data-testid="expanded-toggle-live-toolbox"
