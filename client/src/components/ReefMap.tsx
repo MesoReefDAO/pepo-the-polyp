@@ -1561,12 +1561,20 @@ function ExpandedMapModal({
               >All Off</button>
             </div>
 
-            {/* ── Satellite · Copernicus Marine ── */}
+            {/* ── Satellite & Ocean Data ── */}
             <div style={{ marginBottom: 8 }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+              <div style={{ display: "flex", alignItems: "center", marginBottom: 3 }}>
                 <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#d4e9f340" }}>
-                  Satellite · Copernicus Marine
+                  Satellite & Ocean Data
                 </span>
+              </div>
+              <div style={{ fontSize: 7.5, color: "#d4e9f328", marginBottom: 8, lineHeight: 1.5 }}>
+                Real-time and archived ocean variables from Copernicus Marine Service satellite observations.
+              </div>
+
+              {/* ── Ocean Colour · Monthly archive ── */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 5 }}>
+                <span style={{ fontSize: 7, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#d4e9f333" }}>Ocean Colour · Monthly archive</span>
                 {activeCmsVar && (
                   <button
                     onClick={() => setActiveCmsVar(null)}
@@ -1672,11 +1680,11 @@ function ExpandedMapModal({
               </div>
             </div>
 
-            {/* ── Ocean State · Live (PHY + BGC + SST NRT) ── */}
+            {/* ── Ocean State · Live ── */}
             <div style={{ marginBottom: 8 }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-                <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#d4e9f340" }}>
-                  Ocean State · Live
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 5, marginTop: 8, paddingTop: 8, borderTop: "1px solid rgba(131,238,240,0.06)" }}>
+                <span style={{ fontSize: 7, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#d4e9f333" }}>
+                  Ocean State · Live observations
                 </span>
                 {activeLiveVar && (
                   <button
@@ -1785,58 +1793,54 @@ function ExpandedMapModal({
               </div>
             </div>
 
-            {/* ── Boundaries ── */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4, marginTop: 10 }}>
-              <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#d4e9f340" }}>Boundaries</span>
+            {/* ── Boundaries & Regions ── */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 2, marginTop: 10 }}>
+              <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#d4e9f340" }}>Boundaries & Regions</span>
               <button
-                onClick={() => { const all = showCoralMapping && showMarineRegions && showGcrmn; setShowCoralMapping(!all); setShowMarineRegions(!all); setShowGcrmn(!all); }}
+                onClick={() => { const all = showCoralMapping && showMarineRegions && showGcrmn && showGcrmnSites; setShowCoralMapping(!all); setShowMarineRegions(!all); setShowGcrmn(!all); setShowGcrmnSites(!all); }}
                 style={{ fontSize: 8, background: "none", border: "none", color: "#83eef066", cursor: "pointer", fontFamily: "Inter,sans-serif", fontWeight: 600 }}
-              >{showCoralMapping && showMarineRegions && showGcrmn ? "off" : "all"}</button>
+              >{showCoralMapping && showMarineRegions && showGcrmn && showGcrmnSites ? "off" : "all"}</button>
             </div>
-            <LayerToggle label="Coral Reef Regions"  sublabel="29 global mapped reef zones · UQ / Allen Coral Atlas"                                   active={showCoralMapping}  color="#fd7272" onClick={() => setShowCoralMapping(v => !v)}  testId="expanded-toggle-coral-mapping" />
-            <LayerToggle label="EEZ Boundaries"      sublabel="Exclusive Economic Zones · MarineRegions.org · VLIZ"                                     active={showMarineRegions} color="#fdcb6e" onClick={() => setShowMarineRegions(v => !v)} testId="expanded-toggle-marine-regions" />
-            <LayerToggle label="GCRMN Regions"       sublabel="10 GCRMN monitoring zones"                                                               active={showGcrmn}         color="#1dd1a1" onClick={() => setShowGcrmn(v => !v)}         testId="expanded-toggle-gcrmn" />
+            <div style={{ fontSize: 7.5, color: "#d4e9f328", marginBottom: 5, lineHeight: 1.5 }}>Maritime zones, reef extents and global monitoring regions overlaid on the ocean.</div>
+            <LayerToggle label="Coral Reef Regions"  sublabel="Mapped reef extents from satellite imagery — Allen Coral Atlas / UQ"                    active={showCoralMapping}  color="#fd7272" onClick={() => setShowCoralMapping(v => !v)}  testId="expanded-toggle-coral-mapping" />
+            <LayerToggle label="EEZ Boundaries"      sublabel="Each country's exclusive maritime jurisdiction zone — MarineRegions.org / VLIZ"         active={showMarineRegions} color="#fdcb6e" onClick={() => setShowMarineRegions(v => !v)} testId="expanded-toggle-marine-regions" />
+            <LayerToggle label="GCRMN Regions"       sublabel="10 coordinated zones for standardised global reef health monitoring"                    active={showGcrmn}         color="#1dd1a1" onClick={() => setShowGcrmn(v => !v)}         testId="expanded-toggle-gcrmn" />
+            {showGcrmn && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "2px 10px", marginLeft: 10, marginBottom: 5, marginTop: 2 }}>
+                {Object.entries(GCRMN_COLORS).map(([key, color]) => (
+                  <div key={key} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                    <span style={{ width: 8, height: 6, borderRadius: 1, background: color + "66", border: `1px solid ${color}`, display: "inline-block", flexShrink: 0 }}/>
+                    <span style={{ fontSize: 7.5, color: "#d4e9f355", fontFamily: "Inter,sans-serif" }}>{GCRMN_LONG[key] ?? key}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <LayerToggle label="GCRMN Sites 2026"    sublabel={`${GCRMN_SITES_2026.length} territories covered — circle size proportional to survey count`} active={showGcrmnSites} color="#A6CE39" onClick={() => setShowGcrmnSites(v => !v)} testId="expanded-toggle-gcrmn-sites" />
 
-            {/* ── Monitoring ── */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "10px 0 4px" }}>
-              <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#d4e9f340" }}>Monitoring</span>
+            {/* ── Field Monitoring ── */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "10px 0 2px" }}>
+              <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#d4e9f340" }}>Field Monitoring</span>
               <button
-                onClick={() => { const all = showGcrmnMonSites && showGcrmnSites && showReefCheck && showReefLife && showWcsCcSites && showWcsReefCloud; [setShowGcrmnMonSites, setShowGcrmnSites, setShowReefCheck, setShowReefLife, setShowWcsCcSites, setShowWcsReefCloud].forEach(fn => fn(!all)); }}
+                onClick={() => { const all = showGcrmnMonSites && showReefCheck && showReefLife && showWcsCcSites && showWcsReefCloud; [setShowGcrmnMonSites, setShowReefCheck, setShowReefLife, setShowWcsCcSites, setShowWcsReefCloud].forEach(fn => fn(!all)); }}
                 style={{ fontSize: 8, background: "none", border: "none", color: "#83eef066", cursor: "pointer", fontFamily: "Inter,sans-serif", fontWeight: 600 }}
-              >{showGcrmnMonSites && showGcrmnSites && showReefCheck && showReefLife && showWcsCcSites && showWcsReefCloud ? "off" : "all"}</button>
+              >{showGcrmnMonSites && showReefCheck && showReefLife && showWcsCcSites && showWcsReefCloud ? "off" : "all"}</button>
             </div>
-            <LayerToggle label="GCRMN Benthic Sites" sublabel="GCRMN program stations · gcrmndb_benthos"                                                active={showGcrmnMonSites} color="#26de81" onClick={() => setShowGcrmnMonSites(v => !v)} testId="expanded-toggle-gcrmn-mon-sites" />
-            <LayerToggle label="GCRMN Sites 2026"    sublabel={`${GCRMN_SITES_2026.length} territories · ${GCRMN_TOTALS.surveys.toLocaleString()} surveys`} active={showGcrmnSites}    color="#A6CE39" onClick={() => setShowGcrmnSites(v => !v)}    testId="expanded-toggle-gcrmn-sites" />
-            <LayerToggle label="Reef Check"          sublabel="~6,200 unique stations · coral cover + bleaching"                                         active={showReefCheck}     color="#fd9644" onClick={() => setShowReefCheck(v => !v)}     testId="expanded-toggle-reef-check" />
-            <LayerToggle label="Reef Life Survey"    sublabel="4,147 sites · ecoregion + realm metadata"                                                 active={showReefLife}      color="#45aaf2" onClick={() => setShowReefLife(v => !v)}      testId="expanded-toggle-reef-life" />
-            <LayerToggle label="WCS Coral Cover"     sublabel="4,766 field survey sites · WCS-Marine"                                                    active={showWcsCcSites}    color="#ff6b9d" onClick={() => setShowWcsCcSites(v => !v)}    testId="expanded-toggle-wcs-cc-sites" />
-            <LayerToggle label="WCS ReefCloud"       sublabel="14,501 global monitoring stations · WCS-Marine"                                           active={showWcsReefCloud}  color="#e056fd" onClick={() => setShowWcsReefCloud(v => !v)}  testId="expanded-toggle-wcs-reefcloud" />
+            <div style={{ fontSize: 7.5, color: "#d4e9f328", marginBottom: 5, lineHeight: 1.5 }}>In-situ reef health survey stations from major international scientific monitoring programmes.</div>
+            <LayerToggle label="GCRMN Benthic Sites" sublabel="Fixed stations measuring coral cover and benthic organisms — gcrmndb_benthos"             active={showGcrmnMonSites} color="#26de81" onClick={() => setShowGcrmnMonSites(v => !v)} testId="expanded-toggle-gcrmn-mon-sites" />
+            <LayerToggle label="Reef Check"          sublabel="~6,200 sites tracking bleaching events and coral cover changes since 1996"                active={showReefCheck}     color="#fd9644" onClick={() => setShowReefCheck(v => !v)}     testId="expanded-toggle-reef-check" />
+            <LayerToggle label="Reef Life Survey"    sublabel="4,147 standardised fish and invertebrate survey sites worldwide"                          active={showReefLife}      color="#45aaf2" onClick={() => setShowReefLife(v => !v)}      testId="expanded-toggle-reef-life" />
+            <LayerToggle label="WCS Coral Cover"     sublabel="4,766 coral cover transect sites from Wildlife Conservation Society"                     active={showWcsCcSites}    color="#ff6b9d" onClick={() => setShowWcsCcSites(v => !v)}    testId="expanded-toggle-wcs-cc-sites" />
+            <LayerToggle label="WCS ReefCloud"       sublabel="14,501 AI-powered underwater photo monitoring stations — WCS Marine global programme"    active={showWcsReefCloud}  color="#e056fd" onClick={() => setShowWcsReefCloud(v => !v)}  testId="expanded-toggle-wcs-reefcloud" />
 
             {/* ── Community ── */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "10px 0 4px" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "10px 0 2px" }}>
               <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#d4e9f340" }}>Community</span>
             </div>
-            <LayerToggle label="DAO Members"         sublabel={`${markers.length} members on the map · MesoReefDAO`}                                    active={showDaoMembers}    color="#83eef0" onClick={() => setShowDaoMembers(v => !v)} testId="expanded-toggle-dao-members" />
-            <LayerToggle label="Reef Photos"         sublabel={`${reefImgs.length} community images`}                                                   active={showImgs}          color="#ff9f43" onClick={() => setShowImgs(v => !v)}          testId="expanded-toggle-imgs" />
+            <div style={{ fontSize: 7.5, color: "#d4e9f328", marginBottom: 5, lineHeight: 1.5 }}>MesoReefDAO members who've shared their location and community-submitted reef imagery.</div>
+            <LayerToggle label="DAO Members"         sublabel={`${markers.length} members on the Regen Reef Network · MesoReefDAO`}                    active={showDaoMembers}    color="#83eef0" onClick={() => setShowDaoMembers(v => !v)} testId="expanded-toggle-dao-members" />
+            <LayerToggle label="Reef Photos"         sublabel={`${reefImgs.length} peer-reviewed photos from community reef surveys`}                   active={showImgs}          color="#ff9f43" onClick={() => setShowImgs(v => !v)}          testId="expanded-toggle-imgs" />
           </SideSection>
 
-          {showGcrmn && (
-            <SideSection title="GCRMN Regions">
-              {Object.entries(GCRMN_COLORS).map(([key, color]) => (
-                <div key={key} style={{ display: "flex", alignItems: "center", gap: 8, padding: "3px 0" }}>
-                  <span style={{
-                    width: 12, height: 8, borderRadius: 2, flexShrink: 0,
-                    background: color + "55",
-                    border: `1.5px solid ${color}`,
-                    display: "inline-block",
-                  }}/>
-                  <span style={{ fontSize: 10.5, color: "#d4e9f3bb" }}>
-                    {GCRMN_LONG[key] ?? key}
-                  </span>
-                </div>
-              ))}
-            </SideSection>
-          )}
 
           <SideSection title="Map Key">
             {/* Each row only shows when its layer is active */}
@@ -2642,19 +2646,17 @@ export function ReefMap({
                 </div>
 
                 {([
-                  { group: "Boundaries", icon: "◈", layers: [
-                    { testId: "toggle-coral-mapping-layer",   label: "Coral Reef Regions",  sublabel: "29 zones · UQ / Allen Coral Atlas",  color: "#fd7272", active: showCoralMapping,  toggle: () => setShowCoralMapping(v => !v)  },
-                    { testId: "toggle-marine-regions-layer",  label: "EEZ Boundaries",      sublabel: "Excl. Economic Zones · VLIZ",         color: "#fdcb6e", active: showMarineRegions, toggle: () => setShowMarineRegions(v => !v) },
-                    { testId: "toggle-gcrmn-layer",           label: "GCRMN Regions",       sublabel: "10 global monitoring zones",          color: "#1dd1a1", active: showGcrmn,         toggle: () => setShowGcrmn(v => !v)         },
+                  { group: "Boundaries & Regions", icon: "◈", note: "Maritime zones, reef extents and monitoring regions.", layers: [
+                    { testId: "toggle-coral-mapping-layer",   label: "Coral Reef Regions",  sublabel: "Mapped reef extents — Allen Coral Atlas",    color: "#fd7272", active: showCoralMapping,  toggle: () => setShowCoralMapping(v => !v)  },
+                    { testId: "toggle-marine-regions-layer",  label: "EEZ Boundaries",      sublabel: "Excl. Economic Zones — VLIZ",                 color: "#fdcb6e", active: showMarineRegions, toggle: () => setShowMarineRegions(v => !v) },
+                    { testId: "toggle-gcrmn-layer",           label: "GCRMN Regions",       sublabel: "10 global reef monitoring zones",             color: "#1dd1a1", active: showGcrmn,         toggle: () => setShowGcrmn(v => !v)         },
+                    { testId: "toggle-gcrmn-sites-layer",     label: "GCRMN Sites 2026",    sublabel: `${GCRMN_SITES_2026.length} territories — circle size ∝ surveys`, color: "#A6CE39", active: showGcrmnSites, toggle: () => setShowGcrmnSites(v => !v) },
                   ]},
-                  { group: "Monitoring", icon: "◉", layers: [
-                    { testId: "toggle-gcrmn-sites-layer", label: "GCRMN Sites 2026", sublabel: `${GCRMN_SITES_2026.length} territories`, color: "#A6CE39", active: showGcrmnSites, toggle: () => setShowGcrmnSites(v => !v) },
+                  { group: "Community", icon: "●", note: "MesoReefDAO members and community reef data.", layers: [
+                    { testId: "toggle-dao-members-layer",     label: "DAO Members",         sublabel: `${markers.length} members on the Regen Reef Network`, color: "#83eef0", active: showDaoMembers, toggle: () => setShowDaoMembers(v => !v) },
+                    { testId: "toggle-imgs-layer",            label: "Reef Photos",         sublabel: "Community-submitted reef imagery",           color: "#ff9f43", active: showImgs,          toggle: () => setShowImgs(v => !v)          },
                   ]},
-                  { group: "Community", icon: "●", layers: [
-                    { testId: "toggle-dao-members-layer",     label: "DAO Members",         sublabel: `${markers.length} members on the map`, color: "#83eef0", active: showDaoMembers,    toggle: () => setShowDaoMembers(v => !v)    },
-                    { testId: "toggle-imgs-layer",            label: "Reef Photos",         sublabel: "Community-submitted images",           color: "#ff9f43", active: showImgs,          toggle: () => setShowImgs(v => !v)          },
-                  ]},
-                ]).map(({ group, icon, layers }) => {
+                ]).map(({ group, icon, note, layers }) => {
                   const ls = layers as unknown as any[];
                   const allActive = ls.every((l: any) => l.active);
                   return (
@@ -2680,6 +2682,10 @@ export function ReefMap({
                           }}
                         >{allActive ? "Hide all" : "Show all"}</button>
                       </div>
+                      {/* Group note */}
+                      {note && (
+                        <div style={{ fontSize: 7.5, color: "#d4e9f328", padding: "0 10px 4px", lineHeight: 1.4, fontFamily: "Inter,sans-serif" }}>{note}</div>
+                      )}
                       {/* Layer rows */}
                       {ls.map((l: any) => (
                         <CompactLayerRow key={l.testId} {...l} />
