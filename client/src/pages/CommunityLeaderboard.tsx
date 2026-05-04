@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { usePrivy } from "@privy-io/react-auth";
@@ -6,6 +7,7 @@ import { Trophy, MessageCircle, Star, Users, ArrowLeft, Globe, ChevronRight } fr
 import type { LeaderboardEntry } from "@shared/schema";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import coralDnaBg from "@assets/coral_micro_1777060394505.jpg";
+import { ipfsPublicUrl } from "@/lib/ipfs";
 
 // ─── ORCID badge ──────────────────────────────────────────────────────────────
 function OrcidBadge({ orcidId }: { orcidId: string }) {
@@ -48,15 +50,19 @@ function rankBadge(rank: number) {
   return { emoji: `#${rank}`, color: "#d4e9f366" };
 }
 
-function Avatar({ url, name, size = 40 }: { url?: string; name: string; size?: number }) {
+function Avatar({ url, cid, name, size = 40 }: { url?: string; cid?: string; name: string; size?: number }) {
+  const [imgError, setImgError] = useState(false);
   const initials = name.split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase() || "?";
-  if (url) {
+  const fontSize = Math.max(10, Math.round(size * 0.35));
+  const resolvedUrl = !imgError && (url || (cid ? ipfsPublicUrl(cid) : ""));
+  if (resolvedUrl) {
     return (
       <img
-        src={url}
+        src={resolvedUrl}
         alt={name}
         style={{ width: size, height: size }}
         className="rounded-full object-cover border border-[#83eef033] flex-shrink-0"
+        onError={() => setImgError(true)}
       />
     );
   }
@@ -65,7 +71,7 @@ function Avatar({ url, name, size = 40 }: { url?: string; name: string; size?: n
       style={{ width: size, height: size }}
       className="rounded-full bg-[#0a293380] border border-[#83eef033] flex items-center justify-center flex-shrink-0"
     >
-      <span className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-bold text-[#83eef0] text-sm">
+      <span style={{ fontSize }} className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-bold text-[#83eef0]">
         {initials}
       </span>
     </div>
@@ -113,7 +119,7 @@ function LeaderboardPanel({ entries, currentUserId }: { entries: LeaderboardEntr
               </span>
 
               {/* Avatar */}
-              <Avatar url={entry.avatarUrl} name={entry.displayName} size={30} />
+              <Avatar url={entry.avatarUrl} cid={entry.avatarCid} name={entry.displayName} size={30} />
 
               {/* Name + stats */}
               <div className="flex-1 min-w-0">
@@ -227,7 +233,7 @@ function ProfileCard({ entry, rank }: { entry: LeaderboardEntry; rank: number })
       {/* Header */}
       <div className="flex items-start gap-3">
         <div className="relative flex-shrink-0">
-          <Avatar url={entry.avatarUrl} name={entry.displayName} size={48} />
+          <Avatar url={entry.avatarUrl} cid={entry.avatarCid} name={entry.displayName} size={48} />
           <span
             className="absolute -bottom-1 -right-1 text-[11px] [font-family:'Plus_Jakarta_Sans',Helvetica] font-bold leading-none"
             style={{ color: badge.color }}

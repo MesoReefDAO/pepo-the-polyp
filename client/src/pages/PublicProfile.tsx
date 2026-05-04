@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { useParams, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import type { Profile, Contribution, LeaderboardEntry } from "@shared/schema";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { OrcidIcon } from "@/components/OrcidLoginButton";
+import { ipfsPublicUrl } from "@/lib/ipfs";
 import {
   ArrowLeft, MapPin, Globe, Star, MessageCircle,
   Award, Calendar, Activity, Users, Microscope,
@@ -81,17 +83,20 @@ function contribLabel(type: string, description: string) {
 }
 
 // ─── Avatar ───────────────────────────────────────────────────────────────────
-function Avatar({ url, name, size = 80 }: { url?: string; name: string; size?: number }) {
+function Avatar({ url, cid, name, size = 80 }: { url?: string; cid?: string; name: string; size?: number }) {
+  const [imgError, setImgError] = useState(false);
   const initials = name.split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase() || "?";
   const fontSize = Math.round(size * 0.35);
-  if (url) {
+  const resolvedUrl = !imgError && (url || (cid ? ipfsPublicUrl(cid) : ""));
+  if (resolvedUrl) {
     return (
       <img
-        src={url}
+        src={resolvedUrl}
         alt={name}
         data-testid="img-member-avatar"
-        style={{ width: size, height: size, fontSize }}
+        style={{ width: size, height: size }}
         className="rounded-full object-cover border-2 border-[#83eef033] flex-shrink-0"
+        onError={() => setImgError(true)}
       />
     );
   }
@@ -227,7 +232,7 @@ export function PublicProfile() {
           >
             <div className="flex items-start gap-4">
               <div className="relative">
-                <Avatar url={profile.avatarUrl} name={profile.displayName} size={80} />
+                <Avatar url={profile.avatarUrl} cid={profile.avatarCid ?? ""} name={profile.displayName} size={80} />
                 {rank && rank <= 3 && (
                   <span className="absolute -bottom-1 -right-1 text-xl leading-none" title={badge!.label}>
                     {badge!.emoji}
