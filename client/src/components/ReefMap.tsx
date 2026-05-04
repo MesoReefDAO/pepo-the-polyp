@@ -498,34 +498,61 @@ type LiveLayer = {
   product: string; dataset: string; elevation: number | null;
   time: () => string; toolboxId: string;
 };
-type LiveVar = "analysed_sst" | "zos" | "thetao" | "so" | "ph" | "o2" | "nppv";
+type LiveVar =
+  | "thetao" | "so" | "sea_water_velocity" | "zos" | "VHM0" | "wind" | "siconc"
+  | "analysed_sst" | "ph" | "o2" | "phyc" | "nppv";
 
-function liveDate(daysBack: number): string {
+function liveDate(daysBack: number, hour = "00:00:00"): string {
   const d = new Date(); d.setDate(d.getDate() - daysBack);
-  return d.toISOString().slice(0, 10) + "T00:00:00Z";
+  return d.toISOString().slice(0, 10) + "T" + hour + "Z";
 }
 
+const PHY = "GLOBAL_ANALYSISFORECAST_PHY_001_024";
+const BGC = "GLOBAL_ANALYSISFORECAST_BGC_001_028";
+const SST = "SST_GLO_SST_L4_NRT_OBSERVATIONS_010_001";
+const WAV = "GLOBAL_ANALYSISFORECAST_WAV_001_027";
+const WND = "WIND_GLO_PHY_L4_NRT_012_004";
+
 const LIVE_LAYERS: LiveLayer[] = [
-  { var: "analysed_sst", label: "Sea Surface Temp.",  unit: "°C · NRT daily",         color: "#ff6b6b", cmap: "thermal",
-    product: "SST_GLO_SST_L4_NRT_OBSERVATIONS_010_001", dataset: "METOFFICE-GLO-SST-L4-NRT-OBS-SST-V2",
-    elevation: null,   time: () => liveDate(2), toolboxId: "SST_GLO_SST_L4_NRT_OBSERVATIONS_010_001" },
-  { var: "zos",          label: "Sea Surface Height", unit: "m · hourly forecast",     color: "#74b9ff", cmap: "balance",
-    product: "GLOBAL_ANALYSISFORECAST_PHY_001_024",     dataset: "cmems_mod_glo_phy_anfc_0.083deg_PT1H-m_202406",
-    elevation: null,   time: () => liveDate(1), toolboxId: "cmems_mod_glo_phy_anfc_0.083deg_PT1H-m_202406" },
-  { var: "thetao",       label: "Ocean Temperature",  unit: "°C · 6H · 0.5 m depth",  color: "#e17055", cmap: "thermal",
-    product: "GLOBAL_ANALYSISFORECAST_PHY_001_024",     dataset: "cmems_mod_glo_phy-thetao_anfc_0.083deg_PT6H-i_202406",
-    elevation: -0.494, time: () => liveDate(1), toolboxId: "cmems_mod_glo_phy-thetao_anfc_0.083deg_PT6H-i_202406" },
-  { var: "so",           label: "Salinity",           unit: "PSU · 6H · 0.5 m depth", color: "#a29bfe", cmap: "haline",
-    product: "GLOBAL_ANALYSISFORECAST_PHY_001_024",     dataset: "cmems_mod_glo_phy-so_anfc_0.083deg_PT6H-i_202406",
-    elevation: -0.494, time: () => liveDate(1), toolboxId: "cmems_mod_glo_phy-so_anfc_0.083deg_PT6H-i_202406" },
-  { var: "ph",           label: "Ocean pH",           unit: "pH · monthly BGC",        color: "#fd79a8", cmap: "ice",
-    product: "GLOBAL_ANALYSISFORECAST_BGC_001_028",     dataset: "cmems_mod_glo_bgc-car_anfc_0.25deg_P1M-m_202311",
+  // ── Ocean Physics (PHY_001_024) ────────────────────────────────────────────
+  { var: "thetao",           label: "Temperature",       unit: "°C · 6H · 0.5 m",       color: "#e17055", cmap: "thermal",
+    product: PHY, dataset: "cmems_mod_glo_phy-thetao_anfc_0.083deg_PT6H-i_202406",
+    elevation: -0.494, time: () => liveDate(1),         toolboxId: "cmems_mod_glo_phy-thetao_anfc_0.083deg_PT6H-i_202406" },
+  { var: "so",               label: "Salinity",          unit: "PSU · 6H · 0.5 m",       color: "#a29bfe", cmap: "haline",
+    product: PHY, dataset: "cmems_mod_glo_phy-so_anfc_0.083deg_PT6H-i_202406",
+    elevation: -0.494, time: () => liveDate(1),         toolboxId: "cmems_mod_glo_phy-so_anfc_0.083deg_PT6H-i_202406" },
+  { var: "sea_water_velocity",label: "Currents",         unit: "m s⁻¹ · hourly · 0.5 m",color: "#00cec9", cmap: "speed",
+    product: PHY, dataset: "cmems_mod_glo_phy_anfc_0.083deg_PT1H-m_202406",
+    elevation: -0.494, time: () => liveDate(1),         toolboxId: "cmems_mod_glo_phy_anfc_0.083deg_PT1H-m_202406" },
+  { var: "zos",              label: "Sea Surface Height",unit: "m · hourly",              color: "#74b9ff", cmap: "balance",
+    product: PHY, dataset: "cmems_mod_glo_phy_anfc_0.083deg_PT1H-m_202406",
+    elevation: null,   time: () => liveDate(1),         toolboxId: "cmems_mod_glo_phy_anfc_0.083deg_PT1H-m_202406" },
+  { var: "siconc",           label: "Sea Ice",           unit: "fraction · daily",        color: "#dfe6e9", cmap: "ice",
+    product: PHY, dataset: "cmems_mod_glo_phy_anfc_0.083deg_P1D-m_202406",
+    elevation: null,   time: () => liveDate(2),         toolboxId: "cmems_mod_glo_phy_anfc_0.083deg_P1D-m_202406" },
+  // ── Wave & Wind ────────────────────────────────────────────────────────────
+  { var: "VHM0",             label: "Wave Height",       unit: "m · 3H forecast",         color: "#6c5ce7", cmap: "matter",
+    product: WAV, dataset: "cmems_mod_glo_wav_anfc_0.083deg_PT3H-i_202411",
+    elevation: null,   time: () => liveDate(1, "03:00:00"), toolboxId: "cmems_mod_glo_wav_anfc_0.083deg_PT3H-i_202411" },
+  { var: "wind",             label: "Wind Speed",        unit: "m s⁻¹ · hourly NRT",     color: "#fdcb6e", cmap: "speed",
+    product: WND, dataset: "cmems_obs-wind_glo_phy_nrt_l4_0.125deg_PT1H_202207",
+    elevation: null,   time: () => "2023-11-20T00:00:00Z", toolboxId: "cmems_obs-wind_glo_phy_nrt_l4_0.125deg_PT1H_202207" },
+  // ── SST NRT ────────────────────────────────────────────────────────────────
+  { var: "analysed_sst",     label: "Sea Surface Temp.", unit: "°C · NRT daily",          color: "#ff6b6b", cmap: "thermal",
+    product: SST, dataset: "METOFFICE-GLO-SST-L4-NRT-OBS-SST-V2",
+    elevation: null,   time: () => liveDate(2),         toolboxId: SST },
+  // ── Ocean BGC (BGC_001_028) ────────────────────────────────────────────────
+  { var: "ph",               label: "Acidity (pH)",      unit: "pH · monthly",            color: "#fd79a8", cmap: "ice",
+    product: BGC, dataset: "cmems_mod_glo_bgc-car_anfc_0.25deg_P1M-m_202311",
     elevation: -0.494, time: () => "2024-01-01T00:00:00Z", toolboxId: "cmems_mod_glo_bgc-car_anfc_0.25deg_P1M-m_202311" },
-  { var: "o2",           label: "Dissolved Oxygen",   unit: "mmol m⁻³ · monthly",      color: "#55efc4", cmap: "dense",
-    product: "GLOBAL_ANALYSISFORECAST_BGC_001_028",     dataset: "cmems_mod_glo_bgc-bio_anfc_0.25deg_P1M-m_202311",
+  { var: "o2",               label: "Oxygen",            unit: "mmol m⁻³ · monthly",      color: "#55efc4", cmap: "dense",
+    product: BGC, dataset: "cmems_mod_glo_bgc-bio_anfc_0.25deg_P1M-m_202311",
     elevation: -0.494, time: () => "2024-01-01T00:00:00Z", toolboxId: "cmems_mod_glo_bgc-bio_anfc_0.25deg_P1M-m_202311" },
-  { var: "nppv",         label: "Primary Production", unit: "mgC m⁻³ d⁻¹ · monthly",  color: "#26de81", cmap: "amp",
-    product: "GLOBAL_ANALYSISFORECAST_BGC_001_028",     dataset: "cmems_mod_glo_bgc-bio_anfc_0.25deg_P1M-m_202311",
+  { var: "phyc",             label: "Biomass",           unit: "mgC m⁻³ · monthly",       color: "#26de81", cmap: "amp",
+    product: BGC, dataset: "cmems_mod_glo_bgc-pft_anfc_0.25deg_P1M-m_202311",
+    elevation: null,   time: () => "2024-01-01T00:00:00Z", toolboxId: "cmems_mod_glo_bgc-pft_anfc_0.25deg_P1M-m_202311" },
+  { var: "nppv",             label: "Primary Production",unit: "mgC m⁻³ d⁻¹ · monthly",  color: "#00b894", cmap: "algae",
+    product: BGC, dataset: "cmems_mod_glo_bgc-bio_anfc_0.25deg_P1M-m_202311",
     elevation: null,   time: () => "2024-01-01T00:00:00Z", toolboxId: "cmems_mod_glo_bgc-bio_anfc_0.25deg_P1M-m_202311" },
 ];
 
@@ -1123,7 +1150,7 @@ function ExpandedMapModal({
               )}
 
               <div style={{ fontSize: 7, color: "#d4e9f325", marginTop: activeLiveVar ? 0 : 4, lineHeight: 1.4 }}>
-                PHY_001_024 · BGC_001_028 · SST NRT · Mercator Ocean / CMEMS
+                PHY_001_024 · BGC_001_028 · WAV_001_027 · WIND_L4_NRT · SST NRT · Mercator Ocean / CMEMS
               </div>
             </div>
 
@@ -2009,13 +2036,20 @@ export function ReefMap({
                         <option value="analysed_sst">Sea Surface Temp. (NRT daily)</option>
                       </optgroup>
                       <optgroup label="Physics Forecast">
-                        <option value="zos">Sea Surface Height (hourly)</option>
-                        <option value="thetao">Ocean Temperature (6H · 0.5 m)</option>
+                        <option value="thetao">Temperature (6H · 0.5 m)</option>
                         <option value="so">Salinity (6H · 0.5 m)</option>
+                        <option value="sea_water_velocity">Currents (hourly · 0.5 m)</option>
+                        <option value="zos">Sea Surface Height (hourly)</option>
+                        <option value="siconc">Sea Ice (daily)</option>
+                      </optgroup>
+                      <optgroup label="Wave & Wind">
+                        <option value="VHM0">Wave Height (3H)</option>
+                        <option value="wind">Wind Speed (NRT)</option>
                       </optgroup>
                       <optgroup label="BGC Forecast">
-                        <option value="ph">Ocean pH (monthly)</option>
-                        <option value="o2">Dissolved Oxygen (monthly)</option>
+                        <option value="ph">Acidity / pH (monthly)</option>
+                        <option value="o2">Oxygen (monthly)</option>
+                        <option value="phyc">Biomass (monthly)</option>
                         <option value="nppv">Primary Production (monthly)</option>
                       </optgroup>
                     </select>
