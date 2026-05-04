@@ -1,8 +1,8 @@
 import { Suspense, lazy } from "react";
 import { useLocation } from "wouter";
 
-const ReefMap = lazy(() =>
-  import("@/components/ReefMap").then((m) => ({ default: m.ReefMap }))
+const ReefMapExpandedPage = lazy(() =>
+  import("@/components/ReefMap").then((m) => ({ default: m.ReefMapExpandedPage }))
 );
 
 function MapLoadingScreen() {
@@ -42,20 +42,8 @@ export function ReefMapPage() {
   const [, navigate] = useLocation();
 
   return (
-    <>
-      <div
-        data-testid="reef-map-page-bg"
-        style={{ position: "fixed", inset: 0, background: "#00080c", zIndex: 50 }}
-      />
-      <Suspense fallback={<MapLoadingScreen />}>
-        <ReefMap
-          compact={true}
-          expanded={true}
-          onExpandChange={(open) => {
-            if (!open) navigate("/");
-          }}
-        />
-      </Suspense>
-    </>
+    <Suspense fallback={<MapLoadingScreen />}>
+      <ReefMapExpandedPage onClose={() => navigate("/")} />
+    </Suspense>
   );
 }

@@ -586,40 +586,65 @@ function buildLiveTileUrl(layer: LiveLayer): string {
 function ExpandedMapModal({
   markers,
   reefImgs,
-  gcrmnGeoJson,
-  coralMappingGeoJson,
-  wcsReefCloudGeoJson,
-  wcsCcSitesGeoJson,
-  reefCheckGeoJson,
-  reefLifeGeoJson,
-  gcrmnMonSitesGeoJson,
   onClose,
+  inline = false,
 }: {
   markers: MapMarker[];
   reefImgs: ReefImageMarker[];
-  gcrmnGeoJson: GeoJSON.FeatureCollection | undefined;
-  coralMappingGeoJson: GeoJSON.FeatureCollection | undefined;
-  wcsReefCloudGeoJson: GeoJSON.FeatureCollection | undefined;
-  wcsCcSitesGeoJson: GeoJSON.FeatureCollection | undefined;
-  reefCheckGeoJson: GeoJSON.FeatureCollection | undefined;
-  reefLifeGeoJson: GeoJSON.FeatureCollection | undefined;
-  gcrmnMonSitesGeoJson: GeoJSON.FeatureCollection | undefined;
   onClose: () => void;
+  inline?: boolean;
 }) {
   const [showGcrmn,          setShowGcrmn]          = useState(true);
   const [showCoralMapping,   setShowCoralMapping]   = useState(true);
   const [showMarineRegions,  setShowMarineRegions]  = useState(true);
   const [showImgs,           setShowImgs]           = useState(true);
   const [showGcrmnSites,     setShowGcrmnSites]     = useState(true);
-  const [showWcsReefCloud,   setShowWcsReefCloud]   = useState(true);
-  const [showWcsCcSites,     setShowWcsCcSites]     = useState(true);
-  const [showReefCheck,      setShowReefCheck]      = useState(true);
-  const [showReefLife,       setShowReefLife]        = useState(true);
-  const [showGcrmnMonSites,  setShowGcrmnMonSites]  = useState(true);
+  const [showWcsReefCloud,   setShowWcsReefCloud]   = useState(false);
+  const [showWcsCcSites,     setShowWcsCcSites]     = useState(false);
+  const [showReefCheck,      setShowReefCheck]      = useState(false);
+  const [showReefLife,       setShowReefLife]        = useState(false);
+  const [showGcrmnMonSites,  setShowGcrmnMonSites]  = useState(false);
   const [activeCmsVar,       setActiveCmsVar]       = useState<CmsVar | null>(null);
   const [cmsYYYYMM,          setCmsYYYYMM]          = useState(CMS_MAX_YM);
   const [showToolbox,        setShowToolbox]        = useState<'cms'|'live'|null>(null);
   const [activeLiveVar,      setActiveLiveVar]      = useState<LiveVar|null>(null);
+
+  // ── GeoJSON data — each layer fetched lazily when its toggle is enabled ──────
+  const { data: gcrmnGeoJson } = useQuery<GeoJSON.FeatureCollection>({
+    queryKey: ["/api/gcrmn/regions"],
+    staleTime: 24 * 60 * 60 * 1000,
+    enabled: showGcrmn,
+  });
+  const { data: coralMappingGeoJson } = useQuery<GeoJSON.FeatureCollection>({
+    queryKey: ["/api/coral-mapping/regions"],
+    staleTime: 24 * 60 * 60 * 1000,
+    enabled: showCoralMapping,
+  });
+  const { data: wcsReefCloudGeoJson } = useQuery<GeoJSON.FeatureCollection>({
+    queryKey: ["/api/wcs/reefcloud-sites"],
+    staleTime: 24 * 60 * 60 * 1000,
+    enabled: showWcsReefCloud,
+  });
+  const { data: wcsCcSitesGeoJson } = useQuery<GeoJSON.FeatureCollection>({
+    queryKey: ["/api/wcs/cc-sites"],
+    staleTime: 24 * 60 * 60 * 1000,
+    enabled: showWcsCcSites,
+  });
+  const { data: reefCheckGeoJson } = useQuery<GeoJSON.FeatureCollection>({
+    queryKey: ["/api/wcs/reef-check"],
+    staleTime: 24 * 60 * 60 * 1000,
+    enabled: showReefCheck,
+  });
+  const { data: reefLifeGeoJson } = useQuery<GeoJSON.FeatureCollection>({
+    queryKey: ["/api/wcs/reef-life"],
+    staleTime: 24 * 60 * 60 * 1000,
+    enabled: showReefLife,
+  });
+  const { data: gcrmnMonSitesGeoJson } = useQuery<GeoJSON.FeatureCollection>({
+    queryKey: ["/api/wcs/gcrmn-mon-sites"],
+    staleTime: 24 * 60 * 60 * 1000,
+    enabled: showGcrmnMonSites,
+  });
 
   const activeCmsLayer = activeCmsVar
     ? CMS_LAYERS.find(l => l.var === activeCmsVar) ?? null
@@ -652,7 +677,7 @@ function ExpandedMapModal({
     return s.size;
   }, [gcrmnMonSitesGeoJson]);
 
-  return createPortal(
+  const content = (
     <div
       data-testid="reef-map-expanded"
       style={{
@@ -1463,9 +1488,9 @@ function ExpandedMapModal({
           </SideSection>
         </div>
       </div>
-    </div>,
-    document.body
+    </div>
   );
+  return inline ? content : createPortal(content, document.body);
 }
 
 // ─── Small helpers ────────────────────────────────────────────────────────────
@@ -1629,11 +1654,6 @@ export function ReefMap({
   const [showMarineRegions, setShowMarineRegions] = useState(true);
   const [showImgs,          setShowImgs]          = useState(true);
   const [showGcrmnSites,    setShowGcrmnSites]    = useState(true);
-  const [showWcsReefCloud,  setShowWcsReefCloud]  = useState(true);
-  const [showWcsCcSites,    setShowWcsCcSites]    = useState(true);
-  const [showReefCheck,     setShowReefCheck]     = useState(true);
-  const [showReefLife,      setShowReefLife]       = useState(true);
-  const [showGcrmnMonSites, setShowGcrmnMonSites] = useState(true);
   const [showLayerMenu,     setShowLayerMenu]     = useState(false);
   const [internalExpanded,  setInternalExpanded]  = useState(false);
   const [activeCmsVar,      setActiveCmsVar]      = useState<CmsVar | null>(null);
@@ -1675,36 +1695,6 @@ export function ReefMap({
   const { data: coralMappingGeoJson } = useQuery<GeoJSON.FeatureCollection>({
     queryKey: ["/api/coral-mapping/regions"],
     staleTime: 24 * 60 * 60 * 1000,
-  });
-
-  const { data: wcsReefCloudGeoJson } = useQuery<GeoJSON.FeatureCollection>({
-    queryKey: ["/api/wcs/reefcloud-sites"],
-    staleTime: 24 * 60 * 60 * 1000,
-    enabled: showWcsReefCloud,
-  });
-
-  const { data: wcsCcSitesGeoJson } = useQuery<GeoJSON.FeatureCollection>({
-    queryKey: ["/api/wcs/cc-sites"],
-    staleTime: 24 * 60 * 60 * 1000,
-    enabled: showWcsCcSites,
-  });
-
-  const { data: reefCheckGeoJson } = useQuery<GeoJSON.FeatureCollection>({
-    queryKey: ["/api/wcs/reef-check"],
-    staleTime: 24 * 60 * 60 * 1000,
-    enabled: showReefCheck,
-  });
-
-  const { data: reefLifeGeoJson } = useQuery<GeoJSON.FeatureCollection>({
-    queryKey: ["/api/wcs/reef-life"],
-    staleTime: 24 * 60 * 60 * 1000,
-    enabled: showReefLife,
-  });
-
-  const { data: gcrmnMonSitesGeoJson } = useQuery<GeoJSON.FeatureCollection>({
-    queryKey: ["/api/wcs/gcrmn-mon-sites"],
-    staleTime: 24 * 60 * 60 * 1000,
-    enabled: showGcrmnMonSites,
   });
 
   return (
@@ -1807,73 +1797,6 @@ export function ReefMap({
               </Popup>
             </CircleMarker>
           ))}
-          {showWcsReefCloud && wcsReefCloudGeoJson && (
-            <GeoJSON
-              key="wcs-reefcloud-compact"
-              data={wcsReefCloudGeoJson}
-              pointToLayer={(_feature, latlng) =>
-                L.circleMarker(latlng, {
-                  radius: 1.5, color: "#e056fd", weight: 0.5,
-                  fillColor: "#e056fd", fillOpacity: 0.45, opacity: 0.7,
-                })
-              }
-            />
-          )}
-          {showWcsCcSites && wcsCcSitesGeoJson && (
-            <GeoJSON
-              key="wcs-cc-compact"
-              data={wcsCcSitesGeoJson}
-              pointToLayer={(_feature, latlng) =>
-                L.circleMarker(latlng, {
-                  radius: 2, color: "#ff6b9d", weight: 0.5,
-                  fillColor: "#ff6b9d", fillOpacity: 0.5, opacity: 0.75,
-                })
-              }
-            />
-          )}
-          {showReefCheck && reefCheckGeoJson && (
-            <GeoJSON
-              key="reef-check-compact"
-              data={reefCheckGeoJson}
-              pointToLayer={(_feature, latlng) =>
-                L.circleMarker(latlng, {
-                  radius: 2, color: "#fd9644", weight: 0.5,
-                  fillColor: "#fd9644", fillOpacity: 0.5, opacity: 0.75,
-                })
-              }
-            />
-          )}
-          {showReefLife && reefLifeGeoJson && (
-            <GeoJSON
-              key="reef-life-compact"
-              data={reefLifeGeoJson}
-              pointToLayer={(_feature, latlng) =>
-                L.circleMarker(latlng, {
-                  radius: 2, color: "#45aaf2", weight: 0.5,
-                  fillColor: "#45aaf2", fillOpacity: 0.5, opacity: 0.75,
-                })
-              }
-            />
-          )}
-          {showGcrmnMonSites && gcrmnMonSitesGeoJson && (
-            <GeoJSON
-              key="gcrmn-mon-sites-compact"
-              data={gcrmnMonSitesGeoJson}
-              pointToLayer={(feature, latlng) => {
-                const m = L.circleMarker(latlng, {
-                  radius: 2, color: "#26de81", weight: 0.5,
-                  fillColor: "#26de81", fillOpacity: 0.5, opacity: 0.75,
-                });
-                const p = feature.properties ?? {};
-                const ttParts = [p.country, p.location].filter(Boolean).join(" · ");
-                if (ttParts) m.bindTooltip(
-                  `<span style="font-family:Inter,sans-serif;font-size:10px;color:#26de81;font-weight:700">🔬</span> <span style="font-size:10px;color:#d4e9f3cc">${ttParts}</span>`,
-                  { direction: "top", offset: [0, -3] }
-                );
-                return m;
-              }}
-            />
-          )}
           {markers.map((m) => (
             <Marker key={m.id} position={[m.latitude, m.longitude]} icon={makePin()}>
               <Popup>
@@ -1944,7 +1867,7 @@ export function ReefMap({
                   border: "1px solid rgba(131,238,240,0.25)",
                   borderRadius: 10, padding: "1px 7px",
                 }}>
-                  {[showCoralMapping, showMarineRegions, showGcrmn, showGcrmnMonSites, showGcrmnSites, showReefCheck, showReefLife, showWcsCcSites, showWcsReefCloud, showImgs, activeCmsVar, activeLiveVar].filter(Boolean).length} / 12
+                  {[showCoralMapping, showMarineRegions, showGcrmn, showGcrmnSites, showImgs, activeCmsVar, activeLiveVar].filter(Boolean).length} / 7
                 </span>
               </div>
 
@@ -1952,12 +1875,12 @@ export function ReefMap({
               <div style={{ display: "flex", gap: 5, padding: "7px 10px 6px", borderBottom: "1px solid rgba(131,238,240,0.07)" }}>
                 <button
                   data-testid="toggle-all-layers"
-                  onClick={() => { setShowMarineRegions(true); setShowCoralMapping(true); setShowGcrmn(true); setShowGcrmnSites(true); setShowGcrmnMonSites(true); setShowWcsReefCloud(true); setShowWcsCcSites(true); setShowReefCheck(true); setShowReefLife(true); setShowImgs(true); setActiveCmsVar("CHL"); setActiveLiveVar(null); }}
+                  onClick={() => { setShowMarineRegions(true); setShowCoralMapping(true); setShowGcrmn(true); setShowGcrmnSites(true); setShowImgs(true); setActiveCmsVar("CHL"); setActiveLiveVar(null); }}
                   style={{ flex: 1, fontSize: 9, fontFamily: "Inter,sans-serif", fontWeight: 700, background: "rgba(131,238,240,0.11)", border: "1px solid rgba(131,238,240,0.28)", borderRadius: 6, padding: "4px 0", color: "#83eef0", cursor: "pointer", transition: "background 0.15s" }}
                 >Select All</button>
                 <button
                   data-testid="toggle-no-layers"
-                  onClick={() => { setShowMarineRegions(false); setShowCoralMapping(false); setShowGcrmn(false); setShowGcrmnSites(false); setShowGcrmnMonSites(false); setShowWcsReefCloud(false); setShowWcsCcSites(false); setShowReefCheck(false); setShowReefLife(false); setShowImgs(false); setActiveCmsVar(null); setActiveLiveVar(null); setShowToolbox(null); }}
+                  onClick={() => { setShowMarineRegions(false); setShowCoralMapping(false); setShowGcrmn(false); setShowGcrmnSites(false); setShowImgs(false); setActiveCmsVar(null); setActiveLiveVar(null); setShowToolbox(null); }}
                   style={{ flex: 1, fontSize: 9, fontFamily: "Inter,sans-serif", fontWeight: 700, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 6, padding: "4px 0", color: "#d4e9f355", cursor: "pointer", transition: "background 0.15s" }}
                 >Clear All</button>
               </div>
@@ -2083,18 +2006,14 @@ export function ReefMap({
                     { testId: "toggle-gcrmn-layer",           label: "GCRMN Regions",       sublabel: "10 global monitoring zones",          color: "#1dd1a1", active: showGcrmn,         toggle: () => setShowGcrmn(v => !v)         },
                   ]},
                   { group: "Monitoring", icon: "◉", layers: [
-                    { testId: "toggle-gcrmn-mon-sites-layer", label: "GCRMN Benthic Sites", sublabel: "gcrmndb_benthos program stations",     color: "#26de81", active: showGcrmnMonSites, toggle: () => setShowGcrmnMonSites(v => !v) },
-                    { testId: "toggle-gcrmn-sites-layer",     label: "GCRMN Sites 2026",    sublabel: `${GCRMN_SITES_2026.length} territories`, color: "#A6CE39", active: showGcrmnSites, toggle: () => setShowGcrmnSites(v => !v)    },
-                    { testId: "toggle-reef-check-layer",      label: "Reef Check",          sublabel: "~6,200 stations · coral + bleaching", color: "#fd9644", active: showReefCheck,     toggle: () => setShowReefCheck(v => !v)     },
-                    { testId: "toggle-reef-life-layer",       label: "Reef Life Survey",    sublabel: "4,147 sites · ecoregion metadata",    color: "#45aaf2", active: showReefLife,      toggle: () => setShowReefLife(v => !v)      },
-                    { testId: "toggle-wcs-cc-layer",          label: "WCS Coral Cover",     sublabel: "4,766 field survey sites · WCS",      color: "#ff6b9d", active: showWcsCcSites,    toggle: () => setShowWcsCcSites(v => !v)    },
-                    { testId: "toggle-wcs-reefcloud-layer",   label: "WCS ReefCloud",       sublabel: "14,501 monitoring stations · WCS",    color: "#e056fd", active: showWcsReefCloud,  toggle: () => setShowWcsReefCloud(v => !v)  },
+                    { testId: "toggle-gcrmn-sites-layer", label: "GCRMN Sites 2026", sublabel: `${GCRMN_SITES_2026.length} territories`, color: "#A6CE39", active: showGcrmnSites, toggle: () => setShowGcrmnSites(v => !v) },
                   ]},
                   { group: "Community", icon: "●", layers: [
                     { testId: "toggle-imgs-layer",            label: "Reef Photos",         sublabel: "Community-submitted images",          color: "#ff9f43", active: showImgs,          toggle: () => setShowImgs(v => !v)          },
                   ]},
-                ] as const).map(({ group, icon, layers }) => {
-                  const allActive = (layers as any[]).every((l: any) => l.active);
+                ]).map(({ group, icon, layers }) => {
+                  const ls = layers as unknown as any[];
+                  const allActive = ls.every((l: any) => l.active);
                   return (
                     <div key={group} style={{ marginBottom: 4 }}>
                       {/* Group header */}
@@ -2109,7 +2028,7 @@ export function ReefMap({
                           </span>
                         </div>
                         <button
-                          onClick={() => { const turnOn = !allActive; (layers as any[]).forEach((l: any) => { if (l.active !== turnOn) l.toggle(); }); }}
+                          onClick={() => { const turnOn = !allActive; ls.forEach((l: any) => { if (l.active !== turnOn) l.toggle(); }); }}
                           style={{
                             fontSize: 8, fontFamily: "Inter,sans-serif", fontWeight: 600,
                             background: "none", border: "none", cursor: "pointer", padding: "1px 5px",
@@ -2119,7 +2038,7 @@ export function ReefMap({
                         >{allActive ? "Hide all" : "Show all"}</button>
                       </div>
                       {/* Layer rows */}
-                      {(layers as any[]).map((l: any) => (
+                      {ls.map((l: any) => (
                         <CompactLayerRow key={l.testId} {...l} />
                       ))}
                     </div>
@@ -2162,11 +2081,6 @@ export function ReefMap({
             {showGcrmn         && <span title="GCRMN region" style={{ width:10,height:6,background:"rgba(29,209,161,0.35)",border:"1.5px solid #1dd1a1",borderRadius:2,display:"inline-block" }}/>}
             <span title="DAO member" style={{ width:8,height:8,borderRadius:"50%",background:"#83eef0",border:"2px solid #83eef0",display:"inline-block" }}/>
             {showImgs && reefImgs.length > 0 && <span title="Reef photo" style={{ width:8,height:8,borderRadius:2,background:"#ff9f43",border:"1.5px solid #ffb347",display:"inline-block" }}/>}
-            {showWcsReefCloud  && <span title="WCS ReefCloud site" style={{ width:7,height:7,borderRadius:"50%",background:"rgba(224,86,253,0.4)",border:"1.5px solid #e056fd",display:"inline-block" }}/>}
-            {showWcsCcSites    && <span title="WCS coral cover site" style={{ width:7,height:7,borderRadius:"50%",background:"rgba(255,107,157,0.4)",border:"1.5px solid #ff6b9d",display:"inline-block" }}/>}
-            {showReefCheck     && <span title="Reef Check site" style={{ width:7,height:7,borderRadius:"50%",background:"rgba(253,150,68,0.4)",border:"1.5px solid #fd9644",display:"inline-block" }}/>}
-            {showReefLife      && <span title="Reef Life Survey site" style={{ width:7,height:7,borderRadius:"50%",background:"rgba(69,170,242,0.4)",border:"1.5px solid #45aaf2",display:"inline-block" }}/>}
-            {showGcrmnMonSites && <span title="GCRMN Benthic Site" style={{ width:7,height:7,borderRadius:"50%",background:"rgba(38,222,129,0.4)",border:"1.5px solid #26de81",display:"inline-block" }}/>}
           </div>
           {/* Log in button */}
           {!authenticated && (
@@ -2216,16 +2130,30 @@ export function ReefMap({
         <ExpandedMapModal
           markers={markers}
           reefImgs={reefImgs}
-          gcrmnGeoJson={gcrmnGeoJson}
-          coralMappingGeoJson={coralMappingGeoJson}
-          wcsReefCloudGeoJson={wcsReefCloudGeoJson}
-          wcsCcSitesGeoJson={wcsCcSitesGeoJson}
-          reefCheckGeoJson={reefCheckGeoJson}
-          reefLifeGeoJson={reefLifeGeoJson}
-          gcrmnMonSitesGeoJson={gcrmnMonSitesGeoJson}
           onClose={() => setExpanded(false)}
         />
       )}
     </>
+  );
+}
+
+// ─── Standalone full-page map (no portal, no compact underlay) ────────────────
+// Used by /reef-map route. Renders the expanded map UI directly inline.
+export function ReefMapExpandedPage({ onClose }: { onClose: () => void }) {
+  const { data: markers = [] } = useQuery<MapMarker[]>({
+    queryKey: ["/api/map/markers"],
+    refetchInterval: 60_000,
+  });
+  const { data: reefImgs = [] } = useQuery<ReefImageMarker[]>({
+    queryKey: ["/api/reef-images"],
+    refetchInterval: 60_000,
+  });
+  return (
+    <ExpandedMapModal
+      markers={markers}
+      reefImgs={reefImgs}
+      onClose={onClose}
+      inline={true}
+    />
   );
 }
