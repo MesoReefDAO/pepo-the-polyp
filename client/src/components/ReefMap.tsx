@@ -448,6 +448,50 @@ function WdparClickHandler({ active }: { active: boolean }) {
   return null;
 }
 
+// ─── Copernicus Marine layer config ──────────────────────────────────────────
+const CMS_DATASET = "cmems_obs-oc_glo_bgc-plankton_my_l4-multi-4km_P1M_202603";
+const CMS_PRODUCT = "OCEANCOLOUR_GLO_BGC_L4_MY_009_104";
+const CMS_MIN_YM  = "1997-09";
+const CMS_MAX_YM  = "2026-03";
+
+const CMS_LAYERS = [
+  { var: "CHL",     label: "Chlorophyll-a",      unit: "mg m⁻³",  color: "#00b894", cmap: "algae"   },
+  { var: "DIATO",   label: "Diatoms",             unit: "mg m⁻³",  color: "#e17055", cmap: "matter"  },
+  { var: "DINO",    label: "Dinoflagellates",      unit: "mg m⁻³",  color: "#d63031", cmap: "plasma"  },
+  { var: "GREEN",   label: "Green Algae",         unit: "mg m⁻³",  color: "#55efc4", cmap: "dense"   },
+  { var: "HAPTO",   label: "Haptophytes",         unit: "mg m⁻³",  color: "#a29bfe", cmap: "ice"     },
+  { var: "MICRO",   label: "Microphytoplankton",  unit: ">20 µm",  color: "#fdcb6e", cmap: "thermal" },
+  { var: "NANO",    label: "Nanophytoplankton",   unit: "2–20 µm", color: "#fd79a8", cmap: "tempo"   },
+  { var: "PICO",    label: "Picophytoplankton",   unit: "<2 µm",   color: "#74b9ff", cmap: "solar"   },
+  { var: "PROCHLO", label: "Prochlorococcus",     unit: "mg m⁻³",  color: "#26de81", cmap: "speed"   },
+  { var: "PROKAR",  label: "Prokaryotes",         unit: "mg m⁻³",  color: "#6c5ce7", cmap: "deep"    },
+] as const;
+type CmsVar = (typeof CMS_LAYERS)[number]["var"];
+
+function cmsMonthLabel(yyyymm: string): string {
+  const [y, m] = yyyymm.split("-");
+  return ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][parseInt(m,10)-1] + " " + y;
+}
+function cmsNavMonth(yyyymm: string, delta: number): string {
+  const [y, m] = yyyymm.split("-").map(Number);
+  let nm = m + delta, ny = y;
+  if (nm > 12) { nm -= 12; ny++; }
+  if (nm < 1)  { nm += 12; ny--; }
+  const r = `${ny}-${String(nm).padStart(2,"0")}`;
+  return r < CMS_MIN_YM ? CMS_MIN_YM : r > CMS_MAX_YM ? CMS_MAX_YM : r;
+}
+function buildCmsTileUrl(v: CmsVar, cmap: string, yyyymm: string): string {
+  return (
+    "https://wmts.marine.copernicus.eu/teroWmts" +
+    "?SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetTile" +
+    `&LAYER=${encodeURIComponent(CMS_PRODUCT + "/" + CMS_DATASET + "/" + v)}` +
+    `&STYLE=${encodeURIComponent("cmap:" + cmap)}` +
+    "&FORMAT=image%2Fpng&TILEMATRIXSET=EPSG%3A3857" +
+    "&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}" +
+    `&TIME=${encodeURIComponent(yyyymm + "-01T00:00:00Z")}`
+  );
+}
+
 // ─── Expanded map modal ───────────────────────────────────────────────────────
 function ExpandedMapModal({
   markers,
@@ -482,21 +526,18 @@ function ExpandedMapModal({
   const [showReefCheck,      setShowReefCheck]      = useState(true);
   const [showReefLife,       setShowReefLife]        = useState(true);
   const [showGcrmnMonSites,  setShowGcrmnMonSites]  = useState(true);
-  const [showChlLayer,       setShowChlLayer]       = useState(false);
+  const [activeCmsVar,       setActiveCmsVar]       = useState<CmsVar | null>(null);
+  const [cmsYYYYMM,          setCmsYYYYMM]          = useState(CMS_MAX_YM);
+  const [showToolbox,        setShowToolbox]        = useState(false);
 
-  // ── WMTS tile URL for Copernicus Chlorophyll-a (CHL) ─────────────────────────
-  const CHL_WMTS_URL =
-    "https://wmts.marine.copernicus.eu/teroWmts" +
-    "?SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetTile" +
-    "&LAYER=OCEANCOLOUR_GLO_BGC_L4_MY_009_104%2F" +
-      "cmems_obs-oc_glo_bgc-plankton_my_l4-multi-4km_P1M_202603%2FCHL" +
-    "&STYLE=cmap%3Aalgae" +
-    "&FORMAT=image%2Fpng" +
-    "&TILEMATRIXSET=EPSG%3A3857" +
-    "&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}" +
-    "&TIME=2026-03-01T00%3A00%3A00Z";
+  const activeCmsLayer = activeCmsVar
+    ? CMS_LAYERS.find(l => l.var === activeCmsVar) ?? null
+    : null;
+  const cmsTileUrl = activeCmsLayer
+    ? buildCmsTileUrl(activeCmsLayer.var as CmsVar, activeCmsLayer.cmap, cmsYYYYMM)
+    : null;
 
-  const activeLayers = (showGcrmn ? 1 : 0) + (showCoralMapping ? 1 : 0) + (showMarineRegions ? 1 : 0) + (showImgs ? 1 : 0) + (showGcrmnSites ? 1 : 0) + (showWcsReefCloud ? 1 : 0) + (showWcsCcSites ? 1 : 0) + (showReefCheck ? 1 : 0) + (showReefLife ? 1 : 0) + (showGcrmnMonSites ? 1 : 0) + (showChlLayer ? 1 : 0) + 1;
+  const activeLayers = (showGcrmn ? 1 : 0) + (showCoralMapping ? 1 : 0) + (showMarineRegions ? 1 : 0) + (showImgs ? 1 : 0) + (showGcrmnSites ? 1 : 0) + (showWcsReefCloud ? 1 : 0) + (showWcsCcSites ? 1 : 0) + (showReefCheck ? 1 : 0) + (showReefLife ? 1 : 0) + (showGcrmnMonSites ? 1 : 0) + (activeCmsVar ? 1 : 0) + 1;
 
   // Country breakdown for GCRMN legend — derived from live GeoJSON
   const gcrmnCountryStats = useMemo(() => {
@@ -581,12 +622,13 @@ function ExpandedMapModal({
               attribution="© Esri"
               maxZoom={10}
             />
-            {showChlLayer && (
+            {cmsTileUrl && (
               <TileLayer
-                url={CHL_WMTS_URL}
+                key={cmsTileUrl}
+                url={cmsTileUrl}
                 opacity={0.72}
                 maxZoom={10}
-                attribution='© <a href="https://marine.copernicus.eu">Copernicus Marine Service · E.U.</a>'
+                attribution='© <a href="https://marine.copernicus.eu">Copernicus Marine Service · Mercator Ocean International</a>'
               />
             )}
             {showMarineRegions && (
@@ -788,6 +830,82 @@ function ExpandedMapModal({
             {markers.length > 0 && <FitBounds markers={markers} />}
             <GcrmnZoomWatcher enabled={showGcrmnMonSites} />
           </MapContainer>
+
+          {/* ── Copernicus Marine Toolbox panel ── */}
+          {showToolbox && activeCmsLayer && (
+            <div style={{
+              position: "absolute", bottom: 0, left: 0, right: 0, zIndex: 1000,
+              background: "rgba(0,10,18,0.96)", borderTop: "1px solid rgba(0,184,148,0.3)",
+              backdropFilter: "blur(8px)", fontFamily: "Inter,sans-serif",
+              padding: "14px 18px 16px",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 13 }}>⬇</span>
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "#00b894" }}>Copernicus Marine Toolbox</div>
+                    <div style={{ fontSize: 10, color: "#d4e9f366" }}>
+                      {activeCmsLayer.label} · {cmsMonthLabel(cmsYYYYMM)} · Dataset: {CMS_DATASET}
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowToolbox(false)}
+                  style={{ background: "none", border: "none", color: "#d4e9f355", cursor: "pointer", fontSize: 16, lineHeight: 1 }}
+                >×</button>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                {/* Install */}
+                <div>
+                  <div style={{ fontSize: 9, color: "#83eef066", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>Install</div>
+                  <pre style={{
+                    margin: 0, padding: "8px 10px", borderRadius: 6, fontSize: 10, lineHeight: 1.5,
+                    background: "rgba(0,184,148,0.08)", border: "1px solid rgba(0,184,148,0.18)",
+                    color: "#83eef0", overflowX: "auto", whiteSpace: "pre-wrap",
+                  }}>{`pip install copernicusmarine`}</pre>
+                </div>
+
+                {/* CLI */}
+                <div>
+                  <div style={{ fontSize: 9, color: "#83eef066", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>CLI</div>
+                  <pre style={{
+                    margin: 0, padding: "8px 10px", borderRadius: 6, fontSize: 10, lineHeight: 1.5,
+                    background: "rgba(0,184,148,0.08)", border: "1px solid rgba(0,184,148,0.18)",
+                    color: "#83eef0", overflowX: "auto", whiteSpace: "pre-wrap",
+                  }}>{`copernicusmarine get \\
+  --dataset-id ${CMS_DATASET} \\
+  --variable ${activeCmsLayer.var} \\
+  --start-datetime "${cmsYYYYMM}-01" \\
+  --end-datetime "${cmsYYYYMM}-01"`}</pre>
+                </div>
+
+                {/* Python API — full width */}
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <div style={{ fontSize: 9, color: "#83eef066", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4 }}>Python API</div>
+                  <pre style={{
+                    margin: 0, padding: "8px 10px", borderRadius: 6, fontSize: 10, lineHeight: 1.5,
+                    background: "rgba(0,184,148,0.08)", border: "1px solid rgba(0,184,148,0.18)",
+                    color: "#83eef0", overflowX: "auto", whiteSpace: "pre-wrap",
+                  }}>{`import copernicusmarine
+
+copernicusmarine.get(
+    dataset_id="${CMS_DATASET}",
+    variables=["${activeCmsLayer.var}"],
+    start_datetime="${cmsYYYYMM}-01",
+    end_datetime="${cmsYYYYMM}-01",
+    output_directory="./copernicus_data",
+)`}</pre>
+                </div>
+              </div>
+
+              <div style={{ marginTop: 10, fontSize: 9, color: "#d4e9f330" }}>
+                © Mercator Ocean International · Copernicus Marine Service (CMEMS) ·{" "}
+                <a href="https://github.com/mercator-ocean/copernicus-marine-toolbox" target="_blank" rel="noopener noreferrer"
+                  style={{ color: "#83eef066", textDecoration: "underline" }}>github.com/mercator-ocean/copernicus-marine-toolbox</a>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ── Side panel ── */}
@@ -803,32 +921,90 @@ function ExpandedMapModal({
             <div style={{ display: "flex", gap: 5, marginBottom: 10, paddingBottom: 10, borderBottom: "1px solid rgba(131,238,240,0.08)" }}>
               <button
                 data-testid="expanded-toggle-all-layers"
-                onClick={() => { setShowMarineRegions(true); setShowCoralMapping(true); setShowGcrmn(true); setShowGcrmnSites(true); setShowGcrmnMonSites(true); setShowWcsReefCloud(true); setShowWcsCcSites(true); setShowReefCheck(true); setShowReefLife(true); setShowImgs(true); }}
+                onClick={() => { setShowMarineRegions(true); setShowCoralMapping(true); setShowGcrmn(true); setShowGcrmnSites(true); setShowGcrmnMonSites(true); setShowWcsReefCloud(true); setShowWcsCcSites(true); setShowReefCheck(true); setShowReefLife(true); setShowImgs(true); setActiveCmsVar("CHL"); }}
                 style={{ flex: 1, fontSize: 9, fontFamily: "Inter,sans-serif", fontWeight: 700, background: "rgba(131,238,240,0.12)", border: "1px solid rgba(131,238,240,0.3)", borderRadius: 6, padding: "4px 0", color: "#83eef0", cursor: "pointer" }}
               >All On</button>
               <button
                 data-testid="expanded-toggle-no-layers"
-                onClick={() => { setShowMarineRegions(false); setShowCoralMapping(false); setShowGcrmn(false); setShowGcrmnSites(false); setShowGcrmnMonSites(false); setShowWcsReefCloud(false); setShowWcsCcSites(false); setShowReefCheck(false); setShowReefLife(false); setShowImgs(false); }}
+                onClick={() => { setShowMarineRegions(false); setShowCoralMapping(false); setShowGcrmn(false); setShowGcrmnSites(false); setShowGcrmnMonSites(false); setShowWcsReefCloud(false); setShowWcsCcSites(false); setShowReefCheck(false); setShowReefLife(false); setShowImgs(false); setActiveCmsVar(null); }}
                 style={{ flex: 1, fontSize: 9, fontFamily: "Inter,sans-serif", fontWeight: 700, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 6, padding: "4px 0", color: "#d4e9f355", cursor: "pointer" }}
               >All Off</button>
             </div>
 
-            {/* ── Satellite ── */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
-              <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#d4e9f340" }}>Satellite</span>
-              <button
-                onClick={() => setShowChlLayer(v => !v)}
-                style={{ fontSize: 8, background: "none", border: "none", color: "#83eef066", cursor: "pointer", fontFamily: "Inter,sans-serif", fontWeight: 600 }}
-              >{showChlLayer ? "off" : "all"}</button>
+            {/* ── Satellite · Copernicus Marine ── */}
+            <div style={{ marginBottom: 8 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#d4e9f340" }}>
+                  Satellite · Copernicus Marine
+                </span>
+                {activeCmsVar && (
+                  <button
+                    onClick={() => setActiveCmsVar(null)}
+                    style={{ fontSize: 8, background: "none", border: "none", color: "#83eef066", cursor: "pointer", fontFamily: "Inter,sans-serif", fontWeight: 600 }}
+                  >off</button>
+                )}
+              </div>
+
+              {/* Layer radio chips */}
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 3, marginBottom: 8 }}>
+                {CMS_LAYERS.map(layer => (
+                  <button
+                    key={layer.var}
+                    data-testid={`expanded-toggle-cms-${layer.var.toLowerCase()}`}
+                    onClick={() => setActiveCmsVar(v => (v === layer.var ? null : layer.var as CmsVar))}
+                    title={`${layer.label} · ${layer.unit}`}
+                    style={{
+                      fontSize: 8, fontFamily: "Inter,sans-serif", fontWeight: 600,
+                      padding: "3px 7px", borderRadius: 20, cursor: "pointer",
+                      background: activeCmsVar === layer.var ? layer.color + "22" : "rgba(255,255,255,0.04)",
+                      border: `1px solid ${activeCmsVar === layer.var ? layer.color + "99" : "rgba(255,255,255,0.1)"}`,
+                      color: activeCmsVar === layer.var ? layer.color : "#d4e9f355",
+                      transition: "all 0.15s",
+                    }}
+                  >{layer.label}</button>
+                ))}
+              </div>
+
+              {/* Time navigator — only shown when a layer is active */}
+              {activeCmsVar && (
+                <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 8 }}>
+                  <button
+                    onClick={() => setCmsYYYYMM(v => cmsNavMonth(v, -1))}
+                    disabled={cmsYYYYMM <= CMS_MIN_YM}
+                    style={{ fontSize: 13, background: "none", border: "1px solid rgba(131,238,240,0.2)", borderRadius: 4, color: cmsYYYYMM <= CMS_MIN_YM ? "#d4e9f322" : "#83eef0", cursor: cmsYYYYMM <= CMS_MIN_YM ? "default" : "pointer", padding: "1px 6px", lineHeight: 1 }}
+                  >‹</button>
+                  <span style={{ flex: 1, textAlign: "center", fontSize: 10, fontFamily: "Inter,sans-serif", fontWeight: 600, color: "#83eef0" }}>
+                    {cmsMonthLabel(cmsYYYYMM)}
+                  </span>
+                  <button
+                    onClick={() => setCmsYYYYMM(v => cmsNavMonth(v, +1))}
+                    disabled={cmsYYYYMM >= CMS_MAX_YM}
+                    style={{ fontSize: 13, background: "none", border: "1px solid rgba(131,238,240,0.2)", borderRadius: 4, color: cmsYYYYMM >= CMS_MAX_YM ? "#d4e9f322" : "#83eef0", cursor: cmsYYYYMM >= CMS_MAX_YM ? "default" : "pointer", padding: "1px 6px", lineHeight: 1 }}
+                  >›</button>
+                </div>
+              )}
+
+              {/* Download via Toolbox */}
+              {activeCmsVar && (
+                <button
+                  data-testid="expanded-toggle-toolbox"
+                  onClick={() => setShowToolbox(v => !v)}
+                  style={{
+                    width: "100%", fontSize: 9, fontFamily: "Inter,sans-serif", fontWeight: 700,
+                    padding: "5px 0", borderRadius: 6, cursor: "pointer",
+                    background: showToolbox ? "rgba(0,184,148,0.15)" : "rgba(255,255,255,0.04)",
+                    border: `1px solid ${showToolbox ? "rgba(0,184,148,0.4)" : "rgba(255,255,255,0.1)"}`,
+                    color: showToolbox ? "#00b894" : "#d4e9f366",
+                    transition: "all 0.15s",
+                  }}
+                >⬇ Download via Copernicus Marine Toolbox</button>
+              )}
+
+              {/* Attribution note */}
+              <div style={{ fontSize: 7, color: "#d4e9f325", marginTop: 6, lineHeight: 1.4 }}>
+                © Mercator Ocean International · Copernicus Marine Service (CMEMS)
+              </div>
             </div>
-            <LayerToggle
-              label="Ocean Chlorophyll-a"
-              sublabel="Monthly CHL · 4 km · Copernicus Marine (1997–2026)"
-              active={showChlLayer}
-              color="#00b894"
-              onClick={() => setShowChlLayer(v => !v)}
-              testId="expanded-toggle-chl-layer"
-            />
 
             {/* ── Boundaries ── */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4, marginTop: 10 }}>
@@ -1391,12 +1567,13 @@ export function ReefMap({
             attribution="© Esri"
             maxZoom={10}
           />
-          {showChlLayer && (
+          {cmsTileUrl && (
             <TileLayer
-              url={CHL_WMTS_URL}
+              key={cmsTileUrl}
+              url={cmsTileUrl}
               opacity={0.72}
               maxZoom={10}
-              attribution='© Copernicus Marine Service'
+              attribution='© Copernicus Marine Service · Mercator Ocean International'
             />
           )}
           {showMarineRegions && (
@@ -1580,7 +1757,7 @@ export function ReefMap({
                   border: "1px solid rgba(131,238,240,0.25)",
                   borderRadius: 10, padding: "1px 7px",
                 }}>
-                  {[showCoralMapping, showMarineRegions, showGcrmn, showGcrmnMonSites, showGcrmnSites, showReefCheck, showReefLife, showWcsCcSites, showWcsReefCloud, showImgs, showChlLayer].filter(Boolean).length} / 11
+                  {[showCoralMapping, showMarineRegions, showGcrmn, showGcrmnMonSites, showGcrmnSites, showReefCheck, showReefLife, showWcsCcSites, showWcsReefCloud, showImgs, activeCmsVar].filter(Boolean).length} / 11
                 </span>
               </div>
 
@@ -1588,22 +1765,71 @@ export function ReefMap({
               <div style={{ display: "flex", gap: 5, padding: "7px 10px 6px", borderBottom: "1px solid rgba(131,238,240,0.07)" }}>
                 <button
                   data-testid="toggle-all-layers"
-                  onClick={() => { setShowMarineRegions(true); setShowCoralMapping(true); setShowGcrmn(true); setShowGcrmnSites(true); setShowGcrmnMonSites(true); setShowWcsReefCloud(true); setShowWcsCcSites(true); setShowReefCheck(true); setShowReefLife(true); setShowImgs(true); setShowChlLayer(true); }}
+                  onClick={() => { setShowMarineRegions(true); setShowCoralMapping(true); setShowGcrmn(true); setShowGcrmnSites(true); setShowGcrmnMonSites(true); setShowWcsReefCloud(true); setShowWcsCcSites(true); setShowReefCheck(true); setShowReefLife(true); setShowImgs(true); setActiveCmsVar("CHL"); }}
                   style={{ flex: 1, fontSize: 9, fontFamily: "Inter,sans-serif", fontWeight: 700, background: "rgba(131,238,240,0.11)", border: "1px solid rgba(131,238,240,0.28)", borderRadius: 6, padding: "4px 0", color: "#83eef0", cursor: "pointer", transition: "background 0.15s" }}
                 >Select All</button>
                 <button
                   data-testid="toggle-no-layers"
-                  onClick={() => { setShowMarineRegions(false); setShowCoralMapping(false); setShowGcrmn(false); setShowGcrmnSites(false); setShowGcrmnMonSites(false); setShowWcsReefCloud(false); setShowWcsCcSites(false); setShowReefCheck(false); setShowReefLife(false); setShowImgs(false); setShowChlLayer(false); }}
+                  onClick={() => { setShowMarineRegions(false); setShowCoralMapping(false); setShowGcrmn(false); setShowGcrmnSites(false); setShowGcrmnMonSites(false); setShowWcsReefCloud(false); setShowWcsCcSites(false); setShowReefCheck(false); setShowReefLife(false); setShowImgs(false); setActiveCmsVar(null); }}
                   style={{ flex: 1, fontSize: 9, fontFamily: "Inter,sans-serif", fontWeight: 700, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 6, padding: "4px 0", color: "#d4e9f355", cursor: "pointer", transition: "background 0.15s" }}
                 >Clear All</button>
               </div>
 
               {/* ── Layer groups ── */}
               <div style={{ padding: "6px 6px 8px", maxHeight: 360, overflowY: "auto" }}>
+
+                {/* ── Satellite group (custom — radio, not checkbox) ── */}
+                <div style={{ marginBottom: 6 }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "5px 10px 4px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                      <span style={{ fontSize: 8, color: "#d4e9f333" }}>◎</span>
+                      <span style={{ fontSize: 8, fontFamily: "Inter,sans-serif", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#d4e9f340" }}>Satellite · CMS</span>
+                    </div>
+                    {activeCmsVar && (
+                      <button
+                        onClick={() => setActiveCmsVar(null)}
+                        style={{ fontSize: 8, fontFamily: "Inter,sans-serif", fontWeight: 600, background: "none", border: "none", cursor: "pointer", padding: "1px 5px", color: "#d4e9f344", borderRadius: 4 }}
+                      >off</button>
+                    )}
+                  </div>
+                  {/* Compact select */}
+                  <div style={{ padding: "0 10px 4px" }}>
+                    <select
+                      data-testid="compact-cms-layer-select"
+                      value={activeCmsVar ?? ""}
+                      onChange={e => setActiveCmsVar((e.target.value as CmsVar) || null)}
+                      style={{
+                        width: "100%", fontSize: 9, fontFamily: "Inter,sans-serif", fontWeight: 600,
+                        background: "rgba(0,184,148,0.08)", border: "1px solid rgba(0,184,148,0.25)",
+                        borderRadius: 6, padding: "4px 8px", color: activeCmsVar ? "#00b894" : "#d4e9f355",
+                        cursor: "pointer", outline: "none",
+                      }}
+                    >
+                      <option value="">— Off —</option>
+                      {CMS_LAYERS.map(l => (
+                        <option key={l.var} value={l.var}>{l.label} ({l.var})</option>
+                      ))}
+                    </select>
+                  </div>
+                  {/* Time nav */}
+                  {activeCmsVar && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "0 10px 4px" }}>
+                      <button
+                        onClick={() => setCmsYYYYMM(v => cmsNavMonth(v, -1))}
+                        disabled={cmsYYYYMM <= CMS_MIN_YM}
+                        style={{ fontSize: 12, background: "none", border: "1px solid rgba(131,238,240,0.2)", borderRadius: 4, color: cmsYYYYMM <= CMS_MIN_YM ? "#d4e9f322" : "#83eef0", cursor: cmsYYYYMM <= CMS_MIN_YM ? "default" : "pointer", padding: "0 5px", lineHeight: 1.4 }}
+                      >‹</button>
+                      <span style={{ flex: 1, textAlign: "center", fontSize: 9, fontFamily: "Inter,sans-serif", fontWeight: 600, color: "#83eef0" }}>{cmsMonthLabel(cmsYYYYMM)}</span>
+                      <button
+                        onClick={() => setCmsYYYYMM(v => cmsNavMonth(v, +1))}
+                        disabled={cmsYYYYMM >= CMS_MAX_YM}
+                        style={{ fontSize: 12, background: "none", border: "1px solid rgba(131,238,240,0.2)", borderRadius: 4, color: cmsYYYYMM >= CMS_MAX_YM ? "#d4e9f322" : "#83eef0", cursor: cmsYYYYMM >= CMS_MAX_YM ? "default" : "pointer", padding: "0 5px", lineHeight: 1.4 }}
+                      >›</button>
+                    </div>
+                  )}
+                </div>
+
                 {([
-                  { group: "Satellite", icon: "◎", layers: [
-                    { testId: "toggle-chl-layer",             label: "Ocean Chlorophyll-a", sublabel: "Monthly CHL · 4 km · Copernicus Marine", color: "#00b894", active: showChlLayer,      toggle: () => setShowChlLayer(v => !v)      },
-                  ]},
                   { group: "Boundaries", icon: "◈", layers: [
                     { testId: "toggle-coral-mapping-layer",   label: "Coral Reef Regions",  sublabel: "29 zones · UQ / Allen Coral Atlas",  color: "#fd7272", active: showCoralMapping,  toggle: () => setShowCoralMapping(v => !v)  },
                     { testId: "toggle-marine-regions-layer",  label: "EEZ Boundaries",      sublabel: "Excl. Economic Zones · VLIZ",         color: "#fdcb6e", active: showMarineRegions, toggle: () => setShowMarineRegions(v => !v) },
