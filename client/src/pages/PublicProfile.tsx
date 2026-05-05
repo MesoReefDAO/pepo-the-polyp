@@ -10,6 +10,7 @@ import {
   Award, Calendar, Activity, Users, Microscope,
 } from "lucide-react";
 import { SiX, SiGithub, SiLinkedin, SiInstagram } from "react-icons/si";
+import { extractHandle, buildSocialHref } from "@/lib/social";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function formatDate(epoch: number) {
@@ -306,43 +307,43 @@ export function PublicProfile() {
                 {(profile.twitterHandle || profile.linkedinUrl || profile.githubHandle || profile.instagramHandle) && (
                   <div className="flex flex-wrap items-center gap-1.5 mt-2.5">
                     {profile.twitterHandle && (
-                      <a href={`https://x.com/${profile.twitterHandle}`} target="_blank" rel="noopener noreferrer"
+                      <a href={buildSocialHref("https://x.com/", profile.twitterHandle)} target="_blank" rel="noopener noreferrer"
                         data-testid="link-member-twitter"
                         className="flex items-center gap-1.5 px-2.5 py-1 rounded-full no-underline hover:opacity-85 transition-opacity"
                         style={{ background: "#18181b", border: "1px solid #ffffff18" }}
                       >
                         <SiX size={11} color="#e7e9ea" />
-                        <span className="[font-family:'Inter',Helvetica] text-[11px]" style={{ color: "#e7e9ea" }}>@{profile.twitterHandle}</span>
+                        <span className="[font-family:'Inter',Helvetica] text-[11px]" style={{ color: "#e7e9ea" }}>@{extractHandle(profile.twitterHandle)}</span>
                       </a>
                     )}
                     {profile.githubHandle && (
-                      <a href={`https://github.com/${profile.githubHandle}`} target="_blank" rel="noopener noreferrer"
+                      <a href={buildSocialHref("https://github.com/", profile.githubHandle)} target="_blank" rel="noopener noreferrer"
                         data-testid="link-member-github"
                         className="flex items-center gap-1.5 px-2.5 py-1 rounded-full no-underline hover:opacity-85 transition-opacity"
                         style={{ background: "#161b22", border: "1px solid #30363d" }}
                       >
                         <SiGithub size={11} color="#e6edf3" />
-                        <span className="[font-family:'Inter',Helvetica] text-[11px]" style={{ color: "#e6edf3" }}>{profile.githubHandle}</span>
+                        <span className="[font-family:'Inter',Helvetica] text-[11px]" style={{ color: "#e6edf3" }}>{extractHandle(profile.githubHandle)}</span>
                       </a>
                     )}
                     {profile.linkedinUrl && (
-                      <a href={profile.linkedinUrl.startsWith("http") ? profile.linkedinUrl : `https://${profile.linkedinUrl}`} target="_blank" rel="noopener noreferrer"
+                      <a href={buildSocialHref("https://linkedin.com/in/", profile.linkedinUrl)} target="_blank" rel="noopener noreferrer"
                         data-testid="link-member-linkedin"
                         className="flex items-center gap-1.5 px-2.5 py-1 rounded-full no-underline hover:opacity-85 transition-opacity"
                         style={{ background: "#0a66c2", border: "1px solid #0a66c260" }}
                       >
                         <SiLinkedin size={11} color="#ffffff" />
-                        <span className="[font-family:'Inter',Helvetica] text-[11px] text-white">LinkedIn</span>
+                        <span className="[font-family:'Inter',Helvetica] text-[11px] text-white">{extractHandle(profile.linkedinUrl) || "LinkedIn"}</span>
                       </a>
                     )}
                     {profile.instagramHandle && (
-                      <a href={`https://instagram.com/${profile.instagramHandle}`} target="_blank" rel="noopener noreferrer"
+                      <a href={buildSocialHref("https://instagram.com/", profile.instagramHandle)} target="_blank" rel="noopener noreferrer"
                         data-testid="link-member-instagram"
                         className="flex items-center gap-1.5 px-2.5 py-1 rounded-full no-underline hover:opacity-85 transition-opacity"
                         style={{ background: "linear-gradient(135deg,#f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%)", border: "1px solid #e1306c55" }}
                       >
                         <SiInstagram size={11} color="#ffffff" />
-                        <span className="[font-family:'Inter',Helvetica] text-[11px] text-white">@{profile.instagramHandle}</span>
+                        <span className="[font-family:'Inter',Helvetica] text-[11px] text-white">@{extractHandle(profile.instagramHandle)}</span>
                       </a>
                     )}
                   </div>

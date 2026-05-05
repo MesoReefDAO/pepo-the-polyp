@@ -5,6 +5,7 @@ import { usePrivy } from "@privy-io/react-auth";
 import { useOrcidAuth } from "@/hooks/use-orcid-auth";
 import { Trophy, MessageCircle, Star, Users, ArrowLeft, Globe, ChevronRight } from "lucide-react";
 import { SiX, SiGithub, SiLinkedin, SiInstagram } from "react-icons/si";
+import { extractHandle, buildSocialHref } from "@/lib/social";
 import type { LeaderboardEntry } from "@shared/schema";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import coralDnaBg from "@assets/coral_micro_1777060394505.jpg";
@@ -178,9 +179,9 @@ const SOCIAL_CONFIG = [
     color: "#e7e9ea",
     bg: "#18181b",
     border: "#ffffff18",
-    href: (v: string) => `https://x.com/${v}`,
-    label: (v: string) => `@${v}`,
-    title: (v: string) => `@${v} on X`,
+    href: (v: string) => buildSocialHref("https://x.com/", v),
+    label: (v: string) => `@${extractHandle(v)}`,
+    title: (v: string) => `@${extractHandle(v)} on X`,
   },
   {
     key: "githubHandle" as const,
@@ -188,9 +189,9 @@ const SOCIAL_CONFIG = [
     color: "#e6edf3",
     bg: "#161b22",
     border: "#30363d",
-    href: (v: string) => `https://github.com/${v}`,
-    label: (v: string) => v,
-    title: (v: string) => `${v} on GitHub`,
+    href: (v: string) => buildSocialHref("https://github.com/", v),
+    label: (v: string) => extractHandle(v),
+    title: (v: string) => `${extractHandle(v)} on GitHub`,
   },
   {
     key: "linkedinUrl" as const,
@@ -198,9 +199,9 @@ const SOCIAL_CONFIG = [
     color: "#ffffff",
     bg: "#0a66c2",
     border: "#0a66c260",
-    href: (v: string) => v.startsWith("http") ? v : `https://${v}`,
-    label: () => "LinkedIn",
-    title: () => "LinkedIn",
+    href: (v: string) => buildSocialHref("https://linkedin.com/in/", v),
+    label: (v: string) => extractHandle(v) || "LinkedIn",
+    title: (v: string) => extractHandle(v) || "LinkedIn",
   },
   {
     key: "instagramHandle" as const,
@@ -208,9 +209,9 @@ const SOCIAL_CONFIG = [
     color: "#ffffff",
     bg: "linear-gradient(135deg,#f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%)",
     border: "#e1306c55",
-    href: (v: string) => `https://instagram.com/${v}`,
-    label: (v: string) => `@${v}`,
-    title: (v: string) => `@${v} on Instagram`,
+    href: (v: string) => buildSocialHref("https://instagram.com/", v),
+    label: (v: string) => `@${extractHandle(v)}`,
+    title: (v: string) => `@${extractHandle(v)} on Instagram`,
   },
 ] as const;
 
