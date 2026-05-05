@@ -220,7 +220,7 @@ function SocialRow({ entry }: { entry: LeaderboardEntry }) {
   if (!active.length) return null;
   return (
     <div className="flex items-center gap-1.5 flex-wrap" onClick={e => e.stopPropagation()}>
-      {active.map(({ key, Icon, color, bg, border, href, label, title }) => {
+      {active.map(({ key, Icon, color, bg, border, href, title }) => {
         const val = (entry as any)[key] as string;
         return (
           <a
@@ -230,13 +230,10 @@ function SocialRow({ entry }: { entry: LeaderboardEntry }) {
             rel="noopener noreferrer"
             title={title(val)}
             data-testid={`link-social-${key}-${entry.id}`}
-            className="flex items-center gap-1.5 px-2 py-1 rounded-full no-underline transition-opacity hover:opacity-85"
-            style={{ background: bg, border: `1px solid ${border}` }}
+            className="flex items-center justify-center rounded-full no-underline transition-opacity hover:opacity-80"
+            style={{ width: 22, height: 22, background: bg, border: `1px solid ${border}`, flexShrink: 0 }}
           >
-            <Icon size={10} color={color} />
-            <span className="[font-family:'Inter',Helvetica] text-[9px] font-medium" style={{ color }}>
-              {label(val)}
-            </span>
+            <Icon size={11} color={color} />
           </a>
         );
       })}

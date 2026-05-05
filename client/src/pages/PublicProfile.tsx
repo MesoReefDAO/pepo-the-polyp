@@ -309,41 +309,41 @@ export function PublicProfile() {
                     {profile.twitterHandle && (
                       <a href={buildSocialHref("https://x.com/", profile.twitterHandle)} target="_blank" rel="noopener noreferrer"
                         data-testid="link-member-twitter"
-                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-full no-underline hover:opacity-85 transition-opacity"
-                        style={{ background: "#18181b", border: "1px solid #ffffff18" }}
+                        title={`@${extractHandle(profile.twitterHandle)} on X`}
+                        className="flex items-center justify-center rounded-full no-underline hover:opacity-80 transition-opacity"
+                        style={{ width: 24, height: 24, background: "#18181b", border: "1px solid #ffffff18", flexShrink: 0 }}
                       >
-                        <SiX size={11} color="#e7e9ea" />
-                        <span className="[font-family:'Inter',Helvetica] text-[11px]" style={{ color: "#e7e9ea" }}>@{extractHandle(profile.twitterHandle)}</span>
+                        <SiX size={12} color="#e7e9ea" />
                       </a>
                     )}
                     {profile.githubHandle && (
                       <a href={buildSocialHref("https://github.com/", profile.githubHandle)} target="_blank" rel="noopener noreferrer"
                         data-testid="link-member-github"
-                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-full no-underline hover:opacity-85 transition-opacity"
-                        style={{ background: "#161b22", border: "1px solid #30363d" }}
+                        title={`${extractHandle(profile.githubHandle)} on GitHub`}
+                        className="flex items-center justify-center rounded-full no-underline hover:opacity-80 transition-opacity"
+                        style={{ width: 24, height: 24, background: "#161b22", border: "1px solid #30363d", flexShrink: 0 }}
                       >
-                        <SiGithub size={11} color="#e6edf3" />
-                        <span className="[font-family:'Inter',Helvetica] text-[11px]" style={{ color: "#e6edf3" }}>{extractHandle(profile.githubHandle)}</span>
+                        <SiGithub size={12} color="#e6edf3" />
                       </a>
                     )}
                     {profile.linkedinUrl && (
                       <a href={buildSocialHref("https://linkedin.com/in/", profile.linkedinUrl)} target="_blank" rel="noopener noreferrer"
                         data-testid="link-member-linkedin"
-                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-full no-underline hover:opacity-85 transition-opacity"
-                        style={{ background: "#0a66c2", border: "1px solid #0a66c260" }}
+                        title={extractHandle(profile.linkedinUrl) || "LinkedIn"}
+                        className="flex items-center justify-center rounded-full no-underline hover:opacity-80 transition-opacity"
+                        style={{ width: 24, height: 24, background: "#0a66c2", border: "1px solid #0a66c260", flexShrink: 0 }}
                       >
-                        <SiLinkedin size={11} color="#ffffff" />
-                        <span className="[font-family:'Inter',Helvetica] text-[11px] text-white">{extractHandle(profile.linkedinUrl) || "LinkedIn"}</span>
+                        <SiLinkedin size={12} color="#ffffff" />
                       </a>
                     )}
                     {profile.instagramHandle && (
                       <a href={buildSocialHref("https://instagram.com/", profile.instagramHandle)} target="_blank" rel="noopener noreferrer"
                         data-testid="link-member-instagram"
-                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-full no-underline hover:opacity-85 transition-opacity"
-                        style={{ background: "linear-gradient(135deg,#f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%)", border: "1px solid #e1306c55" }}
+                        title={`@${extractHandle(profile.instagramHandle)} on Instagram`}
+                        className="flex items-center justify-center rounded-full no-underline hover:opacity-80 transition-opacity"
+                        style={{ width: 24, height: 24, background: "linear-gradient(135deg,#f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%)", border: "1px solid #e1306c55", flexShrink: 0 }}
                       >
-                        <SiInstagram size={11} color="#ffffff" />
-                        <span className="[font-family:'Inter',Helvetica] text-[11px] text-white">@{extractHandle(profile.instagramHandle)}</span>
+                        <SiInstagram size={12} color="#ffffff" />
                       </a>
                     )}
                   </div>
