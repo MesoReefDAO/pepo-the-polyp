@@ -398,9 +398,14 @@ function GraphLoadingShimmer({ visible }: { visible: boolean }) {
 }
 
 // ── Main dashboard ─────────────────────────────────────────────────────────────
+// Width of the Bonfires.ai PepoThePolypBot chat panel (approx).
+// Used for the overlay that visually hides the panel when minimised.
+const CHAT_PANEL_PX = 370;
+
 export const ReefInsightDashboardSection = (): JSX.Element => {
   const [graphLoading, setGraphLoading] = useState(true);
   const [coralOpen, setCoralOpen] = useState(true);
+  const [chatOpen, setChatOpen] = useState(true);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const { t } = useTranslation();
 
@@ -472,11 +477,31 @@ export const ReefInsightDashboardSection = (): JSX.Element => {
             </span>
           </div>
 
-          {/* Right: powered-by badge + open link */}
-          <div className="flex items-center gap-3">
+          {/* Right: powered-by badge + chat toggle + open link */}
+          <div className="flex items-center gap-2">
             <span className="[font-family:'Inter',Helvetica] text-[10px] text-[#d4e9f340] hidden sm:block">
               powered by Bonfires.ai
             </span>
+            {/* Chat panel toggle */}
+            <button
+              onClick={() => setChatOpen(o => !o)}
+              data-testid="button-chat-toggle"
+              title={chatOpen ? "Hide PepoThePolypBot" : "Show PepoThePolypBot"}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-full transition-colors hover:bg-[#83eef010]"
+              style={{
+                border: `1px solid ${chatOpen ? "rgba(131,238,240,0.30)" : "rgba(131,238,240,0.10)"}`,
+                color: chatOpen ? "#83eef0" : "#83eef044",
+              }}
+            >
+              {/* Chat bubble icon */}
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                  stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              <span className="[font-family:'Inter',Helvetica] text-[10px] font-medium hidden sm:block">
+                {chatOpen ? "Bot" : "Bot"}
+              </span>
+            </button>
             <a
               href={BONFIRES_GRAPH_URL}
               target="_blank"
@@ -527,6 +552,19 @@ export const ReefInsightDashboardSection = (): JSX.Element => {
             data-testid="iframe-knowledge-graph"
             onLoad={handleIframeLoad}
           />
+
+          {/* Chat panel hide overlay — sits over the right portion of the
+              iframe when the bot is minimised. A soft gradient on the left
+              edge blends into the graph canvas so the cutoff isn't harsh. */}
+          {!chatOpen && (
+            <div
+              className="absolute top-0 right-0 bottom-0 z-[8] pointer-events-none"
+              style={{
+                width: CHAT_PANEL_PX,
+                background: "linear-gradient(to right, transparent 0%, #00080c 18%)",
+              }}
+            />
+          )}
 
           {/* First-visit hint */}
           {showHint && !graphLoading && (
