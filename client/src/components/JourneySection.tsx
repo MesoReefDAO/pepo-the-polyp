@@ -95,7 +95,7 @@ function LegendItem({ emoji, label, pts, color = "#83eef0" }: { emoji: string; l
 
 // ─── Main component ────────────────────────────────────────────────────────────
 export function JourneySection({ className }: { className?: string }) {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
   const [showLegend, setShowLegend] = useState(false);
   const { authenticated: privyAuthenticated, user } = usePrivy();
   const { orcidAuthenticated, orcidProfileId } = useOrcidAuth();

@@ -56,13 +56,23 @@ function KnowledgeGraphPanel() {
           <span className="[font-family:'Inter',Helvetica] text-[#83eef0] text-[10px] font-medium whitespace-nowrap">Full Graph</span>
         </a>
       </div>
-      <iframe
-        src={BONFIRES_GRAPH_URL}
-        title="Reef Knowledge Graph"
-        className="flex-1 w-full border-none"
-        allow="fullscreen"
-        referrerPolicy="no-referrer-when-downgrade"
-      />
+      {/* Clip the Bonfires.ai internal header/nav bar (~64px) — show only the graph */}
+      <div className="flex-1 relative overflow-hidden">
+        <iframe
+          src={BONFIRES_GRAPH_URL}
+          title="Reef Knowledge Graph"
+          style={{
+            position: "absolute",
+            top: "-64px",
+            left: 0,
+            width: "100%",
+            height: "calc(100% + 64px)",
+            border: "none",
+          }}
+          allow="fullscreen"
+          referrerPolicy="no-referrer-when-downgrade"
+        />
+      </div>
     </div>
   );
 }
