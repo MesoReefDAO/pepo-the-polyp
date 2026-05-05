@@ -376,70 +376,6 @@ function GraphHintOverlay({ onDismiss }: { onDismiss: () => void }) {
   );
 }
 
-// ── Graph zoom / cloud controls — overlaid top-right of graph container ───────
-function GraphControls({ iframeRef }: { iframeRef: React.RefObject<HTMLIFrameElement> }) {
-  const send = (type: string) => {
-    const win = iframeRef.current?.contentWindow;
-    if (!win) return;
-    // Try several postMessage shapes Bonfires.ai might support
-    win.postMessage({ type }, 'https://pepo.app.bonfires.ai');
-    win.postMessage({ type }, '*');
-  };
-
-  return (
-    <div
-      className="absolute top-4 right-4 z-10 flex flex-col rounded-xl overflow-hidden"
-      style={{
-        background: "rgba(28,28,30,0.92)",
-        border: "1px solid rgba(255,255,255,0.08)",
-        boxShadow: "0 4px 20px rgba(0,0,0,0.6)",
-        backdropFilter: "blur(10px)",
-      }}
-    >
-      {/* Cloud — open in new tab */}
-      <a
-        href={BONFIRES_GRAPH_URL}
-        target="_blank"
-        rel="noopener noreferrer"
-        data-testid="button-graph-open"
-        title="Open full graph"
-        className="flex items-center justify-center w-9 h-9 transition-colors hover:bg-white/10"
-        style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}
-      >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-          <path d="M18 10a6 6 0 0 0-11.48-1.7A4.5 4.5 0 0 0 7.5 17H18a3 3 0 0 0 0-6z"
-            stroke="#e5e5e5" strokeWidth="1.7" strokeLinejoin="round" strokeLinecap="round"/>
-        </svg>
-      </a>
-
-      {/* Zoom in */}
-      <button
-        onClick={() => send('zoom-in')}
-        data-testid="button-graph-zoom-in"
-        title="Zoom in"
-        className="flex items-center justify-center w-9 h-9 transition-colors hover:bg-white/10"
-        style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}
-      >
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-          <path d="M12 5v14M5 12h14" stroke="#e5e5e5" strokeWidth="2" strokeLinecap="round"/>
-        </svg>
-      </button>
-
-      {/* Zoom out */}
-      <button
-        onClick={() => send('zoom-out')}
-        data-testid="button-graph-zoom-out"
-        title="Zoom out"
-        className="flex items-center justify-center w-9 h-9 transition-colors hover:bg-white/10"
-      >
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-          <path d="M5 12h14" stroke="#e5e5e5" strokeWidth="2" strokeLinecap="round"/>
-        </svg>
-      </button>
-    </div>
-  );
-}
-
 // ── Graph loading shimmer ─────────────────────────────────────────────────────
 function GraphLoadingShimmer({ visible }: { visible: boolean }) {
   if (!visible) return null;
@@ -508,10 +444,10 @@ export const ReefInsightDashboardSection = (): JSX.Element => {
     <div className="flex flex-row flex-1 self-stretch min-h-0 overflow-hidden px-2 md:px-4 pt-2 md:pt-3 pb-20 md:pb-3 gap-2">
 
       {/* ════════════════════════════════════════════════════════════════
-          KNOWLEDGE GRAPH — takes all remaining width
+          KNOWLEDGE GRAPH — branded header + cropped iframe
       ════════════════════════════════════════════════════════════════ */}
       <div
-        className="relative flex-1 min-h-0 rounded-[16px] md:rounded-[24px] overflow-hidden"
+        className="flex flex-col flex-1 min-h-0 rounded-[16px] md:rounded-[24px] overflow-hidden"
         style={{
           minHeight: 320,
           border: "1px solid rgba(131,238,240,0.20)",
@@ -520,43 +456,98 @@ export const ReefInsightDashboardSection = (): JSX.Element => {
             "0 0 60px rgba(131,238,240,0.08)," +
             "0 24px 64px rgba(0,0,0,0.6)," +
             "inset 0 0 120px rgba(0,8,12,0.6)",
+          background: "#00080c",
         }}
       >
-        {/* Edge glow */}
-        <div className="absolute top-0 left-0 bottom-0 w-[3px] z-[6] pointer-events-none"
-          style={{ background: "linear-gradient(180deg,rgba(131,238,240,0.0) 0%,rgba(131,238,240,0.35) 50%,rgba(131,238,240,0.0) 100%)" }} />
-        <div className="absolute top-0 left-0 right-0 h-[2px] z-[6] pointer-events-none"
-          style={{ background: "linear-gradient(90deg,rgba(131,238,240,0.0) 0%,rgba(131,238,240,0.4) 50%,rgba(131,238,240,0.0) 100%)" }} />
-
-        <GraphLoadingShimmer visible={graphLoading} />
-        {/* iframe is intentionally wider than the container:
-            width = 100% + 2×PANEL_CROP_PX so both Bonfires.ai side panels
-            (Explorer left, Chat right) are pushed outside the overflow:hidden
-            boundary. translateX(-PANEL_CROP_PX) shifts the frame left so the
-            graph canvas is centred in view. */}
-        <iframe
-          ref={iframeRef}
-          src={BONFIRES_GRAPH_URL}
-          title="Reef Knowledge Graph"
-          className="absolute top-0 border-0"
+        {/* ── Header bar ──────────────────────────────────────────── */}
+        <div
+          className="shrink-0 flex items-center justify-between px-4 py-2.5"
           style={{
-            left: 0,
-            height: "100%",
-            width: `calc(100% + ${PANEL_CROP_PX * 2}px)`,
-            transform: `translateX(-${PANEL_CROP_PX}px)`,
-            background: "#00080c",
+            background: "linear-gradient(90deg,rgba(0,26,34,0.95) 0%,rgba(0,8,12,0.95) 100%)",
+            borderBottom: "1px solid rgba(131,238,240,0.12)",
           }}
-          allow="clipboard-write; clipboard-read; pointer-lock; fullscreen"
-          loading="lazy"
-          data-testid="iframe-knowledge-graph"
-          onLoad={handleIframeLoad}
-        />
-        {/* Cloud / + / − controls — always visible once loaded */}
-        {!graphLoading && <GraphControls iframeRef={iframeRef} />}
-        {/* First-visit hint — fades out automatically or on interaction */}
-        {showHint && !graphLoading && (
-          <GraphHintOverlay onDismiss={dismissHint} />
-        )}
+        >
+          {/* Left: icon + title */}
+          <div className="flex items-center gap-2.5">
+            {/* Graph node icon */}
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="shrink-0">
+              <circle cx="5"  cy="12" r="2.5" fill="#83eef0"/>
+              <circle cx="12" cy="5"  r="2.5" fill="#83eef066"/>
+              <circle cx="19" cy="12" r="2.5" fill="#83eef0"/>
+              <circle cx="12" cy="19" r="2.5" fill="#83eef066"/>
+              <line x1="5"  y1="12" x2="12" y2="5"  stroke="#83eef050" strokeWidth="1.2"/>
+              <line x1="12" y1="5"  x2="19" y2="12" stroke="#83eef050" strokeWidth="1.2"/>
+              <line x1="5"  y1="12" x2="12" y2="19" stroke="#83eef050" strokeWidth="1.2"/>
+              <line x1="12" y1="19" x2="19" y2="12" stroke="#83eef050" strokeWidth="1.2"/>
+            </svg>
+            <span
+              className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-bold text-sm"
+              style={{ color: "#d4e9f3" }}
+            >
+              Reef Regen Knowledge Graph
+            </span>
+          </div>
+
+          {/* Right: powered-by badge + open link */}
+          <div className="flex items-center gap-3">
+            <span className="[font-family:'Inter',Helvetica] text-[10px] text-[#d4e9f340] hidden sm:block">
+              powered by Bonfires.ai
+            </span>
+            <a
+              href={BONFIRES_GRAPH_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-testid="link-graph-fullscreen"
+              title="Open in full screen"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-full transition-colors hover:bg-[#83eef010] text-[#83eef066] hover:text-[#83eef0]"
+              style={{ border: "1px solid rgba(131,238,240,0.14)" }}
+            >
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
+                <path d="M18 13v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h6M15 3h6v6M10 14L21 3"
+                  stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              <span className="[font-family:'Inter',Helvetica] text-[10px] font-medium hidden sm:block">Full screen</span>
+            </a>
+          </div>
+        </div>
+
+        {/* ── iframe wrapper — crops the side panels ───────────────── */}
+        <div className="relative flex-1 min-h-0 overflow-hidden">
+          {/* Edge glows */}
+          <div className="absolute top-0 left-0 bottom-0 w-[3px] z-[6] pointer-events-none"
+            style={{ background: "linear-gradient(180deg,rgba(131,238,240,0.0) 0%,rgba(131,238,240,0.35) 50%,rgba(131,238,240,0.0) 100%)" }} />
+          <div className="absolute top-0 left-0 right-0 h-[2px] z-[6] pointer-events-none"
+            style={{ background: "linear-gradient(90deg,rgba(131,238,240,0.0) 0%,rgba(131,238,240,0.4) 50%,rgba(131,238,240,0.0) 100%)" }} />
+
+          <GraphLoadingShimmer visible={graphLoading} />
+
+          {/* iframe is intentionally wider than its wrapper:
+              width = 100% + 2×PANEL_CROP_PX pushes both Bonfires.ai side panels
+              outside the overflow:hidden boundary.
+              translateX(-PANEL_CROP_PX) centres the graph canvas in the view. */}
+          <iframe
+            ref={iframeRef}
+            src={BONFIRES_GRAPH_URL}
+            title="Reef Regen Knowledge Graph"
+            className="absolute top-0 border-0"
+            style={{
+              left: 0,
+              height: "100%",
+              width: `calc(100% + ${PANEL_CROP_PX * 2}px)`,
+              transform: `translateX(-${PANEL_CROP_PX}px)`,
+              background: "#00080c",
+            }}
+            allow="clipboard-write; clipboard-read; pointer-lock; fullscreen"
+            loading="lazy"
+            data-testid="iframe-knowledge-graph"
+            onLoad={handleIframeLoad}
+          />
+
+          {/* First-visit hint */}
+          {showHint && !graphLoading && (
+            <GraphHintOverlay onDismiss={dismissHint} />
+          )}
+        </div>
       </div>
 
       {/* ════════════════════════════════════════════════════════════════
