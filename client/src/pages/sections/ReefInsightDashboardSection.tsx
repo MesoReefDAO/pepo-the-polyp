@@ -7,7 +7,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 
 const TELEGRAM_BOT_URL = "https://t.me/PepothePolyp_bot";
-const BONFIRES_GRAPH_URL = "/api/graph-embed";
+const BONFIRES_GRAPH_URL = "https://pepo.app.bonfires.ai/graph";
 
 const FOOTER_LINK_HREFS = [
   { key: "privacy" as const,       href: "https://mesoreefdao.gitbook.io/privacy-policy" },
@@ -359,7 +359,7 @@ export const ReefInsightDashboardSection = (): JSX.Element => {
                 {t("dashboard.knowledgeGraph")}
               </span>
               <span className="[font-family:'Inter',Helvetica] text-[#83eef066] text-[9px] leading-none">
-                MesoReefDAO · Research Network
+                Research Network
               </span>
             </div>
 
