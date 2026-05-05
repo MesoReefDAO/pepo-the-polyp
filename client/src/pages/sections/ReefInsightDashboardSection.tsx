@@ -9,6 +9,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 const TELEGRAM_BOT_URL = "https://t.me/PepothePolyp_bot";
 const BONFIRES_GRAPH_URL = "https://pepo.app.bonfires.ai/graph";
+const BONFIRES_EMBED_URL = `${BONFIRES_GRAPH_URL}?embed=1&explorer=false`;
 
 const footerLinks = [
   { label: "PRIVACY", href: "https://mesoreefdao.gitbook.io/privacy-policy" },
@@ -56,17 +57,17 @@ function KnowledgeGraphPanel() {
           <span className="[font-family:'Inter',Helvetica] text-[#83eef0] text-[10px] font-medium whitespace-nowrap">Full Graph</span>
         </a>
       </div>
-      {/* Clip the Bonfires.ai internal header/nav bar (~64px) — show only the graph */}
+      {/* Clip Bonfires.ai header (~64px) + EXPLORER panel (~286px) = 350px total offset */}
       <div className="flex-1 relative overflow-hidden">
         <iframe
-          src={BONFIRES_GRAPH_URL}
+          src={BONFIRES_EMBED_URL}
           title="Reef Knowledge Graph"
           style={{
             position: "absolute",
-            top: "-64px",
+            top: "-350px",
             left: 0,
             width: "100%",
-            height: "calc(100% + 64px)",
+            height: "calc(100% + 350px)",
             border: "none",
           }}
           allow="fullscreen"
