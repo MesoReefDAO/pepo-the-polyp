@@ -4,8 +4,10 @@ import { PRIVY_ENABLED } from "@/lib/privy";
 import { useOrcidAuth } from "@/hooks/use-orcid-auth";
 import { useWallets } from "@privy-io/react-auth";
 import { useProfileStatus } from "@/hooks/use-profile-status";
+import { useTranslation } from "react-i18next";
 
 function TelegramNavItem() {
+  const { t } = useTranslation();
   return (
     <a
       href="https://t.me/PepothePolyp_bot"
@@ -17,7 +19,7 @@ function TelegramNavItem() {
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
         <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.19 13.67l-2.948-.924c-.64-.203-.652-.64.136-.954l11.5-4.433c.536-.194 1.006.131.836.862z" fill="#d4e9f380"/>
       </svg>
-      <span className="text-[9px] text-[#d4e9f380]">Telegram</span>
+      <span className="text-[9px] text-[#d4e9f380]">{t("mobile.telegram")}</span>
     </a>
   );
 }
@@ -25,6 +27,7 @@ function TelegramNavItem() {
 function PrivyAwareLoginNavItem() {
   const { authenticated: privyAuthenticated, login } = usePrivy();
   const { orcidAuthenticated } = useOrcidAuth();
+  const { t } = useTranslation();
 
   if (privyAuthenticated || orcidAuthenticated) {
     return <TelegramNavItem />;
@@ -41,7 +44,7 @@ function PrivyAwareLoginNavItem() {
           <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3" stroke="#00585a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
       </div>
-      <span className="text-[9px] font-semibold text-[#83eef0]">Log in</span>
+      <span className="text-[9px] font-semibold text-[#83eef0]">{t("mobile.logIn")}</span>
     </button>
   );
 }
@@ -49,6 +52,7 @@ function PrivyAwareLoginNavItem() {
 function WorkspaceNavItem({ active }: { active: boolean }) {
   const { authenticated } = usePrivy();
   const { wallets } = useWallets();
+  const { t } = useTranslation();
   const isConnected = PRIVY_ENABLED && authenticated && wallets.length > 0;
   const color = active ? "#83eef0" : "#d4e9f380";
 
@@ -72,7 +76,9 @@ function WorkspaceNavItem({ active }: { active: boolean }) {
           />
         )}
       </div>
-      <span className={`text-[9px] ${active ? "text-[#83eef0] font-medium" : "text-[#d4e9f380]"}`}>Workspace</span>
+      <span className={`text-[9px] ${active ? "text-[#83eef0] font-medium" : "text-[#d4e9f380]"}`}>
+        {t("mobile.workspace")}
+      </span>
     </Link>
   );
 }
@@ -81,6 +87,7 @@ export function MobileBottomNav() {
   const [location] = useLocation();
   const active = (path: string) => location === path;
   const { isComplete: profileComplete } = useProfileStatus();
+  const { t } = useTranslation();
 
   return (
     <nav
@@ -97,7 +104,9 @@ export function MobileBottomNav() {
           <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z"
             stroke={active("/") ? "#83eef0" : "#d4e9f380"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
-        <span className={`text-[9px] font-medium ${active("/") ? "text-[#83eef0]" : "text-[#d4e9f380]"}`}>Chat</span>
+        <span className={`text-[9px] font-medium ${active("/") ? "text-[#83eef0]" : "text-[#d4e9f380]"}`}>
+          {t("mobile.chat")}
+        </span>
       </Link>
 
       {/* Governance */}
@@ -112,7 +121,9 @@ export function MobileBottomNav() {
           <path d="M9 12l2 2 4-4"
             stroke={active("/governance") ? "#83eef0" : "#d4e9f380"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
-        <span className={`text-[9px] ${active("/governance") ? "text-[#83eef0] font-medium" : "text-[#d4e9f380]"}`}>Govern</span>
+        <span className={`text-[9px] ${active("/governance") ? "text-[#83eef0] font-medium" : "text-[#d4e9f380]"}`}>
+          {t("mobile.govern")}
+        </span>
       </Link>
 
       {/* Profile */}
@@ -135,7 +146,9 @@ export function MobileBottomNav() {
             />
           )}
         </div>
-        <span className={`text-[9px] ${active("/profile") ? "text-[#83eef0] font-medium" : "text-[#d4e9f380]"}`}>Profile</span>
+        <span className={`text-[9px] ${active("/profile") ? "text-[#83eef0] font-medium" : "text-[#d4e9f380]"}`}>
+          {t("mobile.profile")}
+        </span>
       </Link>
 
       {/* Community */}
@@ -151,7 +164,9 @@ export function MobileBottomNav() {
           <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"
             stroke={active("/community") ? "#83eef0" : "#d4e9f380"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
-        <span className={`text-[9px] ${active("/community") ? "text-[#83eef0] font-medium" : "text-[#d4e9f380]"}`}>Community</span>
+        <span className={`text-[9px] ${active("/community") ? "text-[#83eef0] font-medium" : "text-[#d4e9f380]"}`}>
+          {t("mobile.community")}
+        </span>
       </Link>
 
       {/* Workspace */}
@@ -159,16 +174,18 @@ export function MobileBottomNav() {
 
       {/* Reef Map */}
       <Link
-        href="/map"
+        href="/reef-map"
         data-testid="nav-mobile-map"
-        className={`flex flex-col items-center justify-center gap-1 flex-1 py-3 min-h-[56px] no-underline transition-opacity ${active("/map") ? "opacity-100" : "opacity-50"}`}
+        className={`flex flex-col items-center justify-center gap-1 flex-1 py-3 min-h-[56px] no-underline transition-opacity ${active("/reef-map") ? "opacity-100" : "opacity-50"}`}
       >
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="9" stroke={active("/map") ? "#83eef0" : "#d4e9f380"} strokeWidth="2"/>
+          <circle cx="12" cy="12" r="9" stroke={active("/reef-map") ? "#83eef0" : "#d4e9f380"} strokeWidth="2"/>
           <path d="M2 12h20M12 3a15 15 0 010 18M12 3a15 15 0 000 18"
-            stroke={active("/map") ? "#83eef0" : "#d4e9f380"} strokeWidth="1.5" strokeLinecap="round"/>
+            stroke={active("/reef-map") ? "#83eef0" : "#d4e9f380"} strokeWidth="1.5" strokeLinecap="round"/>
         </svg>
-        <span className={`text-[9px] ${active("/map") ? "text-[#83eef0] font-medium" : "text-[#d4e9f380]"}`}>Reef Map</span>
+        <span className={`text-[9px] ${active("/reef-map") ? "text-[#83eef0] font-medium" : "text-[#d4e9f380]"}`}>
+          {t("mobile.reefMap")}
+        </span>
       </Link>
 
       {/* Login (unauthenticated) or Telegram (authenticated) */}

@@ -746,25 +746,252 @@ export async function registerRoutes(
     }
   });
 
-  // Proxy: fetch knowledge graph data
+  // Proxy: fetch knowledge graph data (legacy — kept for compatibility)
   app.get("/api/graph", async (_req: Request, res: Response) => {
+    return res.json({ message: "Use /api/graph/data for graph nodes and edges" });
+  });
+
+  // Aggregate graph data from multiple Bonfires.ai queries → nodes + edges
+  app.get("/api/graph/data", async (_req: Request, res: Response) => {
+    const queries = ["coral reef", "MesoReefDAO", "marine conservation", "DeSci governance"];
+    const allNodes = new Map<string, any>();
+    const allEdges = new Map<string, any>();
+
+    await Promise.allSettled(queries.map(async (query) => {
+      try {
+        const response = await fetch(`${BONFIRES_BASE}/api/graph/query`, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${PEPO_API_KEY}`,
+            "Content-Type": "application/json",
+            "x-api-key": PEPO_API_KEY,
+          },
+          body: JSON.stringify({ bonfire_id: BONFIRE_ID, query }),
+          signal: AbortSignal.timeout(8000),
+        });
+        if (!response.ok) return;
+        const data = await response.json() as any;
+        (data.entities as any[] || []).forEach((n: any) => allNodes.set(n.uuid, n));
+        (data.episodes as any[] || []).forEach((n: any) => allNodes.set(n.uuid, n));
+        (data.edges   as any[] || []).forEach((e: any) => allEdges.set(e.uuid, e));
+      } catch { /* ignore individual query failures */ }
+    }));
+
+    return res.json({
+      nodes: Array.from(allNodes.values()),
+      edges: Array.from(allEdges.values()),
+    });
+  });
+
+  // Proxy: serve Bonfires.ai /graph page with EXPLORER panel hidden via injected script
+  app.get("/api/graph-embed", async (_req: Request, res: Response) => {
     try {
-      const response = await fetch(`${BONFIRES_BASE}/graph`, {
+      const upstream = await fetch("https://pepo.app.bonfires.ai/graph", {
         headers: {
-          "Authorization": `Bearer ${PEPO_API_KEY}`,
-          "Content-Type": "application/json",
-          "x-api-key": PEPO_API_KEY,
+          "User-Agent": "Mozilla/5.0 (compatible; MesoReefDAO/1.0)",
+          "Accept": "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8",
         },
+        signal: AbortSignal.timeout(12000),
       });
-      if (!response.ok) {
-        const text = await response.text();
-        return res.status(response.status).json({ error: "Graph unavailable" });
+
+      if (!upstream.ok) {
+        return res.status(upstream.status).send(
+          `<html><body style="background:#00080c;color:#83eef0;font-family:Inter,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">Graph unavailable (${upstream.status})</body></html>`
+        );
       }
-      const data = await response.json();
-      return res.json(data);
-    } catch {
-      return res.status(500).json({ error: "Graph unavailable" });
+
+      let html = await upstream.text();
+
+      // ── Injection block ────────────────────────────────────────────────────
+      // 1. <base> so all /_next/ relative paths resolve against Bonfires.ai
+      // 2. CSS to hide the sticky header immediately (before React hydrates)
+      // 3. MutationObserver script to hide the EXPLORER panel once React renders it
+      const injection = `
+<base href="https://pepo.app.bonfires.ai/">
+<style>
+  header { display: none !important; }
+  body { padding-top: 0 !important; margin-top: 0 !important; }
+</style>
+<script>
+/* ── 1. Stub Clerk API calls so React renders without a real Clerk session ── */
+(function () {
+  var _fetch = window.fetch;
+  window.fetch = function (resource, init) {
+    var url = typeof resource === "string" ? resource
+            : (resource instanceof URL ? resource.href
+            : (resource && resource.url ? resource.url : ""));
+    if (url && url.indexOf("clerk.bonfires.ai") !== -1) {
+      /* Return a minimal Clerk client payload that says "not signed in" */
+      var mockClient = {
+        id: "client_mock",
+        object: "client",
+        session_ids: [],
+        sessions: [],
+        sign_in: null,
+        sign_up: null,
+        last_active_session_id: null,
+        created_at: 0,
+        updated_at: 0
+      };
+      return Promise.resolve(
+        new Response(JSON.stringify({ response: mockClient, client: mockClient }), {
+          status: 200,
+          headers: { "content-type": "application/json" }
+        })
+      );
     }
+    return _fetch.apply(this, arguments);
+  };
+})();
+
+/* ── 2. Hide header, then minimize the PepoThePolypBot chat panel ─────────── */
+(function () {
+  var MAX = 80;
+  var tries = 0;
+  var headerHidden = false;
+  var botMinimized = false;
+
+  function findBotPanel() {
+    /* Walk all text nodes, look for the exact label "PepoThePolypBot" */
+    var walker = document.createTreeWalker(
+      document.body || document.documentElement,
+      NodeFilter.SHOW_TEXT,
+      null
+    );
+    var node;
+    while ((node = walker.nextNode())) {
+      var val = (node.nodeValue || "").trim();
+      if (val === "PepoThePolypBot") {
+        return node.parentElement;
+      }
+    }
+    return null;
+  }
+
+  function hideAll() {
+    tries++;
+
+    /* Hide the sticky Bonfires navbar */
+    if (!headerHidden) {
+      var hdr = document.querySelector("header");
+      if (hdr) { hdr.style.setProperty("display", "none", "important"); headerHidden = true; }
+    }
+
+    /* Minimize the PepoThePolypBot chat panel */
+    if (!botMinimized) {
+      var label = findBotPanel();
+      if (label) {
+        /* Walk up to find a sizeable container, then click its first button (the − button) */
+        var el = label;
+        for (var i = 0; i < 12; i++) {
+          if (!el || el === document.body) break;
+          if (el.offsetWidth > 100) {
+            /* Try clicking a button whose text is − / minimize */
+            var btns = el.querySelectorAll("button");
+            var clicked = false;
+            for (var b = 0; b < btns.length; b++) {
+              var txt = (btns[b].textContent || "").trim();
+              if (txt === "−" || txt === "-" || txt === "–" || txt.length === 1) {
+                btns[b].click();
+                clicked = true;
+                break;
+              }
+            }
+            if (!clicked && btns.length > 0) {
+              /* Fallback: click the last button in the header row */
+              btns[btns.length - 1].click();
+            }
+            botMinimized = true;
+            break;
+          }
+          el = el.parentElement;
+        }
+      }
+    }
+
+    if ((!headerHidden || !botMinimized) && tries < MAX) {
+      setTimeout(hideAll, 150);
+    }
+  }
+
+  if (document.body) { hideAll(); }
+  else { document.addEventListener("DOMContentLoaded", hideAll); }
+  setTimeout(hideAll, 200);
+  setTimeout(hideAll, 600);
+  setTimeout(hideAll, 1200);
+  setTimeout(hideAll, 2500);
+  setTimeout(hideAll, 5000);
+
+  var mo = new MutationObserver(function () {
+    if (!headerHidden || !botMinimized) hideAll();
+  });
+  function attachObserver() {
+    if (document.body) { mo.observe(document.body, { childList: true, subtree: true }); }
+    else { document.addEventListener("DOMContentLoaded", function () { mo.observe(document.body, { childList: true, subtree: true }); }); }
+  }
+  attachObserver();
+})();
+</script>`;
+
+      // Inject right after <head> opening tag (before any other content)
+      if (html.includes("<head>")) {
+        html = html.replace("<head>", "<head>" + injection);
+      } else if (html.includes("<HEAD>")) {
+        html = html.replace("<HEAD>", "<HEAD>" + injection);
+      } else {
+        html = injection + html;
+      }
+
+      // Serve with permissive headers so the iframe can load this from our domain
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.setHeader("X-Frame-Options", "SAMEORIGIN");
+      res.setHeader("Cache-Control", "no-store");
+      // Wide-open CSP so Bonfires.ai assets, Clerk, websockets etc. all work
+      res.setHeader(
+        "Content-Security-Policy",
+        "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;"
+      );
+      return res.send(html);
+    } catch (err) {
+      console.error("[graph-embed]", err);
+      return res.status(502).send(
+        `<html><body style="background:#00080c;color:#83eef0;font-family:Inter,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">Graph temporarily unavailable</body></html>`
+      );
+    }
+  });
+
+  // Recent episodes — sorted newest-first for the Explorer panel
+  app.get("/api/graph/recent", async (_req: Request, res: Response) => {
+    const queries = ["coral reef", "MesoReefDAO", "DeSci", "marine conservation"];
+    const allEpisodes = new Map<string, any>();
+
+    await Promise.allSettled(queries.map(async (query) => {
+      try {
+        const response = await fetch(`${BONFIRES_BASE}/api/graph/query`, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${PEPO_API_KEY}`,
+            "Content-Type": "application/json",
+            "x-api-key": PEPO_API_KEY,
+          },
+          body: JSON.stringify({ bonfire_id: BONFIRE_ID, query }),
+          signal: AbortSignal.timeout(8000),
+        });
+        if (!response.ok) return;
+        const data = await response.json() as any;
+        (data.episodes as any[] || []).forEach((ep: any) => allEpisodes.set(ep.uuid, ep));
+      } catch { /* ignore individual failures */ }
+    }));
+
+    const episodes = Array.from(allEpisodes.values())
+      .sort((a, b) => {
+        const ta = new Date(a.valid_at || a.created_at || 0).getTime();
+        const tb = new Date(b.valid_at || b.created_at || 0).getTime();
+        return tb - ta;
+      })
+      .slice(0, 10);
+
+    return res.json({ episodes });
   });
 
   // Proxy: search knowledge graph
@@ -1311,7 +1538,7 @@ export async function registerRoutes(
 
   // POST /api/curation/:id — approve or reject a pending reef image
   app.post("/api/curation/:id", async (req: Request, res: Response) => {
-    const { id } = req.params;
+    const id = String(req.params.id);
     const { decision, curatorNote } = req.body; // 'approved' | 'rejected', optional note
     if (decision !== "approved" && decision !== "rejected") {
       return res.status(400).json({ error: "decision must be 'approved' or 'rejected'" });

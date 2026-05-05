@@ -1,5 +1,6 @@
+import "@/i18n";
 import { Switch, Route } from "wouter";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -13,6 +14,7 @@ import { CommunityLeaderboard } from "@/pages/CommunityLeaderboard";
 import { Governance } from "@/pages/Governance";
 import { PublicProfile } from "@/pages/PublicProfile";
 import { MobileMapPage } from "@/pages/MobileMapPage";
+import { ReefMapPage } from "@/pages/ReefMapPage";
 import { WorkspacePage } from "@/pages/WorkspacePage";
 import { CurationPage } from "@/pages/CurationPage";
 import { PRIVY_ENABLED, PRIVY_APP_ID } from "@/lib/privy";
@@ -23,6 +25,10 @@ import { usePrivy } from "@privy-io/react-auth";
 import { SplashScreen } from "@/components/SplashScreen";
 import { TelegramChatWidget } from "@/components/TelegramChatWidget";
 import { OnboardingWizard, useOnboarding } from "@/components/OnboardingWizard";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { CookieBanner } from "@/components/CookieBanner";
+import { useTranslation } from "react-i18next";
+import { LANGUAGES } from "@/i18n";
 import coralBg from "@assets/coral_reefs_1777179421866.jpg";
 
 function useSplash() {
@@ -46,6 +52,7 @@ function Router() {
       <Route path="/governance" component={Governance} />
       <Route path="/members/:id" component={PublicProfile} />
       <Route path="/map" component={MobileMapPage} />
+      <Route path="/reef-map" component={ReefMapPage} />
       <Route path="/workspace" component={WorkspacePage} />
       <Route path="/curation" component={CurationPage} />
       <Route component={NotFound} />
@@ -67,24 +74,31 @@ function GeoSyncOrcidOnly() {
   return null;
 }
 
+function RtlSync() {
+  const { i18n } = useTranslation();
+  useEffect(() => {
+    const lang = LANGUAGES.find(l => l.code === i18n.language);
+    document.documentElement.dir  = lang?.dir ?? "ltr";
+    document.documentElement.lang = i18n.language;
+  }, [i18n.language]);
+  return null;
+}
+
 function LoginGate() {
   const { login } = usePrivy();
+  const { t } = useTranslation();
   const doLogin = () => { try { login(); } catch { /* ignore */ } };
   return (
     <div className="fixed inset-0 z-40 flex flex-col items-center justify-center px-6">
-      {/* Background image */}
       <img
         src={coralBg}
         alt=""
         aria-hidden="true"
         className="absolute inset-0 w-full h-full object-cover"
       />
-      {/* Dark overlay */}
       <div className="absolute inset-0" style={{ background: "linear-gradient(160deg,rgba(0,8,12,0.82) 0%,rgba(0,26,34,0.75) 60%,rgba(0,8,12,0.88) 100%)" }} />
-      {/* Teal glow */}
       <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 60% 40% at 50% 40%, rgba(131,238,240,0.08) 0%, transparent 70%)" }} />
 
-      {/* Content */}
       <div className="relative z-10 flex flex-col items-center">
         <img
           src="/figmaAssets/mesoreef-dao-logo-new.png"
@@ -92,13 +106,12 @@ function LoginGate() {
           className="h-16 w-auto object-contain mb-8 opacity-90"
         />
         <h1 className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-bold text-[#d4e9f3] text-2xl md:text-3xl text-center mb-3 leading-tight">
-          Pepo the Polyp
+          {t("auth.pepoThePolyp")}
         </h1>
         <p className="[font-family:'Inter',Helvetica] text-[#d4e9f380] text-sm md:text-base text-center max-w-xs mb-8 leading-relaxed">
-          Sign in to access the MesoReef DAO Reef Knowledge Network
+          {t("auth.accessNetwork")}
         </p>
 
-        {/* Primary: Privy (wallets + socials) */}
         <button
           onClick={doLogin}
           data-testid="button-gate-login"
@@ -108,10 +121,9 @@ function LoginGate() {
             <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3" stroke="#00585a" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
           <span className="[font-family:'Inter',Helvetica] font-bold text-[#00585a] text-base leading-none">
-            Sign in
+            {t("auth.signIn")}
           </span>
         </button>
-
       </div>
     </div>
   );
@@ -128,6 +140,7 @@ function AppInner() {
 
   return (
     <>
+      <RtlSync />
       {visible && <SplashScreen onDone={dismiss} />}
       <Toaster />
       {PRIVY_ENABLED ? <GeoSyncPrivy /> : <GeoSyncOrcidOnly />}
@@ -143,6 +156,8 @@ function AppInner() {
         <OnboardingWizard onComplete={dismissOnboarding} />
       )}
       {!stillLoading && <TelegramChatWidget />}
+      <LanguageSwitcher />
+      <CookieBanner />
     </>
   );
 }
@@ -158,8 +173,6 @@ function AppContent() {
 }
 
 function App() {
-  // Always wrap with PrivyProvider so Privy hooks can be called unconditionally
-  // anywhere in the tree — the PRIVY_ENABLED flag only gates the login methods.
   return (
     <PrivyProvider
       appId={PRIVY_APP_ID || "placeholder-disabled"}

@@ -4,6 +4,8 @@ import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { PRIVY_ENABLED } from "@/lib/privy";
 import pepoPng from "@assets/MesoReefDAO_Pepo_The_Polyp_1776218766670.png";
 import { FileverseWorkspacePanel } from "@/components/FileverseWorkspacePanel";
+import { useProfileStatus } from "@/hooks/use-profile-status";
+import { useTranslation } from "react-i18next";
 
 const ReefMap = lazy(() => import("@/components/ReefMap").then((m) => ({ default: m.ReefMap })));
 
@@ -95,6 +97,7 @@ function GovernanceIcon({ active }: { active?: boolean }) {
 function WalletPanel() {
   const { authenticated, linkWallet } = usePrivy();
   const { wallets } = useWallets();
+  const { t } = useTranslation();
   const [copied, setCopied] = useState<string | null>(null);
 
   if (!authenticated) return null;
@@ -115,7 +118,7 @@ function WalletPanel() {
         {wallets.length === 0 ? (
           <div className="flex flex-col gap-2">
             <p className="[font-family:'Inter',Helvetica] font-normal text-[#9aaeb8] text-xs leading-4">
-              No wallet connected yet. Add one to participate in DAO governance.
+              {t("wallet.noWalletConnectedSidebar")}
             </p>
             <button
               onClick={() => linkWallet()}
@@ -123,14 +126,14 @@ function WalletPanel() {
               className="flex items-center gap-2 px-3 py-2 rounded-full bg-[#E2761B0d] border border-[#E2761B30] text-[#E2761Bcc] hover:bg-[#E2761B18] hover:text-[#E2761B] transition-colors text-xs [font-family:'Inter',Helvetica] font-medium justify-center"
             >
               <MetaMaskIcon size={13} />
-              Connect MetaMask
+              {t("wallet.connectMetaMask")}
             </button>
           </div>
         ) : (
           <div className="flex flex-col gap-2">
             {embeddedWallets.length > 0 && (
               <div className="flex flex-col gap-1.5">
-                <span className="[font-family:'Inter',Helvetica] text-[#d4e9f350] text-[9px] uppercase tracking-widest">Embedded</span>
+                <span className="[font-family:'Inter',Helvetica] text-[#d4e9f350] text-[9px] uppercase tracking-widest">{t("wallet.embedded")}</span>
                 {embeddedWallets.map((w) => (
                   <button
                     key={w.address}
@@ -143,7 +146,7 @@ function WalletPanel() {
                     </span>
                     <span className="text-[#83eef0b2]">
                       {copied === w.address ? (
-                        <span className="text-[#83eef0] text-[9px]">Copied!</span>
+                        <span className="text-[#83eef0] text-[9px]">{t("wallet.copied")}</span>
                       ) : (
                         <CopyIcon />
                       )}
@@ -154,7 +157,7 @@ function WalletPanel() {
             )}
             {externalWallets.length > 0 && (
               <div className="flex flex-col gap-1.5">
-                <span className="[font-family:'Inter',Helvetica] text-[#d4e9f350] text-[9px] uppercase tracking-widest">External</span>
+                <span className="[font-family:'Inter',Helvetica] text-[#d4e9f350] text-[9px] uppercase tracking-widest">{t("wallet.external")}</span>
                 {externalWallets.map((w) => {
                   const isMM = w.walletClientType === "metamask";
                   return (
@@ -178,7 +181,7 @@ function WalletPanel() {
                       </div>
                       <span className="text-[#d4e9f380]">
                         {copied === w.address ? (
-                          <span className="text-[#83eef0] text-[9px]">Copied!</span>
+                          <span className="text-[#83eef0] text-[9px]">{t("wallet.copied")}</span>
                         ) : (
                           <CopyIcon />
                         )}
@@ -197,7 +200,7 @@ function WalletPanel() {
           className="flex items-center justify-center gap-1.5 px-4 py-2 bg-[#83eef01a] rounded-full border border-solid border-[#83eef033] hover:bg-[#83eef033] transition-colors"
         >
           <span className="text-[#83eef0]"><PlusIcon /></span>
-          <span className="[font-family:'Inter',Helvetica] font-medium text-[#83eef0] text-xs">Connect Wallet</span>
+          <span className="[font-family:'Inter',Helvetica] font-medium text-[#83eef0] text-xs">{t("wallet.connectWallet")}</span>
         </button>
 
         <a
@@ -218,6 +221,7 @@ function WalletPanel() {
 function WalletNavItem() {
   const { authenticated, login } = usePrivy();
   const { wallets } = useWallets();
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
 
   if (!authenticated) {
@@ -230,7 +234,7 @@ function WalletNavItem() {
         <div className="w-5 h-5 flex-shrink-0 flex items-center justify-center">
           <WalletIcon />
         </div>
-        <span className={`${TEXT_BASE} font-medium text-[#d4e9f380]`}>Connect Wallet</span>
+        <span className={`${TEXT_BASE} font-medium text-[#d4e9f380]`}>{t("wallet.connectWallet")}</span>
       </button>
     );
   }
@@ -238,7 +242,7 @@ function WalletNavItem() {
   const primaryWallet = wallets[0];
   const label = primaryWallet
     ? `${primaryWallet.address.slice(0, 5)}…${primaryWallet.address.slice(-3)}`
-    : "Wallets";
+    : t("wallet.wallets");
 
   return (
     <>
@@ -270,10 +274,13 @@ export const ExplorerNavigationSidebarSection = (): JSX.Element => {
   const [telegramOpen, setTelegramOpen] = useState(false);
   const [mapOpen, setMapOpen] = useState(false);
   const [location] = useLocation();
+  const { t } = useTranslation();
   const isProfile = location === "/profile";
+  const { isComplete: profileComplete, completedCount, totalCount } = useProfileStatus();
   const isCommunity = location === "/community";
   const isGovernance = location === "/governance";
   const isCuration = location === "/curation";
+  const isReefMap = location === "/reef-map";
 
   return (
     <nav className="flex flex-col w-64 min-h-screen items-start justify-between p-6 bg-[#00080c99] border-r border-[#ffffff0d] backdrop-blur-md [-webkit-backdrop-filter:blur(12px)_brightness(100%)] relative z-10">
@@ -304,8 +311,32 @@ export const ExplorerNavigationSidebarSection = (): JSX.Element => {
           style={EMBOSS}
         >
           <img className="w-5 h-5 flex-shrink-0" alt="Knowledge Graph" src="/figmaAssets/container-1.svg" />
-          <span className={`${TEXT_BASE} font-bold text-[#83eef0]`}>Knowledge{"\n"}Graph</span>
+          <span className={`${TEXT_BASE} font-bold text-[#83eef0]`}>{t("nav.knowledgeGraph")}</span>
         </a>
+
+        {/* My Profile */}
+        <Link
+          href="/profile"
+          data-testid="link-my-profile"
+          className={`${PILL_BASE} ${isProfile ? PILL_ACTIVE : PILL_INACTIVE}`}
+          style={isProfile ? EMBOSS : {}}
+        >
+          <div className="w-5 h-5 flex-shrink-0 flex items-center justify-center">
+            <UserIcon active={isProfile} />
+          </div>
+          <span className={`${TEXT_BASE} ${isProfile ? "font-bold text-[#83eef0]" : "font-medium text-[#d4e9f380]"}`}>
+            {t("nav.myProfile")}
+          </span>
+          {!profileComplete && (
+            <span
+              data-testid="badge-profile-incomplete-sidebar"
+              className="ml-auto text-[9px] [font-family:'Inter',Helvetica] px-1.5 py-0.5 rounded-full font-semibold"
+              style={{ background: "rgba(131,238,240,0.12)", border: "1px solid rgba(131,238,240,0.3)", color: "#83eef0" }}
+            >
+              {completedCount}/{totalCount}
+            </span>
+          )}
+        </Link>
 
         {/* Community */}
         <Link
@@ -316,7 +347,7 @@ export const ExplorerNavigationSidebarSection = (): JSX.Element => {
         >
           <img className="w-5 h-5 flex-shrink-0" alt="Community" src="/figmaAssets/container-2.svg" />
           <span className={`${TEXT_BASE} ${isCommunity ? "font-bold text-[#83eef0]" : "font-medium text-[#d4e9f380]"}`}>
-            Community
+            {t("nav.community")}
           </span>
         </Link>
 
@@ -331,7 +362,26 @@ export const ExplorerNavigationSidebarSection = (): JSX.Element => {
             <GovernanceIcon active={isGovernance} />
           </div>
           <span className={`${TEXT_BASE} ${isGovernance ? "font-bold text-[#83eef0]" : "font-medium text-[#d4e9f380]"}`}>
-            Governance
+            {t("nav.governance")}
+          </span>
+        </Link>
+
+        {/* Reef Map */}
+        <Link
+          href="/reef-map"
+          data-testid="link-reef-map"
+          className={`${PILL_BASE} ${isReefMap ? PILL_ACTIVE : PILL_INACTIVE}`}
+          style={isReefMap ? EMBOSS : {}}
+        >
+          <div className="w-5 h-5 flex-shrink-0 flex items-center justify-center">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" stroke={isReefMap ? "#83eef0" : "#d4e9f380"} strokeWidth="1.8"/>
+              <path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"
+                stroke={isReefMap ? "#83eef0" : "#d4e9f380"} strokeWidth="1.8" strokeLinecap="round"/>
+            </svg>
+          </div>
+          <span className={`${TEXT_BASE} ${isReefMap ? "font-bold text-[#83eef0]" : "font-medium text-[#d4e9f380]"}`}>
+            {t("nav.reefMap")}
           </span>
         </Link>
 
@@ -348,25 +398,10 @@ export const ExplorerNavigationSidebarSection = (): JSX.Element => {
             </svg>
           </div>
           <span className={`${TEXT_BASE} ${isCuration ? "font-bold text-[#83eef0]" : "font-medium text-[#d4e9f380]"}`}>
-            Curation
+            {t("nav.curation")}
           </span>
           <span className="ml-auto text-[8px] [font-family:'Inter',Helvetica] px-1.5 py-0.5 rounded-full bg-[#a6ce3918] border border-[#a6ce3933] text-[#a6ce39cc]">
             ORCID
-          </span>
-        </Link>
-
-        {/* My Profile */}
-        <Link
-          href="/profile"
-          data-testid="link-my-profile"
-          className={`${PILL_BASE} ${isProfile ? PILL_ACTIVE : PILL_INACTIVE}`}
-          style={isProfile ? EMBOSS : {}}
-        >
-          <div className="w-5 h-5 flex-shrink-0 flex items-center justify-center">
-            <UserIcon active={isProfile} />
-          </div>
-          <span className={`${TEXT_BASE} ${isProfile ? "font-bold text-[#83eef0]" : "font-medium text-[#d4e9f380]"}`}>
-            My Profile
           </span>
         </Link>
 
@@ -381,7 +416,7 @@ export const ExplorerNavigationSidebarSection = (): JSX.Element => {
             <TelegramIcon muted={!telegramOpen} />
           </div>
           <span className={`${TEXT_BASE} ${telegramOpen ? "font-bold text-[#83eef0]" : "font-medium text-[#d4e9f380]"}`}>
-            Telegram Bot
+            {t("nav.telegramBot")}
           </span>
         </button>
 
@@ -389,7 +424,7 @@ export const ExplorerNavigationSidebarSection = (): JSX.Element => {
           <div className="w-full px-2">
             <div className="p-4 bg-[#0a293366] rounded-[24px] border border-solid border-[#83eef01a] flex flex-col gap-3">
               <p className="[font-family:'Inter',Helvetica] font-normal text-[#9aaeb8] text-xs leading-4">
-                Chat with Pepo directly on Telegram for reef updates and insights.
+                {t("nav.chatWithPepo")}
               </p>
               <a
                 href={TELEGRAM_BOT_URL}
@@ -421,7 +456,7 @@ export const ExplorerNavigationSidebarSection = (): JSX.Element => {
             data-testid="link-reef-workspace-title"
             className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-semibold text-[#83eef0cc] text-[10px] uppercase tracking-widest hover:text-[#83eef0] transition-colors no-underline flex-1"
           >
-            Reef Workspace
+            {t("nav.reefWorkspace")}
           </Link>
         </div>
         <FileverseWorkspacePanel variant="sidebar" />
@@ -440,7 +475,7 @@ export const ExplorerNavigationSidebarSection = (): JSX.Element => {
             <path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20" stroke="#83eef0" strokeWidth="1.8" strokeLinecap="round"/>
           </svg>
           <span className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-semibold text-[#83eef0cc] text-[10px] uppercase tracking-widest group-hover:text-[#83eef0] transition-colors flex-1">
-            Regen Reef Network Map
+            {t("nav.regenReefNetworkMap")}
           </span>
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" className="opacity-40 group-hover:opacity-80 transition-opacity">
             <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" stroke="#83eef0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -501,7 +536,6 @@ export const ExplorerNavigationSidebarSection = (): JSX.Element => {
             Degree Heating Weeks (DHW) track accumulated thermal stress on coral reefs.
             DHW &gt; 4°C-weeks risks bleaching; DHW &gt; 8°C-weeks risks severe bleaching and mortality.
           </p>
-          {/* Alert level scale */}
           <div style={{ display: "flex", gap: 3, alignItems: "center" }}>
             {[
               { label: "Watch", color: "#feca57" },
@@ -600,7 +634,7 @@ export const ExplorerNavigationSidebarSection = (): JSX.Element => {
       >
         <img src="/figmaAssets/bonfires-ai-logo-new.png" alt="Bonfires.ai" className="h-3.5 w-auto object-contain" />
         <span className="[font-family:'Inter',Helvetica] font-normal text-[#d4e9f366] text-[10px] tracking-[0] leading-3 whitespace-nowrap">
-          Powered by Bonfires.ai
+          {t("dashboard.poweredByBonfires")}
         </span>
       </a>
     </nav>

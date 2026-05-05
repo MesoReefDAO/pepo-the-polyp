@@ -43,7 +43,9 @@ app.use(
         imgSrc: ["'self'", "data:", "blob:", "https:"],
         mediaSrc: ["'self'"],
         // Allow iframes from the knowledge graph, Privy auth widget, and social OAuth
+        // "'self'" is required for our /api/graph-embed proxy route (same-origin iframe)
         frameSrc: [
+          "'self'",
           "https://pepo.app.bonfires.ai",
           "https://*.privy.io",
           "https://privy.io",

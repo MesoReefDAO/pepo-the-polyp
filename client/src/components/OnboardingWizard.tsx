@@ -3,19 +3,13 @@ import { AnimatePresence, motion } from "framer-motion";
 import { usePrivy } from "@privy-io/react-auth";
 import { useOrcidAuth } from "@/hooks/use-orcid-auth";
 import { useLocation } from "wouter";
+import { useTranslation } from "react-i18next";
 import pepoPng from "@assets/MesoReefDAO_Pepo_The_Polyp_1776218616437.png";
 
 const STORAGE_KEY = "pepo_onboarded_v1";
 
-const STEPS = [
-  { id: "welcome",   label: "Welcome" },
-  { id: "profile",   label: "Profile" },
-  { id: "orcid",     label: "Research ID" },
-  { id: "action",    label: "Reef Action" },
-  { id: "explore",   label: "Explore" },
-] as const;
-
-type StepId = typeof STEPS[number]["id"];
+const STEP_IDS = ["welcome", "profile", "orcid", "action", "explore"] as const;
+type StepId = typeof STEP_IDS[number];
 
 // ── Dot progress bar ─────────────────────────────────────────────────────────
 function StepDots({ current, total }: { current: number; total: number }) {
@@ -70,6 +64,7 @@ interface OnboardingWizardProps {
 export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
   const [stepIndex, setStepIndex] = useState(0);
   const [dir, setDir] = useState(1);
+  const { t } = useTranslation();
 
   const [displayName, setDisplayName] = useState("");
   const [savingName, setSavingName] = useState(false);
@@ -83,7 +78,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
   const { orcidAuthenticated } = useOrcidAuth();
   const [, navigate] = useLocation();
 
-  const stepId = STEPS[stepIndex].id as StepId;
+  const stepId = STEP_IDS[stepIndex] as StepId;
 
   const authHeaders = useCallback(async (): Promise<Record<string, string>> => {
     const h: Record<string, string> = { "Content-Type": "application/json" };
@@ -95,7 +90,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
   }, [privyAuthenticated, getAccessToken]);
 
   const next = useCallback(() => {
-    if (stepIndex < STEPS.length - 1) {
+    if (stepIndex < STEP_IDS.length - 1) {
       setDir(1);
       setStepIndex((s) => s + 1);
     } else {
@@ -172,12 +167,12 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
       >
         {/* Header bar */}
         <div className="flex items-center justify-between px-6 pt-5 pb-0 shrink-0">
-          <StepDots current={stepIndex} total={STEPS.length} />
+          <StepDots current={stepIndex} total={STEP_IDS.length} />
           <button
             onClick={finish}
             className="text-[#d4e9f340] hover:text-[#d4e9f380] text-xs [font-family:'Inter',Helvetica] transition-colors"
           >
-            Skip
+            {t("onboarding.skip")}
           </button>
         </div>
 
@@ -209,21 +204,21 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                   </div>
                   <div className="flex flex-col gap-2">
                     <h2 className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-bold text-[#d4e9f3] text-2xl">
-                      Welcome to MesoReef DAO
+                      {t("onboarding.welcomeTitle")}
                     </h2>
                     <p className="text-[#d4e9f380] text-sm [font-family:'Inter',Helvetica] leading-relaxed">
-                      I'm Pepo, your guide. MesoReef DAO is a{" "}
-                      <span className="text-[#83eef0] font-semibold">Decentralized Science (DeSci)</span>{" "}
-                      initiative dedicated to{" "}
-                      <span className="text-[#A6CE39] font-semibold">Regenerating Coral Reef Conservation</span>{" "}
-                      in Mesoamerica and Worldwide, combining open science, blockchain governance, and community action to protect one of Earth's most vital marine ecosystems.
+                      {t("onboarding.welcomeIntro")}{" "}
+                      <span className="text-[#83eef0] font-semibold">{t("onboarding.welcomeDesci")}</span>{" "}
+                      {t("onboarding.welcomeMid")}{" "}
+                      <span className="text-[#A6CE39] font-semibold">{t("onboarding.welcomeRegen")}</span>{" "}
+                      {t("onboarding.welcomeEnd")}
                     </p>
                   </div>
                   <div className="grid grid-cols-3 gap-3 w-full">
                     {[
-                      { icon: "🔬", label: "DeSci", sub: "Open science" },
-                      { icon: "🪸", label: "Mesoamerica", sub: "& Worldwide" },
-                      { icon: "🗳️", label: "Governance", sub: "DAO voting" },
+                      { icon: "🔬", label: t("onboarding.desci"),         sub: t("onboarding.openScience") },
+                      { icon: "🪸", label: t("onboarding.mesoamerica"),   sub: t("onboarding.worldwide") },
+                      { icon: "🗳️", label: t("onboarding.governanceLabel"), sub: t("onboarding.daoVoting") },
                     ].map((item) => (
                       <div
                         key={item.label}
@@ -244,10 +239,10 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                 <div className="flex flex-col gap-5">
                   <div className="flex flex-col gap-2">
                     <h2 className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-bold text-[#d4e9f3] text-xl">
-                      What's your name? 👤
+                      {t("onboarding.profileTitle")}
                     </h2>
                     <p className="text-[#d4e9f380] text-sm [font-family:'Inter',Helvetica] leading-relaxed">
-                      This appears on the community leaderboard and your public profile. You can update it anytime.
+                      {t("onboarding.profileDesc")}
                     </p>
                   </div>
                   <div className="flex flex-col gap-3">
@@ -255,7 +250,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                       type="text"
                       value={displayName}
                       onChange={(e) => { setDisplayName(e.target.value); setNameSaved(false); }}
-                      placeholder="Your display name…"
+                      placeholder={t("onboarding.profilePlaceholder")}
                       maxLength={40}
                       data-testid="input-onboarding-name"
                       className="w-full px-4 py-3 rounded-xl border border-[#83eef030] bg-[#83eef00a] text-[#d4e9f3] text-sm [font-family:'Inter',Helvetica] placeholder-[#d4e9f330] focus:outline-none focus:border-[#83eef060] transition-colors"
@@ -273,8 +268,8 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                       }}
                     >
                       {savingName ? (
-                        <><span className="w-4 h-4 rounded-full border-2 border-[#003c3e] border-t-transparent animate-spin" /> Saving…</>
-                      ) : nameSaved ? "✓ Name saved!" : "Save name"}
+                        <><span className="w-4 h-4 rounded-full border-2 border-[#003c3e] border-t-transparent animate-spin" /> {t("onboarding.saving")}</>
+                      ) : nameSaved ? t("onboarding.nameSaved") : t("onboarding.saveName")}
                     </button>
                   </div>
                   {nameSaved && (
@@ -286,12 +281,12 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                     >
                       <span className="text-lg">🎉</span>
                       <p className="text-[#83eef0] text-xs [font-family:'Inter',Helvetica]">
-                        Great, <strong>{displayName}</strong>! You can always update this in your Profile.
+                        {t("onboarding.nameGreeting", { name: displayName })}
                       </p>
                     </motion.div>
                   )}
                   <p className="text-[#d4e9f330] text-[11px] text-center [font-family:'Inter',Helvetica]">
-                    Or skip this step and set it later in Settings
+                    {t("onboarding.profileSkip")}
                   </p>
                 </div>
               )}
@@ -301,10 +296,10 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                 <div className="flex flex-col gap-5">
                   <div className="flex flex-col gap-2">
                     <h2 className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-bold text-[#d4e9f3] text-xl">
-                      Link your ORCID 🔬
+                      {t("onboarding.orcidTitle")}
                     </h2>
                     <p className="text-[#d4e9f380] text-sm [font-family:'Inter',Helvetica] leading-relaxed">
-                      ORCID is the universal researcher ID. Linking yours adds a verified badge to your profile and earns you <span className="text-[#A6CE39] font-semibold">+25 reef points</span>.
+                      {t("onboarding.orcidDesc")} <span className="text-[#A6CE39] font-semibold">{t("onboarding.orcidPts")}</span>.
                     </p>
                   </div>
 
@@ -318,7 +313,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                       </div>
                       <div className="flex flex-col">
                         <span className="font-semibold text-[#d4e9f3] text-sm [font-family:'Plus_Jakarta_Sans',Helvetica]">ORCID iD</span>
-                        <span className="text-[#d4e9f360] text-xs [font-family:'Inter',Helvetica]">orcid.org, free for researchers</span>
+                        <span className="text-[#d4e9f360] text-xs [font-family:'Inter',Helvetica]">{t("onboarding.orcidFree")}</span>
                       </div>
                       <div className="ml-auto flex items-center gap-1 px-2.5 py-1 rounded-full" style={{ background: "#A6CE3920", border: "1px solid #A6CE3940" }}>
                         <span className="text-[#A6CE39] text-xs font-bold [font-family:'Plus_Jakarta_Sans',Helvetica]">+25 pts</span>
@@ -326,7 +321,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                     </div>
                     {orcidAuthenticated ? (
                       <div className="flex items-center gap-2 text-[#A6CE39] text-sm [font-family:'Inter',Helvetica]">
-                        <span>✓</span> ORCID already linked! You earned the bonus!
+                        <span>✓</span> {t("onboarding.orcidAlreadyLinked")}
                       </div>
                     ) : (
                       <a
@@ -335,7 +330,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                         className="flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm [font-family:'Plus_Jakarta_Sans',Helvetica] no-underline transition-opacity hover:opacity-90 active:opacity-75"
                         style={{ background: "#A6CE39", color: "#1a2800" }}
                       >
-                        Connect ORCID iD
+                        {t("onboarding.connectOrcid")}
                       </a>
                     )}
                   </div>
@@ -343,7 +338,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                   <div className="flex items-start gap-2.5 px-3 py-2.5 rounded-xl border border-[#ffffff08]">
                     <span className="text-base shrink-0 mt-0.5">💡</span>
                     <p className="text-[#d4e9f350] text-[11px] [font-family:'Inter',Helvetica] leading-relaxed">
-                      Don't have an ORCID? Get one free at <a href="https://orcid.org" target="_blank" rel="noopener noreferrer" className="text-[#A6CE39] underline">orcid.org</a>. It takes 30 seconds and is the global standard for research identity.
+                      {t("onboarding.orcidTip")} <a href="https://orcid.org" target="_blank" rel="noopener noreferrer" className="text-[#A6CE39] underline">orcid.org</a>{t("onboarding.orcidTipEnd")}
                     </p>
                   </div>
                 </div>
@@ -354,10 +349,10 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                 <div className="flex flex-col items-center gap-5 text-center">
                   <div className="flex flex-col gap-2">
                     <h2 className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-bold text-[#d4e9f3] text-xl">
-                      Clean your first coral 🪸
+                      {t("onboarding.coralTitle")}
                     </h2>
                     <p className="text-[#d4e9f380] text-sm [font-family:'Inter',Helvetica] leading-relaxed">
-                      Every day you can perform a Daily Reef Action to earn <span className="text-[#83eef0] font-semibold">+10 reef points</span>. These contribute to your rank in the community leaderboard.
+                      {t("onboarding.coralDesc")} <span className="text-[#83eef0] font-semibold">{t("onboarding.coralPts")}</span>{t("onboarding.coralDescEnd")}
                     </p>
                   </div>
 
@@ -389,14 +384,16 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                       className="flex flex-col items-center gap-2"
                     >
                       <div className="flex items-center gap-2 px-4 py-2 rounded-full" style={{ background: "#83eef020", border: "1px solid #83eef040" }}>
-                        <span className="text-[#83eef0] font-bold text-sm [font-family:'Plus_Jakarta_Sans',Helvetica]">+{coralPoints || 10} reef pts earned!</span>
+                        <span className="text-[#83eef0] font-bold text-sm [font-family:'Plus_Jakarta_Sans',Helvetica]">
+                          {t("onboarding.ptsEarned", { pts: coralPoints || 10 })}
+                        </span>
                       </div>
                       <p className="text-[#d4e9f366] text-xs [font-family:'Inter',Helvetica]">
-                        Come back tomorrow for another +10 pts. Resets at midnight UTC.
+                        {t("onboarding.coralTomorrow")}
                       </p>
                     </motion.div>
                   ) : (
-                    <p className="text-[#d4e9f350] text-xs [font-family:'Inter',Helvetica]">Tap the coral to clean it</p>
+                    <p className="text-[#d4e9f350] text-xs [font-family:'Inter',Helvetica]">{t("onboarding.tapCoral")}</p>
                   )}
                 </div>
               )}
@@ -406,49 +403,19 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                 <div className="flex flex-col gap-5">
                   <div className="flex flex-col gap-2">
                     <h2 className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-bold text-[#d4e9f3] text-xl">
-                      You're all set! 🎉
+                      {t("onboarding.exploreTitle")}
                     </h2>
                     <p className="text-[#d4e9f380] text-sm [font-family:'Inter',Helvetica] leading-relaxed">
-                      Here's what you can do in the MesoReef DAO app:
+                      {t("onboarding.exploreDesc")}
                     </p>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
-                    <FeatureCard
-                      icon="🧠"
-                      title="Knowledge Graph"
-                      desc="Explore 165+ reef research episodes"
-                      onClick={finish}
-                    />
-                    <FeatureCard
-                      icon="🗳️"
-                      title="Governance"
-                      desc="Vote on DAO proposals via Vocdoni"
-                      href="/governance"
-                    />
-                    <FeatureCard
-                      icon="👥"
-                      title="Community"
-                      desc="Leaderboard & member profiles"
-                      href="/community"
-                    />
-                    <FeatureCard
-                      icon="🗺️"
-                      title="Reef Map"
-                      desc="Explore coral regions & data"
-                      href="/map"
-                    />
-                    <FeatureCard
-                      icon="📁"
-                      title="Workspace"
-                      desc="Decentralized docs & collaboration"
-                      href="/workspace"
-                    />
-                    <FeatureCard
-                      icon="👤"
-                      title="My Profile"
-                      desc="Manage identity & linked accounts"
-                      href="/profile"
-                    />
+                    <FeatureCard icon="🧠" title={t("onboarding.knowledgeGraphTitle")} desc={t("onboarding.knowledgeGraphDesc")} onClick={finish} />
+                    <FeatureCard icon="🗳️" title={t("onboarding.governanceTitle")} desc={t("onboarding.governanceDesc")} href="/governance" />
+                    <FeatureCard icon="👥" title={t("onboarding.communityTitle")} desc={t("onboarding.communityDesc")} href="/community" />
+                    <FeatureCard icon="🗺️" title={t("onboarding.reefMapTitle")} desc={t("onboarding.reefMapDesc")} href="/map" />
+                    <FeatureCard icon="📁" title={t("onboarding.workspaceTitle")} desc={t("onboarding.workspaceDesc")} href="/workspace" />
+                    <FeatureCard icon="👤" title={t("onboarding.myProfileTitle")} desc={t("onboarding.myProfileDesc")} href="/profile" />
                   </div>
                 </div>
               )}
@@ -464,12 +431,12 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
               onClick={prev}
               className="px-4 py-2.5 rounded-xl text-sm [font-family:'Inter',Helvetica] text-[#d4e9f366] hover:text-[#d4e9f3] border border-[#ffffff0d] hover:border-[#ffffff1a] transition-colors"
             >
-              Back
+              {t("onboarding.back")}
             </button>
           ) : <div />}
           <button
-            onClick={stepIndex === STEPS.length - 1 ? finish : next}
-            data-testid={stepIndex === STEPS.length - 1 ? "button-onboarding-finish" : "button-onboarding-next"}
+            onClick={stepIndex === STEP_IDS.length - 1 ? finish : next}
+            data-testid={stepIndex === STEP_IDS.length - 1 ? "button-onboarding-finish" : "button-onboarding-next"}
             className="flex-1 py-3 rounded-xl font-bold text-sm [font-family:'Plus_Jakarta_Sans',Helvetica] transition-all hover:opacity-95 active:scale-[0.98]"
             style={{
               background: "linear-gradient(135deg,#83eef0 0%,#3fb0b3 100%)",
@@ -477,7 +444,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
               boxShadow: "0 4px 16px rgba(131,238,240,0.25)",
             }}
           >
-            {stepIndex === STEPS.length - 1 ? "Enter MesoReef DAO 🪸" : "Continue →"}
+            {stepIndex === STEP_IDS.length - 1 ? t("onboarding.enterMesoReef") : t("onboarding.continue")}
           </button>
         </div>
       </motion.div>
