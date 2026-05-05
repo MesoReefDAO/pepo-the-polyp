@@ -883,8 +883,159 @@ export async function registerRoutes(
       const injection = `
 <base href="https://pepo.app.bonfires.ai/">
 <style>
-  header { display: none !important; }
-  body { padding-top: 0 !important; margin-top: 0 !important; }
+/* ══════════════════════════════════════════════════
+   MesoReefDAO theme — injected into Bonfires iframe
+   ══════════════════════════════════════════════════ */
+
+/* 0. Hide the Bonfires top navbar */
+header { display: none !important; }
+body   { padding-top: 0 !important; margin-top: 0 !important; }
+
+/* 1. Root background & text */
+html, body {
+  background-color: #00080c !important;
+  color: #d4e9f3 !important;
+  font-family: 'Inter', 'DM Sans', ui-sans-serif, system-ui, sans-serif !important;
+  -webkit-font-smoothing: antialiased !important;
+}
+
+/* 2. Scrollbars — slim teal */
+::-webkit-scrollbar              { width: 5px; height: 5px; }
+::-webkit-scrollbar-track        { background: rgba(0,8,12,0.9); }
+::-webkit-scrollbar-thumb        { background: rgba(131,238,240,0.20); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover  { background: rgba(131,238,240,0.40); }
+
+/* 3. Panel / card surfaces — any div with a visible background */
+[class*="panel"],
+[class*="sidebar"],
+[class*="explorer"],
+[class*="drawer"],
+[class*="card"],
+[class*="sheet"],
+[class*="popover"],
+[class*="dropdown"] {
+  background: rgba(0,14,20,0.97) !important;
+  border-color: rgba(131,238,240,0.13) !important;
+}
+
+/* 4. Input / textarea / select */
+input, textarea, select {
+  background: rgba(131,238,240,0.05) !important;
+  border-color: rgba(131,238,240,0.18) !important;
+  color: #d4e9f3 !important;
+  border-radius: 10px !important;
+  font-family: inherit !important;
+}
+input::placeholder, textarea::placeholder {
+  color: rgba(212,233,243,0.30) !important;
+}
+input:focus, textarea:focus {
+  outline: none !important;
+  border-color: rgba(131,238,240,0.45) !important;
+  box-shadow: 0 0 0 3px rgba(131,238,240,0.08) !important;
+}
+
+/* 5. Buttons — ghost to teal style */
+button {
+  font-family: inherit !important;
+  transition: opacity .15s, box-shadow .15s !important;
+}
+button:hover { opacity: .88 !important; }
+
+/* 6. Links */
+a { color: #83eef0 !important; }
+a:hover { color: #b6f7f8 !important; }
+
+/* 7. Text selection */
+::selection {
+  background: rgba(131,238,240,0.20) !important;
+  color: #e8f8f9 !important;
+}
+
+/* 8. Any white/very-light backgrounds → our dark panel */
+[class*="bg-white"],
+[class*="bg-gray-50"],
+[class*="bg-gray-100"],
+[class*="bg-slate-50"],
+[class*="bg-slate-100"],
+[class*="bg-neutral-50"],
+[class*="bg-neutral-100"] {
+  background-color: #001018 !important;
+}
+
+/* 9. Borders — soften white borders */
+[class*="border-white"],
+[class*="border-gray-200"],
+[class*="border-slate-200"],
+[class*="border-neutral-200"] {
+  border-color: rgba(131,238,240,0.12) !important;
+}
+
+/* 10. Headings */
+h1,h2,h3,h4,h5,h6 {
+  color: #e8f8f9 !important;
+  font-family: inherit !important;
+}
+
+/* 11. Subtle text */
+[class*="text-gray-400"],
+[class*="text-slate-400"],
+[class*="text-muted"],
+[class*="text-neutral-400"] {
+  color: rgba(212,233,243,0.45) !important;
+}
+
+/* 12. Primary / accent colour → reef teal */
+[class*="text-blue-"],
+[class*="text-indigo-"],
+[class*="text-violet-"] {
+  color: #83eef0 !important;
+}
+[class*="bg-blue-"],
+[class*="bg-indigo-"],
+[class*="bg-violet-"] {
+  background-color: rgba(131,238,240,0.12) !important;
+}
+[class*="border-blue-"],
+[class*="border-indigo-"] {
+  border-color: rgba(131,238,240,0.25) !important;
+}
+
+/* 13. Graph canvas area — ensure deep background */
+canvas { background: #00080c !important; }
+
+/* 14. Suggestion chips / quick-action buttons */
+[class*="suggestion"],
+[class*="chip"],
+[class*="tag"],
+[class*="badge"] {
+  background: rgba(131,238,240,0.07) !important;
+  border: 1px solid rgba(131,238,240,0.18) !important;
+  color: #83eef0 !important;
+  border-radius: 999px !important;
+}
+
+/* 15. Chat input send button → teal */
+[class*="send"],
+[type="submit"] {
+  background: linear-gradient(135deg, #83eef0, #3fb0b3) !important;
+  color: #003c3e !important;
+  border: none !important;
+}
+
+/* 16. Dividers */
+hr, [class*="divider"], [class*="separator"] {
+  border-color: rgba(131,238,240,0.10) !important;
+}
+
+/* 17. Tooltip / overlay */
+[role="tooltip"],
+[class*="tooltip"] {
+  background: #001a22 !important;
+  border: 1px solid rgba(131,238,240,0.20) !important;
+  color: #d4e9f3 !important;
+  border-radius: 8px !important;
+}
 </style>
 <script>
 /* ── 0. Route ALL Bonfires.ai fetch/XHR calls through our same-origin proxy ─ */
@@ -964,63 +1115,140 @@ export async function registerRoutes(
   } catch (e) {}
 })();
 
-/* ── 2. Hide header, then minimize the PepoThePolypBot chat panel ─────────── */
+/* ── 2. Hide header, minimize bot, theme panels ───────────────────────────── */
 (function () {
   var MAX = 80;
   var tries = 0;
   var headerHidden = false;
   var botMinimized = false;
+  var themed = false;
 
-  function findBotPanel() {
-    /* Walk all text nodes, look for the exact label "PepoThePolypBot" */
+  /* ─── Helpers ─────────────────────────────────────────────────────────── */
+  function css(el, props) {
+    if (!el || !el.style) return;
+    for (var k in props) el.style.setProperty(k, props[k], "important");
+  }
+
+  function findTextNode(text) {
     var walker = document.createTreeWalker(
       document.body || document.documentElement,
-      NodeFilter.SHOW_TEXT,
-      null
+      NodeFilter.SHOW_TEXT, null
     );
     var node;
     while ((node = walker.nextNode())) {
-      var val = (node.nodeValue || "").trim();
-      if (val === "PepoThePolypBot") {
-        return node.parentElement;
-      }
+      if ((node.nodeValue || "").trim() === text) return node.parentElement;
     }
     return null;
   }
 
+  /* ─── Apply reef theme to rendered React elements ─────────────────────── */
+  function applyTheme() {
+    if (themed) return;
+
+    /* EXPLORER panel heading → reef teal */
+    var explorerLabel = findTextNode("EXPLORER");
+    if (explorerLabel) {
+      css(explorerLabel, { "color": "#83eef0", "letter-spacing": "0.08em", "font-size": "11px", "font-weight": "700" });
+      /* Walk up to the panel container and style it */
+      var panel = explorerLabel;
+      for (var i = 0; i < 10; i++) {
+        if (!panel || panel === document.body) break;
+        if (panel.offsetWidth > 200 && panel.offsetHeight > 300) {
+          css(panel, {
+            "background": "rgba(0,14,20,0.97)",
+            "border-right": "1px solid rgba(131,238,240,0.12)",
+          });
+          break;
+        }
+        panel = panel.parentElement;
+      }
+    }
+
+    /* Recent Activity heading → muted teal */
+    var recentLabel = findTextNode("Recent Activity");
+    if (recentLabel) {
+      css(recentLabel, { "color": "#83eef099", "font-size": "11px", "font-weight": "600", "letter-spacing": "0.05em" });
+    }
+
+    /* PepoThePolypBot panel heading → teal */
+    var botLabel = findTextNode("PepoThePolypBot");
+    if (botLabel) {
+      css(botLabel, { "color": "#83eef0", "font-weight": "700", "font-size": "12px" });
+      /* Style the chat panel container */
+      var botPanel = botLabel;
+      for (var j = 0; j < 10; j++) {
+        if (!botPanel || botPanel === document.body) break;
+        if (botPanel.offsetWidth > 200 && botPanel.offsetHeight > 300) {
+          css(botPanel, {
+            "background": "rgba(0,14,20,0.97)",
+            "border-left": "1px solid rgba(131,238,240,0.12)",
+          });
+          break;
+        }
+        botPanel = botPanel.parentElement;
+      }
+      themed = true;
+    }
+
+    /* "Search the graph" input → teal focus */
+    var inputs = document.querySelectorAll("input");
+    inputs.forEach(function(inp) {
+      css(inp, {
+        "background": "rgba(131,238,240,0.05)",
+        "border": "1px solid rgba(131,238,240,0.18)",
+        "color": "#d4e9f3",
+        "border-radius": "10px",
+      });
+    });
+
+    /* Suggestion chips in the chat → teal pill */
+    var allBtns = document.querySelectorAll("button");
+    allBtns.forEach(function(btn) {
+      var txt = (btn.textContent || "").trim();
+      /* Only short chip-like buttons (< 80 chars, not the send button) */
+      if (txt.length > 5 && txt.length < 80 && btn.offsetWidth > 60 && btn.offsetWidth < 600) {
+        var computedBg = window.getComputedStyle(btn).backgroundColor;
+        /* Style light-background chips */
+        if (computedBg && computedBg !== "rgba(0, 0, 0, 0)" && computedBg !== "transparent") {
+          var parts = computedBg.match(/[\d.]+/g);
+          if (parts && parts[0] > 100) { /* light background */
+            css(btn, {
+              "background": "rgba(131,238,240,0.07)",
+              "border": "1px solid rgba(131,238,240,0.18)",
+              "color": "#83eef0",
+              "border-radius": "999px",
+            });
+          }
+        }
+      }
+    });
+  }
+
+  /* ─── Hide navbar + minimize bot ──────────────────────────────────────── */
   function hideAll() {
     tries++;
 
-    /* Hide the sticky Bonfires navbar */
     if (!headerHidden) {
       var hdr = document.querySelector("header");
       if (hdr) { hdr.style.setProperty("display", "none", "important"); headerHidden = true; }
     }
 
-    /* Minimize the PepoThePolypBot chat panel */
     if (!botMinimized) {
-      var label = findBotPanel();
+      var label = findTextNode("PepoThePolypBot");
       if (label) {
-        /* Walk up to find a sizeable container, then click its first button (the − button) */
         var el = label;
         for (var i = 0; i < 12; i++) {
           if (!el || el === document.body) break;
           if (el.offsetWidth > 100) {
-            /* Try clicking a button whose text is − / minimize */
             var btns = el.querySelectorAll("button");
             var clicked = false;
             for (var b = 0; b < btns.length; b++) {
               var txt = (btns[b].textContent || "").trim();
               if (txt === "−" || txt === "-" || txt === "–" || txt.length === 1) {
-                btns[b].click();
-                clicked = true;
-                break;
+                btns[b].click(); clicked = true; break;
               }
             }
-            if (!clicked && btns.length > 0) {
-              /* Fallback: click the last button in the header row */
-              btns[btns.length - 1].click();
-            }
+            if (!clicked && btns.length > 0) btns[btns.length - 1].click();
             botMinimized = true;
             break;
           }
@@ -1029,25 +1257,24 @@ export async function registerRoutes(
       }
     }
 
-    if ((!headerHidden || !botMinimized) && tries < MAX) {
+    applyTheme();
+
+    if ((!headerHidden || !botMinimized || !themed) && tries < MAX) {
       setTimeout(hideAll, 150);
     }
   }
 
   if (document.body) { hideAll(); }
   else { document.addEventListener("DOMContentLoaded", hideAll); }
-  setTimeout(hideAll, 200);
-  setTimeout(hideAll, 600);
-  setTimeout(hideAll, 1200);
-  setTimeout(hideAll, 2500);
-  setTimeout(hideAll, 5000);
+  [200, 600, 1200, 2500, 5000].forEach(function(d) { setTimeout(hideAll, d); });
 
   var mo = new MutationObserver(function () {
-    if (!headerHidden || !botMinimized) hideAll();
+    if (!headerHidden || !botMinimized || !themed) hideAll();
   });
   function attachObserver() {
-    if (document.body) { mo.observe(document.body, { childList: true, subtree: true }); }
-    else { document.addEventListener("DOMContentLoaded", function () { mo.observe(document.body, { childList: true, subtree: true }); }); }
+    var target = document.body;
+    if (target) mo.observe(target, { childList: true, subtree: true });
+    else document.addEventListener("DOMContentLoaded", function () { mo.observe(document.body, { childList: true, subtree: true }); });
   }
   attachObserver();
 })();

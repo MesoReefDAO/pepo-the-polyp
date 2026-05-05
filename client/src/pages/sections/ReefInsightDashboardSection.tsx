@@ -7,7 +7,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 
 const TELEGRAM_BOT_URL = "https://t.me/PepothePolyp_bot";
-const BONFIRES_GRAPH_URL = "https://pepo.app.bonfires.ai/graph";
+const BONFIRES_GRAPH_URL = "/api/graph-embed";
 
 const FOOTER_LINK_HREFS = [
   { key: "privacy" as const,       href: "https://mesoreefdao.gitbook.io/privacy-policy" },
