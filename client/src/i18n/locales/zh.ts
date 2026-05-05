@@ -8,7 +8,6 @@ const zh = {
     curation: "内容策展",
     telegramBot: "Telegram 机器人",
     reefWorkspace: "珊瑚礁工作区",
-    hyperBlogs: "超级博客",
     regenReefNetworkMap: "再生珊瑚礁网络地图",
     chatWithPepo: "在 Telegram 上直接与 Pepo 聊天，获取珊瑚礁最新动态和洞察。",
   },
