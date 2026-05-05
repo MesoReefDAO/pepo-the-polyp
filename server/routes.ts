@@ -813,35 +813,79 @@ export async function registerRoutes(
   body { padding-top: 0 !important; margin-top: 0 !important; }
 </style>
 <script>
-/* ── 1. Stub Clerk API calls so React renders without a real Clerk session ── */
+/* ── 0. Rewrite all relative fetch/XHR/WebSocket calls to Bonfires.ai ────── */
+/* This is essential: Next.js inside the iframe issues relative API calls     */
+/* like /api/bonfire/… which would hit thepolyp.xyz — we redirect them.       */
 (function () {
+  var BONFIRES = "https://pepo.app.bonfires.ai";
+  var BONFIRES_WS = "wss://pepo.app.bonfires.ai";
+
+  function rewriteUrl(url) {
+    if (typeof url === "string" && url.charAt(0) === "/" && url.charAt(1) !== "/") {
+      return BONFIRES + url;
+    }
+    return url;
+  }
+
+  /* ── fetch ── */
   var _fetch = window.fetch;
   window.fetch = function (resource, init) {
     var url = typeof resource === "string" ? resource
             : (resource instanceof URL ? resource.href
             : (resource && resource.url ? resource.url : ""));
+
+    /* Rewrite relative paths → absolute Bonfires.ai */
+    var rewritten = rewriteUrl(url);
+    if (rewritten !== url) {
+      resource = rewritten;
+      url = rewritten;
+    }
+
+    /* Stub Clerk so React renders without a real session */
     if (url && url.indexOf("clerk.bonfires.ai") !== -1) {
-      /* Return a minimal Clerk client payload that says "not signed in" */
       var mockClient = {
-        id: "client_mock",
-        object: "client",
-        session_ids: [],
-        sessions: [],
-        sign_in: null,
-        sign_up: null,
+        id: "client_mock", object: "client",
+        session_ids: [], sessions: [],
+        sign_in: null, sign_up: null,
         last_active_session_id: null,
-        created_at: 0,
-        updated_at: 0
+        created_at: 0, updated_at: 0
       };
       return Promise.resolve(
         new Response(JSON.stringify({ response: mockClient, client: mockClient }), {
-          status: 200,
-          headers: { "content-type": "application/json" }
+          status: 200, headers: { "content-type": "application/json" }
         })
       );
     }
-    return _fetch.apply(this, arguments);
+    return _fetch.call(this, resource, init);
   };
+
+  /* ── XMLHttpRequest ── */
+  var _xhrOpen = XMLHttpRequest.prototype.open;
+  XMLHttpRequest.prototype.open = function (method, url) {
+    var args = Array.prototype.slice.call(arguments);
+    args[1] = rewriteUrl(url);
+    return _xhrOpen.apply(this, args);
+  };
+
+  /* ── WebSocket ── */
+  var _WS = window.WebSocket;
+  window.WebSocket = function (url, protocols) {
+    if (typeof url === "string" && url.charAt(0) === "/" && url.charAt(1) !== "/") {
+      url = BONFIRES_WS + url;
+    }
+    try {
+      return protocols !== undefined ? new _WS(url, protocols) : new _WS(url);
+    } catch (e) {
+      return protocols !== undefined ? new _WS(url, protocols) : new _WS(url);
+    }
+  };
+  try {
+    window.WebSocket.prototype = _WS.prototype;
+    window.WebSocket.CONNECTING = _WS.CONNECTING;
+    window.WebSocket.OPEN = _WS.OPEN;
+    window.WebSocket.CLOSING = _WS.CLOSING;
+    window.WebSocket.CLOSED = _WS.CLOSED;
+  } catch (e) {}
 })();
 
 /* ── 2. Hide header, then minimize the PepoThePolypBot chat panel ─────────── */
@@ -987,29 +1031,51 @@ export async function registerRoutes(
   body { padding-top: 0 !important; margin-top: 0 !important; }
 </style>
 <script>
-/* ── 1. Stub Clerk API calls so React renders without a real Clerk session ── */
+/* ── 0. Rewrite all relative fetch/XHR/WebSocket calls to Bonfires.ai ────── */
 (function () {
+  var BONFIRES = "https://pepo.app.bonfires.ai";
+  var BONFIRES_WS = "wss://pepo.app.bonfires.ai";
+
+  function rewriteUrl(url) {
+    if (typeof url === "string" && url.charAt(0) === "/" && url.charAt(1) !== "/") {
+      return BONFIRES + url;
+    }
+    return url;
+  }
+
+  /* ── fetch ── */
   var _fetch = window.fetch;
   window.fetch = function (resource, init) {
     var url = typeof resource === "string" ? resource
             : (resource instanceof URL ? resource.href
             : (resource && resource.url ? resource.url : ""));
+    var rewritten = rewriteUrl(url);
+    if (rewritten !== url) { resource = rewritten; url = rewritten; }
+
     if (url && url.indexOf("clerk.bonfires.ai") !== -1) {
-      var mockClient = {
-        id: "client_mock", object: "client",
-        session_ids: [], sessions: [],
-        sign_in: null, sign_up: null,
-        last_active_session_id: null,
-        created_at: 0, updated_at: 0
-      };
-      return Promise.resolve(
-        new Response(JSON.stringify({ response: mockClient, client: mockClient }), {
-          status: 200, headers: { "content-type": "application/json" }
-        })
-      );
+      var mockClient = { id: "client_mock", object: "client", session_ids: [], sessions: [], sign_in: null, sign_up: null, last_active_session_id: null, created_at: 0, updated_at: 0 };
+      return Promise.resolve(new Response(JSON.stringify({ response: mockClient, client: mockClient }), { status: 200, headers: { "content-type": "application/json" } }));
     }
-    return _fetch.apply(this, arguments);
+    return _fetch.call(this, resource, init);
   };
+
+  /* ── XMLHttpRequest ── */
+  var _xhrOpen = XMLHttpRequest.prototype.open;
+  XMLHttpRequest.prototype.open = function (method, url) {
+    var args = Array.prototype.slice.call(arguments);
+    args[1] = rewriteUrl(url);
+    return _xhrOpen.apply(this, args);
+  };
+
+  /* ── WebSocket ── */
+  var _WS = window.WebSocket;
+  window.WebSocket = function (url, protocols) {
+    if (typeof url === "string" && url.charAt(0) === "/" && url.charAt(1) !== "/") {
+      url = BONFIRES_WS + url;
+    }
+    try { return protocols !== undefined ? new _WS(url, protocols) : new _WS(url); } catch (e) { return new _WS(url); }
+  };
+  try { window.WebSocket.prototype = _WS.prototype; window.WebSocket.CONNECTING = _WS.CONNECTING; window.WebSocket.OPEN = _WS.OPEN; window.WebSocket.CLOSING = _WS.CLOSING; window.WebSocket.CLOSED = _WS.CLOSED; } catch (e) {}
 })();
 
 /* ── 2. Hide header + bot panel ─────────────────────────────────────────────── */
