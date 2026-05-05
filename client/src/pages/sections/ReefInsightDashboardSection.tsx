@@ -275,63 +275,101 @@ export const ReefInsightDashboardSection = (): JSX.Element => {
   const { t } = useTranslation();
 
   return (
-    <div className="flex flex-col flex-1 self-stretch min-h-0 overflow-hidden px-3 md:px-6 pt-3 md:pt-4 pb-20 md:pb-6 gap-3">
+    <div className="flex flex-col flex-1 self-stretch min-h-0 overflow-hidden px-3 md:px-6 pt-3 md:pt-4 pb-20 md:pb-4 gap-3">
 
-      {/* ── Two-column row: graph (left) + daily action (right) ─────────── */}
-      <div className="flex flex-col md:flex-row flex-1 min-h-0 gap-3">
-
-        {/* ── Knowledge Graph ─────────────────────────────────────────── */}
+      {/* ── Knowledge Graph — full-width, tall ──────────────────────────── */}
+      <div
+        className="relative w-full rounded-[16px] md:rounded-[24px] overflow-hidden shrink-0"
+        style={{
+          height: "calc(100vh - 158px)",
+          minHeight: 480,
+          border: "1px solid rgba(131,238,240,0.18)",
+          boxShadow: "0 0 0 1px rgba(131,238,240,0.06), 0 0 48px rgba(131,238,240,0.06), inset 0 0 80px rgba(0,8,12,0.5)",
+        }}
+      >
+        {/* Ambient teal glow ring */}
         <div
-          className="relative flex-1 min-h-0 rounded-[16px] md:rounded-[20px] overflow-hidden"
+          className="absolute inset-0 pointer-events-none z-0 rounded-[24px]"
+          style={{ boxShadow: "inset 0 0 60px rgba(131,238,240,0.04)" }}
+        />
+
+        {/* ── Header bar ──────────────────────────────────────────────── */}
+        <div
+          className="absolute top-0 left-0 right-0 z-10 flex items-center gap-3 px-5"
           style={{
-            border: "1px solid rgba(131,238,240,0.12)",
-            minHeight: "calc(100vh - 220px)",
+            height: 52,
+            background: "linear-gradient(90deg,rgba(0,8,12,0.98) 0%,rgba(0,18,22,0.97) 100%)",
+            borderBottom: "1px solid rgba(131,238,240,0.10)",
+            backdropFilter: "blur(12px)",
           }}
         >
-          {/* Header overlay — covers Bonfires navbar, shows our label */}
-          <div
-            className="absolute top-0 left-0 right-0 z-10 flex items-center gap-2.5 px-4"
-            style={{
-              height: 56,
-              background: "rgba(0,8,12,0.97)",
-              borderBottom: "1px solid rgba(131,238,240,0.12)",
-              backdropFilter: "blur(8px)",
-            }}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="shrink-0">
-              <circle cx="5" cy="12" r="2.5" fill="#83eef0" />
-              <circle cx="19" cy="6" r="2.5" fill="#83eef066" />
-              <circle cx="19" cy="18" r="2.5" fill="#83eef066" />
-              <line x1="7" y1="11" x2="17" y2="7" stroke="#83eef080" strokeWidth="1.4"/>
-              <line x1="7" y1="13" x2="17" y2="17" stroke="#83eef080" strokeWidth="1.4"/>
+          {/* Graph icon */}
+          <div className="flex items-center justify-center w-7 h-7 rounded-lg shrink-0"
+            style={{ background: "rgba(131,238,240,0.08)", border: "1px solid rgba(131,238,240,0.18)" }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+              <circle cx="5"  cy="12" r="2.8" fill="#83eef0" />
+              <circle cx="19" cy="6"  r="2.2" fill="#83eef066" />
+              <circle cx="19" cy="18" r="2.2" fill="#83eef066" />
+              <line x1="7.5" y1="10.8" x2="17" y2="7"   stroke="#83eef060" strokeWidth="1.3"/>
+              <line x1="7.5" y1="13.2" x2="17" y2="17"  stroke="#83eef060" strokeWidth="1.3"/>
             </svg>
-            <span className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-bold text-[#83eef0] text-sm leading-none">
-              {t("dashboard.knowledgeGraph")}
-            </span>
-            <span className="text-[9px] [font-family:'Inter',Helvetica] px-2 py-0.5 rounded-full bg-[#83eef015] border border-[#83eef030] text-[#83eef099]">
-              Bonfires.ai
-            </span>
           </div>
 
-          {/* Iframe pushed down 56px so the graph sits below our header */}
-          <GraphLoadingShimmer visible={graphLoading} />
-          <iframe
-            src={BONFIRES_GRAPH_URL}
-            title="Reef Knowledge Graph"
-            className="absolute left-0 right-0 bottom-0 w-full border-0"
-            style={{ top: 56, background: "#00080c" }}
-            allow="clipboard-write; clipboard-read; pointer-lock; fullscreen"
-            loading="lazy"
-            data-testid="iframe-knowledge-graph"
-            onLoad={() => setGraphLoading(false)}
-          />
+          {/* Title */}
+          <span className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-bold text-[#d4e9f3] text-[13px] leading-none tracking-tight">
+            {t("dashboard.knowledgeGraph")}
+          </span>
+
+          {/* Live indicator */}
+          <div className="flex items-center gap-1.5 ml-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#83eef0] animate-pulse" />
+            <span className="[font-family:'Inter',Helvetica] text-[#83eef099] text-[10px] font-medium">Live</span>
+          </div>
+
+          {/* Spacer */}
+          <div className="flex-1" />
+
+          {/* Node count badge */}
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full"
+            style={{ background: "rgba(131,238,240,0.06)", border: "1px solid rgba(131,238,240,0.14)" }}>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="3" fill="#83eef0" />
+              <circle cx="4"  cy="6"  r="2" fill="#83eef066" />
+              <circle cx="20" cy="6"  r="2" fill="#83eef066" />
+              <circle cx="4"  cy="18" r="2" fill="#83eef066" />
+              <circle cx="20" cy="18" r="2" fill="#83eef066" />
+              <line x1="6" y1="7"  x2="10" y2="11" stroke="#83eef040" strokeWidth="1.2"/>
+              <line x1="18" y1="7"  x2="14" y2="11" stroke="#83eef040" strokeWidth="1.2"/>
+              <line x1="6" y1="17" x2="10" y2="13" stroke="#83eef040" strokeWidth="1.2"/>
+              <line x1="18" y1="17" x2="14" y2="13" stroke="#83eef040" strokeWidth="1.2"/>
+            </svg>
+            <span className="[font-family:'Inter',Helvetica] text-[#83eef0] text-[10px] font-semibold">165+ nodes</span>
+          </div>
+
+          {/* Bonfires attribution */}
+          <span className="[font-family:'Inter',Helvetica] text-[10px] px-2 py-0.5 rounded-full text-[#d4e9f340]"
+            style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
+            Bonfires.ai
+          </span>
         </div>
 
-        {/* ── Daily Reef Action panel (right, always visible on desktop) ── */}
-        <div className="w-full md:w-[300px] shrink-0 flex flex-col">
-          <CleanCoralPanel />
-        </div>
+        {/* Iframe — offset below our header bar */}
+        <GraphLoadingShimmer visible={graphLoading} />
+        <iframe
+          src={BONFIRES_GRAPH_URL}
+          title="Reef Knowledge Graph"
+          className="absolute left-0 right-0 bottom-0 w-full border-0"
+          style={{ top: 52, background: "#00080c" }}
+          allow="clipboard-write; clipboard-read; pointer-lock; fullscreen"
+          loading="lazy"
+          data-testid="iframe-knowledge-graph"
+          onLoad={() => setGraphLoading(false)}
+        />
+      </div>
 
+      {/* ── Daily Reef Action — compact horizontal strip below the graph ── */}
+      <div className="shrink-0">
+        <CleanCoralPanel />
       </div>
 
       {/* ── Footer ──────────────────────────────────────────────────────── */}
