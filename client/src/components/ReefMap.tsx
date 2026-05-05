@@ -808,6 +808,9 @@ function ExpandedMapModal({
   const [toolLine,           setToolLine]           = useState<L.LatLng[]>([]);
   const [toolArea,           setToolArea]           = useState<L.LatLng[]>([]);
   const [importedGeoJson,    setImportedGeoJson]    = useState<GeoJSON.FeatureCollection | null>(null);
+  const [toolbarPos,         setToolbarPos]         = useState<{ x: number; y: number }>({ x: 14, y: 60 });
+  const [toolbarDragging,    setToolbarDragging]    = useState(false);
+  const toolbarDragRef = useRef<{ dx: number; dy: number }>({ dx: 0, dy: 0 });
   const [layerOpacity,       setLayerOpacity]       = useState(0.72);
   const [isMobile,           setIsMobile]           = useState(() => typeof window !== "undefined" && window.innerWidth < 640);
   // ── Live layer time + depth controls ──────────────────────────────────────
@@ -830,6 +833,20 @@ function ExpandedMapModal({
     window.addEventListener("resize", fn);
     return () => window.removeEventListener("resize", fn);
   }, []);
+
+  useEffect(() => {
+    if (!toolbarDragging) return;
+    const onMove = (e: MouseEvent) => {
+      setToolbarPos({
+        x: Math.max(4, e.clientX - toolbarDragRef.current.dx),
+        y: Math.max(4, e.clientY - toolbarDragRef.current.dy),
+      });
+    };
+    const onUp = () => setToolbarDragging(false);
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
+  }, [toolbarDragging]);
 
   // ── Time-lapse animation ────────────────────────────────────────────────────
   // Note: liveMinDateStr is computed below (after activeLiveLayer), captured via ref
@@ -1660,55 +1677,157 @@ function ExpandedMapModal({
               </div>
             </div>
           ) : (
-            /* ── DESKTOP: vertical stack left side ── */
-            <div style={{
-              position: "absolute", left: 14, top: 14, zIndex: 900,
-              display: "flex", flexDirection: "column", gap: 6,
-              pointerEvents: "auto",
-            }}>
-              {/* Tool result readout — Points */}
+            /* ── DESKTOP: draggable compact floating toolbar ── */
+            <div
+              style={{
+                position: "absolute",
+                left: toolbarPos.x,
+                top: toolbarPos.y,
+                zIndex: 900,
+                display: "flex",
+                flexDirection: "row",
+                alignItems: "flex-start",
+                gap: 8,
+                pointerEvents: "auto",
+                userSelect: "none",
+              }}
+            >
+              {/* ── Icon strip ── */}
+              <div style={{
+                background: "rgba(0,5,12,0.86)",
+                border: "1px solid rgba(131,238,240,0.14)",
+                borderRadius: 16,
+                backdropFilter: "blur(16px)",
+                boxShadow: "0 8px 28px rgba(0,0,0,0.55), inset 0 0 0 0.5px rgba(255,255,255,0.04)",
+                display: "flex", flexDirection: "column", alignItems: "center",
+                padding: "8px 5px 10px",
+                gap: 2,
+                width: 46,
+              }}>
+                {/* Drag handle */}
+                <div
+                  onMouseDown={e => {
+                    setToolbarDragging(true);
+                    toolbarDragRef.current = { dx: e.clientX - toolbarPos.x, dy: e.clientY - toolbarPos.y };
+                    e.preventDefault();
+                  }}
+                  title="Drag to reposition"
+                  style={{
+                    width: 30, height: 20, cursor: toolbarDragging ? "grabbing" : "grab",
+                    display: "flex", flexDirection: "column", gap: 4,
+                    alignItems: "center", justifyContent: "center",
+                    marginBottom: 4, borderRadius: 7, padding: "3px 0",
+                    transition: "background 0.12s",
+                  }}
+                >
+                  {[0,1,2].map(i => (
+                    <div key={i} style={{ width: 14, height: 1.5, background: "rgba(131,238,240,0.22)", borderRadius: 2 }} />
+                  ))}
+                </div>
+
+                {/* Thin separator */}
+                <div style={{ width: 22, height: 1, background: "rgba(131,238,240,0.1)", marginBottom: 3 }} />
+
+                {/* Tool buttons */}
+                {([
+                  { id: 'points',   icon: '⊕', label: 'Points',   color: '#00b894' },
+                  { id: 'lines',    icon: '━', label: 'Lines',    color: '#fdcb6e' },
+                  { id: 'areas',    icon: '▱', label: 'Areas',    color: '#74b9ff' },
+                  { id: 'import',   icon: '↑', label: 'Import',   color: '#a29bfe' },
+                  { id: 'settings', icon: '⚙', label: 'Settings', color: '#83eef0' },
+                ] as const).map(tool => (
+                  <button
+                    key={tool.id}
+                    data-testid={`map-tool-${tool.id}`}
+                    onClick={() => {
+                      if (tool.id === 'import') { importInputRef.current?.click(); return; }
+                      setActiveTool(v => v === tool.id ? null : tool.id as MapTool);
+                    }}
+                    title={tool.label}
+                    style={{
+                      width: 36, height: 36, borderRadius: 10,
+                      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2,
+                      background: activeTool === tool.id ? `${tool.color}18` : "transparent",
+                      border: `1px solid ${activeTool === tool.id ? `${tool.color}60` : "transparent"}`,
+                      cursor: "pointer", transition: "all 0.13s",
+                      boxShadow: activeTool === tool.id ? `0 0 14px ${tool.color}44, inset 0 0 10px ${tool.color}0d` : "none",
+                    }}
+                  >
+                    <span style={{ fontSize: 14, color: activeTool === tool.id ? tool.color : "#d4e9f355", lineHeight: 1, transition: "color 0.13s" }}>{tool.icon}</span>
+                    <span style={{ fontSize: 5.5, fontWeight: 700, fontFamily: "Inter,sans-serif", letterSpacing: "0.05em", textTransform: "uppercase", color: activeTool === tool.id ? `${tool.color}bb` : "#d4e9f31a", transition: "color 0.13s" }}>{tool.label}</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* ── Result / settings readout — pops to the right ── */}
               {activeTool === 'points' && toolPoints.length > 0 && (
-                <div style={{ background: "rgba(0,10,18,0.92)", border: "1px solid rgba(0,184,148,0.4)", borderRadius: 8, padding: "8px 11px", minWidth: 150, backdropFilter: "blur(8px)", fontFamily: "Inter,sans-serif" }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: "#00b894", marginBottom: 5 }}>📍 Points ({toolPoints.length})</div>
+                <div style={{
+                  background: "rgba(0,5,12,0.92)", border: "1px solid rgba(0,184,148,0.3)",
+                  borderRadius: 12, padding: "10px 12px", minWidth: 158,
+                  backdropFilter: "blur(16px)", fontFamily: "Inter,sans-serif",
+                  boxShadow: "0 6px 20px rgba(0,0,0,0.5)",
+                }}>
+                  <div style={{ fontSize: 8.5, fontWeight: 700, color: "#00b894", marginBottom: 7, letterSpacing: "0.07em", textTransform: "uppercase" }}>📍 Points ({toolPoints.length})</div>
                   {toolPoints.slice(-3).map((pt, i) => (
-                    <div key={i} style={{ fontSize: 8.5, color: "#d4e9f3aa", marginBottom: 2 }}>
-                      {pt.lat.toFixed(4)}°N, {pt.lng.toFixed(4)}°E
+                    <div key={i} style={{ fontSize: 7.5, color: "#d4e9f3aa", marginBottom: 2, fontFamily: "monospace" }}>
+                      {pt.lat.toFixed(4)}°, {pt.lng.toFixed(4)}°
                     </div>
                   ))}
-                  {toolPoints.length > 3 && <div style={{ fontSize: 8, color: "#d4e9f333" }}>+{toolPoints.length - 3} more</div>}
-                  <button onClick={() => setToolPoints([])} style={{ marginTop: 6, fontSize: 8, background: "none", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 4, color: "#d4e9f366", cursor: "pointer", padding: "2px 8px", width: "100%", fontFamily: "Inter,sans-serif" }}>Clear</button>
+                  {toolPoints.length > 3 && <div style={{ fontSize: 7, color: "#d4e9f333", marginTop: 2 }}>+{toolPoints.length - 3} more</div>}
+                  <button onClick={() => setToolPoints([])} style={{
+                    marginTop: 8, fontSize: 7.5, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)",
+                    borderRadius: 7, color: "#d4e9f344", cursor: "pointer", padding: "4px 0", width: "100%", fontFamily: "Inter,sans-serif", fontWeight: 600,
+                  }}>Clear all</button>
                 </div>
               )}
-              {/* Tool result readout — Lines */}
               {activeTool === 'lines' && toolLine.length >= 2 && (
-                <div style={{ background: "rgba(0,10,18,0.92)", border: "1px solid rgba(253,203,110,0.4)", borderRadius: 8, padding: "8px 11px", minWidth: 150, backdropFilter: "blur(8px)", fontFamily: "Inter,sans-serif" }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: "#fdcb6e", marginBottom: 5 }}>📏 Distance</div>
+                <div style={{
+                  background: "rgba(0,5,12,0.92)", border: "1px solid rgba(253,203,110,0.3)",
+                  borderRadius: 12, padding: "10px 12px", minWidth: 158,
+                  backdropFilter: "blur(16px)", fontFamily: "Inter,sans-serif",
+                  boxShadow: "0 6px 20px rgba(0,0,0,0.5)",
+                }}>
+                  <div style={{ fontSize: 8.5, fontWeight: 700, color: "#fdcb6e", marginBottom: 7, letterSpacing: "0.07em", textTransform: "uppercase" }}>📏 Distance</div>
                   {toolLine.slice(1).map((pt, i) => (
-                    <div key={i} style={{ fontSize: 8.5, color: "#d4e9f3aa", marginBottom: 2 }}>
+                    <div key={i} style={{ fontSize: 7.5, color: "#d4e9f3aa", marginBottom: 2 }}>
                       Seg {i + 1}: {haversineDist(toolLine[i], pt).toFixed(2)} km
                     </div>
                   ))}
                   {toolLine.length > 2 && (
-                    <div style={{ fontSize: 9, fontWeight: 700, color: "#fdcb6e", marginTop: 5, borderTop: "1px solid rgba(253,203,110,0.2)", paddingTop: 5 }}>
+                    <div style={{ fontSize: 9, fontWeight: 700, color: "#fdcb6e", marginTop: 7, borderTop: "1px solid rgba(253,203,110,0.15)", paddingTop: 7 }}>
                       Total: {toolLine.slice(1).reduce((acc, pt, i) => acc + haversineDist(toolLine[i], pt), 0).toFixed(2)} km
                     </div>
                   )}
-                  <button onClick={() => setToolLine([])} style={{ marginTop: 6, fontSize: 8, background: "none", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 4, color: "#d4e9f366", cursor: "pointer", padding: "2px 8px", width: "100%", fontFamily: "Inter,sans-serif" }}>Clear</button>
+                  <button onClick={() => setToolLine([])} style={{
+                    marginTop: 8, fontSize: 7.5, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)",
+                    borderRadius: 7, color: "#d4e9f344", cursor: "pointer", padding: "4px 0", width: "100%", fontFamily: "Inter,sans-serif", fontWeight: 600,
+                  }}>Clear</button>
                 </div>
               )}
-              {/* Tool result readout — Areas */}
               {activeTool === 'areas' && toolArea.length >= 3 && (
-                <div style={{ background: "rgba(0,10,18,0.92)", border: "1px solid rgba(116,185,255,0.4)", borderRadius: 8, padding: "8px 11px", minWidth: 150, backdropFilter: "blur(8px)", fontFamily: "Inter,sans-serif" }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: "#74b9ff", marginBottom: 5 }}>▱ Area</div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "#74b9ff" }}>{polygonAreaKm2(toolArea).toFixed(1)} km²</div>
-                  <div style={{ fontSize: 8, color: "#d4e9f355", marginTop: 2 }}>{toolArea.length} vertices</div>
-                  <button onClick={() => setToolArea([])} style={{ marginTop: 6, fontSize: 8, background: "none", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 4, color: "#d4e9f366", cursor: "pointer", padding: "2px 8px", width: "100%", fontFamily: "Inter,sans-serif" }}>Clear</button>
+                <div style={{
+                  background: "rgba(0,5,12,0.92)", border: "1px solid rgba(116,185,255,0.3)",
+                  borderRadius: 12, padding: "10px 12px", minWidth: 140,
+                  backdropFilter: "blur(16px)", fontFamily: "Inter,sans-serif",
+                  boxShadow: "0 6px 20px rgba(0,0,0,0.5)",
+                }}>
+                  <div style={{ fontSize: 8.5, fontWeight: 700, color: "#74b9ff", marginBottom: 7, letterSpacing: "0.07em", textTransform: "uppercase" }}>▱ Area</div>
+                  <div style={{ fontSize: 20, fontWeight: 700, color: "#74b9ff", lineHeight: 1.1 }}>{polygonAreaKm2(toolArea).toFixed(1)}</div>
+                  <div style={{ fontSize: 8, color: "#d4e9f344", marginTop: 2 }}>km² · {toolArea.length} pts</div>
+                  <button onClick={() => setToolArea([])} style={{
+                    marginTop: 8, fontSize: 7.5, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)",
+                    borderRadius: 7, color: "#d4e9f344", cursor: "pointer", padding: "4px 0", width: "100%", fontFamily: "Inter,sans-serif", fontWeight: 600,
+                  }}>Clear</button>
                 </div>
               )}
-              {/* Settings panel */}
               {activeTool === 'settings' && (
-                <div style={{ background: "rgba(0,10,18,0.92)", border: "1px solid rgba(131,238,240,0.3)", borderRadius: 8, padding: "10px 12px", minWidth: 168, backdropFilter: "blur(8px)", fontFamily: "Inter,sans-serif" }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: "#83eef0", marginBottom: 10 }}>⚙ Layer Settings</div>
+                <div style={{
+                  background: "rgba(0,5,12,0.92)", border: "1px solid rgba(131,238,240,0.22)",
+                  borderRadius: 12, padding: "10px 12px", minWidth: 170,
+                  backdropFilter: "blur(16px)", fontFamily: "Inter,sans-serif",
+                  boxShadow: "0 6px 20px rgba(0,0,0,0.5)",
+                }}>
+                  <div style={{ fontSize: 8.5, fontWeight: 700, color: "#83eef0", marginBottom: 10, letterSpacing: "0.07em", textTransform: "uppercase" }}>⚙ Settings</div>
                   {(activeCmsVar || activeLiveVar) ? (
                     <>
                       <div style={{ fontSize: 8, color: "#d4e9f355", marginBottom: 6 }}>
@@ -1721,50 +1840,16 @@ function ExpandedMapModal({
                       />
                     </>
                   ) : (
-                    <div style={{ fontSize: 9, color: "#d4e9f355", lineHeight: 1.5 }}>Enable a Copernicus layer to adjust opacity.</div>
+                    <div style={{ fontSize: 8.5, color: "#d4e9f333", lineHeight: 1.65 }}>Enable a Copernicus layer to adjust its opacity.</div>
                   )}
                   {importedGeoJson && (
-                    <button onClick={() => setImportedGeoJson(null)} style={{ marginTop: 8, fontSize: 8, background: "rgba(253,121,168,0.1)", border: "1px solid rgba(253,121,168,0.3)", borderRadius: 4, color: "#fd79a8", cursor: "pointer", padding: "3px 8px", width: "100%", fontFamily: "Inter,sans-serif", fontWeight: 600 }}>
-                      Remove imported layer
-                    </button>
+                    <button onClick={() => setImportedGeoJson(null)} style={{
+                      marginTop: 8, fontSize: 7.5, background: "rgba(253,121,168,0.08)", border: "1px solid rgba(253,121,168,0.28)",
+                      borderRadius: 7, color: "#fd79a8", cursor: "pointer", padding: "4px 0", width: "100%", fontFamily: "Inter,sans-serif", fontWeight: 600,
+                    }}>Remove imported layer</button>
                   )}
                 </div>
               )}
-              {/* Toolbar buttons — MyOceanPro style, vertical with labels */}
-              {([
-                { id: 'points',   icon: '⊕', label: 'Points',   color: '#00b894' },
-                { id: 'lines',    icon: '━', label: 'Lines',    color: '#fdcb6e' },
-                { id: 'areas',    icon: '▱', label: 'Areas',    color: '#74b9ff' },
-                { id: 'import',   icon: '↑', label: 'Import',   color: '#a29bfe' },
-                { id: 'settings', icon: '⚙', label: 'Settings', color: '#83eef0' },
-              ] as const).map(tool => (
-                <button
-                  key={tool.id}
-                  data-testid={`map-tool-${tool.id}`}
-                  onClick={() => {
-                    if (tool.id === 'import') { importInputRef.current?.click(); return; }
-                    setActiveTool(v => v === tool.id ? null : tool.id as MapTool);
-                  }}
-                  title={tool.label}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 10,
-                    background: activeTool === tool.id ? `rgba(0,10,18,0.94)` : "rgba(0,10,18,0.82)",
-                    border: `1.5px solid ${activeTool === tool.id ? `${tool.color}99` : "rgba(255,255,255,0.14)"}`,
-                    borderRadius: 10, padding: "7px 13px 7px 9px", cursor: "pointer",
-                    backdropFilter: "blur(8px)", transition: "all 0.14s",
-                    fontFamily: "Inter,sans-serif", minWidth: 132,
-                    boxShadow: activeTool === tool.id ? `0 0 0 1px ${tool.color}33` : "none",
-                  }}
-                >
-                  <span style={{
-                    width: 28, height: 28, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",
-                    background: activeTool === tool.id ? `${tool.color}22` : "rgba(255,255,255,0.07)",
-                    border: `1px solid ${activeTool === tool.id ? `${tool.color}55` : "rgba(255,255,255,0.1)"}`,
-                    fontSize: 13, color: activeTool === tool.id ? tool.color : "#d4e9f3aa", flexShrink: 0,
-                  }}>{tool.icon}</span>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: activeTool === tool.id ? tool.color : "#d4e9f3cc" }}>{tool.label}</span>
-                </button>
-              ))}
             </div>
           )}
 
