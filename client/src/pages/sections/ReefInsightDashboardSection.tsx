@@ -271,24 +271,28 @@ function GraphLoadingShimmer({ visible }: { visible: boolean }) {
 
 // ── Main dashboard ─────────────────────────────────────────────────────────────
 export const ReefInsightDashboardSection = (): JSX.Element => {
-  const [coralOpen, setCoralOpen] = useState(false);
   const [graphLoading, setGraphLoading] = useState(true);
   const { t } = useTranslation();
 
   return (
-    <div className="flex flex-col flex-1 self-stretch min-h-0 overflow-hidden px-3 md:px-6 pt-3 md:pt-4 pb-20 md:pb-6 gap-0">
+    <div className="flex flex-col flex-1 self-stretch min-h-0 overflow-hidden px-3 md:px-6 pt-3 md:pt-4 pb-20 md:pb-6 gap-3">
 
-      {/* ── Full-height Knowledge Graph ─────────────────────────────────── */}
-      <div className="relative flex-1 min-h-0 w-full rounded-[16px] md:rounded-[20px] overflow-hidden"
-           style={{ border: "1px solid rgba(131,238,240,0.12)", minHeight: "calc(100vh - 200px)" }}>
+      {/* ── Two-column row: graph (left) + daily action (right) ─────────── */}
+      <div className="flex flex-col md:flex-row flex-1 min-h-0 gap-3">
 
-        {/* Graph iframe — fills the full container */}
-        <div className="absolute inset-0">
+        {/* ── Knowledge Graph ─────────────────────────────────────────── */}
+        <div
+          className="relative flex-1 min-h-0 rounded-[16px] md:rounded-[20px] overflow-hidden"
+          style={{
+            border: "1px solid rgba(131,238,240,0.12)",
+            minHeight: "calc(100vh - 220px)",
+          }}
+        >
           <GraphLoadingShimmer visible={graphLoading} />
           <iframe
             src={BONFIRES_GRAPH_URL}
             title="Reef Knowledge Graph"
-            className="w-full h-full border-0"
+            className="absolute inset-0 w-full h-full border-0"
             style={{ background: "#00080c" }}
             allow="clipboard-write; clipboard-read; pointer-lock; fullscreen"
             loading="lazy"
@@ -297,44 +301,15 @@ export const ReefInsightDashboardSection = (): JSX.Element => {
           />
         </div>
 
-        {/* ── Floating Daily Coral Action ─────────────────────────────── */}
-        <div className="absolute bottom-4 right-4 z-20 flex flex-col items-end gap-3">
-          {coralOpen && (
-            <div
-              className="w-72"
-              style={{
-                animation: "fadeSlideUp 0.22s ease-out",
-              }}
-            >
-              <CleanCoralPanel onClose={() => setCoralOpen(false)} />
-            </div>
-          )}
-          <button
-            onClick={() => setCoralOpen(o => !o)}
-            data-testid="button-coral-toggle"
-            className="flex items-center gap-2.5 pl-3 pr-4 py-2.5 rounded-full transition-all active:scale-95"
-            style={{
-              background: coralOpen
-                ? "linear-gradient(135deg,rgba(131,238,240,0.18) 0%,rgba(63,176,179,0.18) 100%)"
-                : "linear-gradient(135deg,rgba(0,26,34,0.95) 0%,rgba(0,8,12,0.95) 100%)",
-              border: coralOpen
-                ? "1px solid rgba(131,238,240,0.45)"
-                : "1px solid rgba(131,238,240,0.25)",
-              boxShadow: "0 4px 24px rgba(0,0,0,0.5), 0 2px 8px rgba(131,238,240,0.1)",
-              backdropFilter: "blur(12px)",
-            }}
-          >
-            <span className="text-xl leading-none">🪸</span>
-            <span className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-bold text-[#83eef0] text-sm whitespace-nowrap">
-              {t("dashboard.dailyReefAction")}
-            </span>
-          </button>
+        {/* ── Daily Reef Action panel (right, always visible on desktop) ── */}
+        <div className="w-full md:w-[300px] shrink-0 flex flex-col">
+          <CleanCoralPanel />
         </div>
 
       </div>
 
       {/* ── Footer ──────────────────────────────────────────────────────── */}
-      <div className="shrink-0 flex items-center justify-center gap-4 pt-3 flex-wrap">
+      <div className="shrink-0 flex items-center justify-center gap-4 flex-wrap">
         {FOOTER_LINK_HREFS.map(({ key, href }) => (
           <a
             key={key}
