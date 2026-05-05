@@ -45,22 +45,29 @@ function nodeColor(n: GraphNode): string {
 }
 
 function nodeRadius(degree: number, type: string): number {
-  const base = type === "episode" ? 7 : 5;
+  const base = type === "episode" ? 9 : 7;
   return base + Math.min(degree * 2.5, 14);
 }
 
 export function KnowledgeGraphCanvas({ className }: { className?: string }) {
-  const canvasRef   = useRef<HTMLCanvasElement>(null);
-  const animRef     = useRef<number>(0);
-  const simNodes    = useRef<SimNode[]>([]);
-  const simEdges    = useRef<GraphEdge[]>([]);
-  const nodeMap     = useRef<Map<string, SimNode>>(new Map());
-  const transform   = useRef({ x: 0, y: 0, scale: 1 });
-  const dragRef     = useRef<{ sx: number; sy: number; tx: number; ty: number } | null>(null);
-  const initialized = useRef(false);
+  const canvasRef    = useRef<HTMLCanvasElement>(null);
+  const animRef      = useRef<number>(0);
+  const simNodes     = useRef<SimNode[]>([]);
+  const simEdges     = useRef<GraphEdge[]>([]);
+  const nodeMap      = useRef<Map<string, SimNode>>(new Map());
+  const transform    = useRef({ x: 0, y: 0, scale: 1 });
+  const dragRef      = useRef<{ sx: number; sy: number; tx: number; ty: number; moved: boolean } | null>(null);
+  const pinchRef     = useRef<number | null>(null);
+  const initialized  = useRef(false);
 
   const [hovered,    setHovered]    = useState<SimNode | null>(null);
+  const [selected,   setSelected]   = useState<SimNode | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
+  const [isTouch,    setIsTouch]    = useState(false);
+
+  useEffect(() => {
+    setIsTouch("ontouchstart" in window || navigator.maxTouchPoints > 0);
+  }, []);
 
   const { data, isLoading, isError } = useQuery<GraphData>({
     queryKey: ["/api/graph/data"],
@@ -108,7 +115,7 @@ export function KnowledgeGraphCanvas({ className }: { className?: string }) {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const cvs = canvas; // captured non-null reference for closure
+    const cvs = canvas;
     const ctx = cvs.getContext("2d")!;
 
     function tick() {
@@ -120,7 +127,6 @@ export function KnowledgeGraphCanvas({ className }: { className?: string }) {
         const cx = cvs.width  / 2;
         const cy = cvs.height / 2;
 
-        // Repulsion O(n²) — fine for ~60–120 nodes
         for (let i = 0; i < nodes.length; i++) {
           for (let j = i + 1; j < nodes.length; j++) {
             const ni = nodes[i], nj = nodes[j];
@@ -135,7 +141,6 @@ export function KnowledgeGraphCanvas({ className }: { className?: string }) {
           }
         }
 
-        // Spring attraction along edges
         for (const e of edges) {
           const s = nmap.get(e.source_node_uuid);
           const t = nmap.get(e.target_node_uuid);
@@ -148,7 +153,6 @@ export function KnowledgeGraphCanvas({ className }: { className?: string }) {
           t.vx -= f * dx / d; t.vy -= f * dy / d;
         }
 
-        // Gravity toward center + damping + integrate
         for (const n of nodes) {
           n.vx += (cx - n.x) * GRAVITY;
           n.vy += (cy - n.y) * GRAVITY;
@@ -157,7 +161,6 @@ export function KnowledgeGraphCanvas({ className }: { className?: string }) {
         }
       }
 
-      // Draw
       ctx.clearRect(0, 0, cvs.width, cvs.height);
       const tr = transform.current;
       ctx.save();
@@ -180,22 +183,34 @@ export function KnowledgeGraphCanvas({ className }: { className?: string }) {
       // Nodes + labels
       for (const n of simNodes.current) {
         const r = n.radius;
+        const isActive = n.uuid === (hovered?.uuid ?? selected?.uuid);
+
+        // Glow ring for active node
+        if (isActive) {
+          ctx.beginPath();
+          ctx.arc(n.x, n.y, r + 5, 0, Math.PI * 2);
+          ctx.fillStyle = n.color + "22";
+          ctx.fill();
+        }
+
         ctx.beginPath();
         ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
-        ctx.fillStyle   = n.color + "bb";
+        ctx.fillStyle   = isActive ? n.color + "ee" : n.color + "bb";
         ctx.fill();
-        ctx.strokeStyle = n.color;
-        ctx.lineWidth   = 1.5;
+        ctx.strokeStyle = isActive ? n.color : n.color + "99";
+        ctx.lineWidth   = isActive ? 2 : 1.5;
         ctx.stroke();
 
-        if (r >= 7) {
-          const maxCh = Math.floor(r * 2);
+        // Labels — always show for larger nodes, show for all on touch devices
+        const showLabel = r >= 7;
+        if (showLabel) {
+          const maxCh = Math.floor(r * 1.8);
           const label = n.name.length > maxCh ? n.name.slice(0, maxCh) + "…" : n.name;
-          const fs    = Math.max(8, Math.min(10, r * 0.9));
+          const fs    = Math.max(9, Math.min(11, r * 0.9));
           ctx.font      = `${fs}px Inter, sans-serif`;
-          ctx.fillStyle = "rgba(212,233,243,0.82)";
+          ctx.fillStyle = isActive ? "rgba(212,233,243,0.96)" : "rgba(212,233,243,0.65)";
           ctx.textAlign = "center";
-          ctx.fillText(label, n.x, n.y + r + fs + 1);
+          ctx.fillText(label, n.x, n.y + r + fs + 2);
         }
       }
 
@@ -205,6 +220,7 @@ export function KnowledgeGraphCanvas({ className }: { className?: string }) {
 
     animRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(animRef.current);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Keep canvas pixel size matched to container
@@ -224,33 +240,40 @@ export function KnowledgeGraphCanvas({ className }: { className?: string }) {
     return () => ro.disconnect();
   }, []);
 
-  // ── Mouse handlers ───────────────────────────────────────────────────────────
+  // ── Coordinate helpers ───────────────────────────────────────────────────────
   const screenToGraph = useCallback((mx: number, my: number) => {
     const tr = transform.current;
     return { gx: (mx - tr.x) / tr.scale, gy: (my - tr.y) / tr.scale };
   }, []);
 
+  const hitTest = useCallback((mx: number, my: number, extraRadius = 0): SimNode | null => {
+    const { gx, gy } = screenToGraph(mx, my);
+    return simNodes.current.find(n => {
+      const dx = n.x - gx, dy = n.y - gy;
+      const r = n.radius + extraRadius;
+      return dx * dx + dy * dy <= r * r;
+    }) ?? null;
+  }, [screenToGraph]);
+
+  // ── Mouse handlers ───────────────────────────────────────────────────────────
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
-    const mx   = e.clientX - rect.left;
-    const my   = e.clientY - rect.top;
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
 
     if (dragRef.current) {
+      dragRef.current.moved = true;
       transform.current.x = dragRef.current.tx + (mx - dragRef.current.sx);
       transform.current.y = dragRef.current.ty + (my - dragRef.current.sy);
       return;
     }
 
-    const { gx, gy } = screenToGraph(mx, my);
-    const hit = simNodes.current.find(n => {
-      const dx = n.x - gx, dy = n.y - gy;
-      return dx * dx + dy * dy <= n.radius * n.radius;
-    }) ?? null;
+    const hit = hitTest(mx, my);
     setHovered(hit);
     if (hit) setTooltipPos({ x: mx, y: my });
-  }, [screenToGraph]);
+  }, [hitTest]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -261,10 +284,11 @@ export function KnowledgeGraphCanvas({ className }: { className?: string }) {
       sy: e.clientY - rect.top,
       tx: transform.current.x,
       ty: transform.current.y,
+      moved: false,
     };
   }, []);
 
-  const handleMouseUp   = useCallback(() => { dragRef.current = null; }, []);
+  const handleMouseUp = useCallback(() => { dragRef.current = null; }, []);
 
   const handleWheel = useCallback((e: React.WheelEvent<HTMLCanvasElement>) => {
     e.preventDefault();
@@ -279,6 +303,84 @@ export function KnowledgeGraphCanvas({ className }: { className?: string }) {
     tr.y     = my - (my - tr.y) * factor;
     tr.scale = Math.max(0.25, Math.min(4, tr.scale * factor));
   }, []);
+
+  // ── Touch handlers ───────────────────────────────────────────────────────────
+  const handleTouchStart = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+
+    if (e.touches.length === 1) {
+      dragRef.current = {
+        sx: e.touches[0].clientX - rect.left,
+        sy: e.touches[0].clientY - rect.top,
+        tx: transform.current.x,
+        ty: transform.current.y,
+        moved: false,
+      };
+      pinchRef.current = null;
+    } else if (e.touches.length === 2) {
+      dragRef.current = null;
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      pinchRef.current = Math.sqrt(dx * dx + dy * dy);
+    }
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+
+    if (e.touches.length === 1 && dragRef.current) {
+      const mx = e.touches[0].clientX - rect.left;
+      const my = e.touches[0].clientY - rect.top;
+      const dx = mx - dragRef.current.sx;
+      const dy = my - dragRef.current.sy;
+      if (Math.abs(dx) > 4 || Math.abs(dy) > 4) dragRef.current.moved = true;
+      transform.current.x = dragRef.current.tx + dx;
+      transform.current.y = dragRef.current.ty + dy;
+    } else if (e.touches.length === 2 && pinchRef.current !== null) {
+      const dx   = e.touches[0].clientX - e.touches[1].clientX;
+      const dy   = e.touches[0].clientY - e.touches[1].clientY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const f    = dist / pinchRef.current;
+
+      const mx = (e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left;
+      const my = (e.touches[0].clientY + e.touches[1].clientY) / 2 - rect.top;
+      const tr = transform.current;
+      tr.x     = mx - (mx - tr.x) * f;
+      tr.y     = my - (my - tr.y) * f;
+      tr.scale = Math.max(0.25, Math.min(4, tr.scale * f));
+      pinchRef.current = dist;
+    }
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    const canvas = canvasRef.current;
+
+    // Tap = no drag movement → toggle selected node
+    if (canvas && dragRef.current && !dragRef.current.moved) {
+      const rect = canvas.getBoundingClientRect();
+      const touch = e.changedTouches[0];
+      const mx = touch.clientX - rect.left;
+      const my = touch.clientY - rect.top;
+      const hit = hitTest(mx, my, 8); // extra 8px touch slop
+      setSelected(prev => (hit && prev?.uuid !== hit.uuid ? hit : null));
+      if (hit) setTooltipPos({ x: mx, y: my });
+    }
+
+    if (e.touches.length === 0) {
+      dragRef.current = null;
+      pinchRef.current = null;
+    }
+  }, [hitTest]);
+
+  // ── Active tooltip node (hover on desktop, selected on touch) ───────────────
+  const activeNode = isTouch ? selected : hovered;
 
   // ── Render ───────────────────────────────────────────────────────────────────
   if (isLoading) {
@@ -308,34 +410,51 @@ export function KnowledgeGraphCanvas({ className }: { className?: string }) {
       <canvas
         ref={canvasRef}
         className="w-full h-full block"
+        style={{ touchAction: "none" }}
         onMouseMove={handleMouseMove}
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
         onWheel={handleWheel}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
       />
 
-      {/* Hover tooltip */}
-      {hovered && (
+      {/* Tooltip — hover on desktop, tap on mobile */}
+      {activeNode && (
         <div
-          className="pointer-events-none absolute z-10 max-w-[200px] rounded-xl border border-[#83eef020] px-3 py-2 shadow-lg"
+          className="pointer-events-none absolute z-10 max-w-[220px] rounded-2xl border border-[#83eef020] shadow-xl"
           style={{
-            left: tooltipPos.x + 14,
-            top:  tooltipPos.y - 24,
-            background:     "rgba(0,10,18,0.96)",
-            backdropFilter: "blur(10px)",
+            left: Math.min(tooltipPos.x + 14, (canvasRef.current?.offsetWidth ?? 300) - 230),
+            top:  Math.max(tooltipPos.y - 24, 8),
+            background:     "rgba(0,8,15,0.96)",
+            backdropFilter: "blur(14px)",
             fontFamily: "Inter, sans-serif",
+            padding: "10px 13px",
+            border: `1px solid ${activeNode.color}33`,
+            boxShadow: `0 8px 32px rgba(0,0,0,0.5), 0 0 0 0.5px ${activeNode.color}22`,
           }}
         >
-          <div className="font-semibold text-[11px] text-[#83eef0] mb-0.5 leading-tight">{hovered.name}</div>
-          <div className="text-[8px] uppercase tracking-widest text-[#d4e9f344] mb-1">{hovered.node_type}</div>
-          {hovered.summary && (
+          <div
+            className="font-semibold text-[12px] mb-0.5 leading-tight"
+            style={{ color: activeNode.color }}
+          >
+            {activeNode.name}
+          </div>
+          <div className="text-[8px] uppercase tracking-widest text-[#d4e9f344] mb-1.5">
+            {activeNode.node_type}
+          </div>
+          {activeNode.summary && (
             <div
-              className="text-[9px] text-[#d4e9f399] leading-relaxed"
+              className="text-[10px] text-[#d4e9f399] leading-relaxed"
               style={{ display: "-webkit-box", WebkitLineClamp: 4, WebkitBoxOrient: "vertical", overflow: "hidden" }}
             >
-              {hovered.summary}
+              {activeNode.summary}
             </div>
+          )}
+          {isTouch && (
+            <div className="text-[8px] text-[#d4e9f322] mt-2">Tap again to dismiss</div>
           )}
         </div>
       )}
@@ -343,16 +462,16 @@ export function KnowledgeGraphCanvas({ className }: { className?: string }) {
       {/* Legend */}
       <div className="pointer-events-none absolute bottom-2.5 left-3 flex items-center gap-3">
         {([["#3b82f6", "Episode"], ["#22c55e", "Entity"], ["#f97316", "Person"]] as const).map(([c, l]) => (
-          <div key={l} className="flex items-center gap-1">
-            <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: c }} />
-            <span className="text-[8px] text-[#d4e9f344] [font-family:'Inter',Helvetica]">{l}</span>
+          <div key={l} className="flex items-center gap-1.5">
+            <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: c }} />
+            <span className="text-[9px] text-[#d4e9f355] [font-family:'Inter',Helvetica]">{l}</span>
           </div>
         ))}
       </div>
 
       {/* Interaction hint */}
       <div className="pointer-events-none absolute bottom-2.5 right-3 text-[8px] text-[#d4e9f322] [font-family:'Inter',Helvetica]">
-        scroll to zoom · drag to pan · hover for details
+        {isTouch ? "pinch to zoom · drag to pan · tap for details" : "scroll to zoom · drag to pan · hover for details"}
       </div>
 
       {/* Node count */}
