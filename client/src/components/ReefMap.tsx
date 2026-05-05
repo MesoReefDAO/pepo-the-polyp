@@ -816,6 +816,7 @@ function ExpandedMapModal({
     return d.toISOString().slice(0, 10) + "T00:00:00Z";
   });
   const [liveDepthIdx,     setLiveDepthIdx]     = useState<number>(0);
+  const [liveDepthM,       setLiveDepthM]       = useState<number>(0);
   const [liveDragging,     setLiveDragging]     = useState<false | "time" | "depth">(false);
   const [isPlaying,        setIsPlaying]        = useState(false);
   const [playStepDays,     setPlayStepDays]     = useState(7);
@@ -924,7 +925,9 @@ function ExpandedMapModal({
     ? buildLiveTileUrl(
         activeLiveLayer,
         liveDate,
-        activeLiveLayer.elevation != null ? DEPTH_LEVELS[liveDepthIdx] : null,
+        activeLiveLayer.elevation != null
+          ? (liveDepthM === 0 ? activeLiveLayer.elevation : -liveDepthM)
+          : null,
       )
     : null;
 
@@ -948,7 +951,11 @@ function ExpandedMapModal({
     const rect = depthTrackRef.current?.getBoundingClientRect();
     if (!rect) return;
     const ratio = Math.max(0, Math.min(1, (clientY - rect.top) / rect.height));
-    setLiveDepthIdx(Math.round(ratio * (DEPTH_LEVELS.length - 1)));
+    const rawM = ratio * 5500;
+    const nearest = (COMPACT_DEPTH_STEPS as readonly number[]).reduce((a, b) =>
+      Math.abs(b - rawM) < Math.abs(a - rawM) ? b : a);
+    setLiveDepthM(nearest);
+    setLiveDepthIdx(Math.round(nearest / 5500 * (DEPTH_LEVELS.length - 1)));
   };
 
   const activeLayers = (showGcrmn ? 1 : 0) + (showCoralMapping ? 1 : 0) + (showMarineRegions ? 1 : 0) + (showImgs ? 1 : 0) + (showGcrmnSites ? 1 : 0) + (showWcsReefCloud ? 1 : 0) + (showWcsCcSites ? 1 : 0) + (showReefCheck ? 1 : 0) + (showReefLife ? 1 : 0) + (showGcrmnMonSites ? 1 : 0) + (activeCmsVar ? 1 : 0) + (activeLiveVar ? 1 : 0) + 1;
@@ -1364,7 +1371,7 @@ function ExpandedMapModal({
                     <span style={{ fontSize: 7.5, color: "#d4e9f344", fontFamily: "Inter,sans-serif", whiteSpace: "nowrap" }}>· {activeLiveLayer.group}</span>
                     {activeLiveLayer.elevation != null && (
                       <span style={{ fontSize: 7.5, color: activeLiveLayer.color, fontFamily: "Inter,sans-serif", fontWeight: 600, background: `${activeLiveLayer.color}1a`, border: `1px solid ${activeLiveLayer.color}44`, borderRadius: 4, padding: "1px 5px", whiteSpace: "nowrap", flexShrink: 0 }}>
-                        ↕ {depthLabel(DEPTH_LEVELS[liveDepthIdx])}
+                        ↕ {liveDepthM === 0 ? "Surface" : `${liveDepthM} m`}
                       </span>
                     )}
                   </div>
@@ -1486,8 +1493,8 @@ function ExpandedMapModal({
 
           {/* ── Live Layer Depth Bar ─────────────────────────────────────── */}
           {activeLiveVar && activeLiveLayer && activeLiveLayer.elevation != null && (() => {
-            const depthPos = liveDepthIdx / (DEPTH_LEVELS.length - 1);
-            const labelIdxs = [0, 6, 11, 15, 19, 22, 26, 30, DEPTH_LEVELS.length - 1];
+            // depthPos computed above from liveDepthM
+            const depthPos = liveDepthM / 5500;
             return (
               <div
                 style={{
@@ -1508,7 +1515,7 @@ function ExpandedMapModal({
                 <div style={{ fontSize: 7, fontWeight: 700, color: "#d4e9f355", fontFamily: "Inter,sans-serif", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4 }}>Depth</div>
                 {/* Current depth pill */}
                 <div style={{ fontSize: 7.5, fontWeight: 700, color: activeLiveLayer.color, fontFamily: "Inter,sans-serif", marginBottom: 4, textAlign: "center", lineHeight: 1.2, padding: "1px 4px", background: `${activeLiveLayer.color}1a`, border: `1px solid ${activeLiveLayer.color}44`, borderRadius: 4 }}>
-                  {depthLabel(DEPTH_LEVELS[liveDepthIdx])}
+                  {liveDepthM === 0 ? "Surface" : `${liveDepthM} m`}
                 </div>
                 {/* Vertical track */}
                 <div
@@ -1519,13 +1526,10 @@ function ExpandedMapModal({
                 >
                   {/* Progress fill (top = 0 m, increasing depth = more fill) */}
                   <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: `${depthPos * 100}%`, background: activeLiveLayer.color, borderRadius: 3, opacity: 0.75 }}/>
-                  {/* Depth tick marks */}
-                  {labelIdxs.map(idx => {
-                    const p = idx / (DEPTH_LEVELS.length - 1);
-                    return (
-                      <div key={idx} style={{ position: "absolute", top: `${p * 100}%`, left: -10, width: 8, height: 1, background: "rgba(255,255,255,0.2)", pointerEvents: "none" }}/>
-                    );
-                  })}
+                  {/* Depth tick marks — one per 500 m step */}
+                  {(COMPACT_DEPTH_STEPS as readonly number[]).map(m => (
+                    <div key={m} style={{ position: "absolute", top: `${(m / 5500) * 100}%`, left: -10, width: 8, height: 1, background: "rgba(255,255,255,0.2)", pointerEvents: "none" }}/>
+                  ))}
                   {/* Handle */}
                   <div style={{
                     position: "absolute", top: `${depthPos * 100}%`,
@@ -1538,7 +1542,7 @@ function ExpandedMapModal({
                   }}/>
                 </div>
                 {/* Bottom depth label */}
-                <div style={{ fontSize: 6.5, color: "#d4e9f333", fontFamily: "Inter,sans-serif", marginTop: 4, textAlign: "center" }}>−644 m</div>
+                <div style={{ fontSize: 6.5, color: "#d4e9f333", fontFamily: "Inter,sans-serif", marginTop: 4, textAlign: "center" }}>−5500 m</div>
               </div>
             );
           })()}
@@ -1559,7 +1563,7 @@ function ExpandedMapModal({
                 </span>
                 <span style={{ fontSize: 7, color: "#d4e9f355" }}>
                   {new Date(liveDate).toLocaleDateString("en-GB", { month: "short", year: "numeric" })}
-                  {activeLiveLayer.elevation != null && ` · ${depthLabel(DEPTH_LEVELS[liveDepthIdx])}`}
+                  {activeLiveLayer.elevation != null && ` · ${liveDepthM === 0 ? "Surface" : `${liveDepthM} m`}`}
                 </span>
               </div>
               {/* Gradient colorbar */}
@@ -1794,7 +1798,7 @@ function ExpandedMapModal({
 
             // Fix: use the user's selected depth level (liveDepthIdx) not the static default
             const hasElev = isLive && activeLiveLayer?.elevation != null;
-            const selDepth = hasElev ? Math.abs(DEPTH_LEVELS[liveDepthIdx]) : 0;
+            const selDepth = hasElev ? liveDepthM : 0;
             const elevMin  = selDepth.toFixed(3);
             const elevMax  = selDepth.toFixed(3);
 
@@ -1925,7 +1929,7 @@ function ExpandedMapModal({
                       {dsId}
                       <span style={{ color: "#83eef077" }}> · {varIds.join(", ")}</span>
                       {mapBounds && <span style={{ color: "#d4e9f322" }}> · {south}°–{north}°N {west}°–{east}°E</span>}
-                      {hasElev && <span style={{ color: "#d4e9f322" }}> · {depthLabel(DEPTH_LEVELS[liveDepthIdx])}</span>}
+                      {hasElev && <span style={{ color: "#d4e9f322" }}> · {liveDepthM === 0 ? "Surface" : `${liveDepthM} m`}</span>}
                       <span style={{ color: "#d4e9f322" }}> · {t0}</span>
                     </div>
                   </div>
@@ -2242,8 +2246,28 @@ function ExpandedMapModal({
                           <span style={{ fontWeight: 700 }}>{LAYER_VALUE_RANGES[activeLiveVar][1]}</span>
                         </div>
                         {activeLiveLayer.elevation != null && (
-                          <div style={{ marginTop: 4, fontSize: 7.5, color: "#d4e9f355" }}>
-                            Depth: <span style={{ color: activeLiveLayer.color, fontWeight: 700 }}>{depthLabel(DEPTH_LEVELS[liveDepthIdx])}</span>
+                          <div style={{ marginTop: 4 }}>
+                            <div style={{ fontSize: 7.5, color: "#d4e9f355", marginBottom: 5 }}>
+                              Depth: <span style={{ color: activeLiveLayer.color, fontWeight: 700 }}>{liveDepthM === 0 ? "Surface" : `${liveDepthM} m`}</span>
+                            </div>
+                            <div style={{ fontSize: 6.5, fontFamily: "Inter,sans-serif", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#d4e9f322", marginBottom: 4 }}>↕ Depth (500 m steps)</div>
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
+                              {(COMPACT_DEPTH_STEPS as readonly number[]).map(m => (
+                                <button
+                                  key={m}
+                                  data-testid={`expanded-depth-${m}`}
+                                  onClick={() => { setLiveDepthM(m); setLiveDepthIdx(Math.round(m / 5500 * (DEPTH_LEVELS.length - 1))); }}
+                                  style={{
+                                    fontSize: 7.5, fontFamily: "Inter,sans-serif", fontWeight: 600,
+                                    padding: "2px 6px", borderRadius: 20, cursor: "pointer",
+                                    background: liveDepthM === m ? `${activeLiveLayer.color}22` : "rgba(255,255,255,0.04)",
+                                    border: `1px solid ${liveDepthM === m ? `${activeLiveLayer.color}99` : "rgba(255,255,255,0.1)"}`,
+                                    color: liveDepthM === m ? activeLiveLayer.color : "#d4e9f344",
+                                    transition: "all 0.15s",
+                                  }}
+                                >{m === 0 ? "Surface" : `${m} m`}</button>
+                              ))}
+                            </div>
                           </div>
                         )}
                       </div>
@@ -2761,6 +2785,11 @@ export function ReefMap({
     return d.toISOString().slice(0, 10) + "T00:00:00Z";
   });
   const [compactDepthM,     setCompactDepthM]     = useState<number>(0);
+  const [showWcsReefCloudC, setShowWcsReefCloudC] = useState(false);
+  const [showWcsCcSitesC,   setShowWcsCcSitesC]   = useState(false);
+  const [showReefCheckC,    setShowReefCheckC]    = useState(false);
+  const [showReefLifeC,     setShowReefLifeC]     = useState(false);
+  const [showGcrmnMonC,     setShowGcrmnMonC]     = useState(false);
 
   const activeCmsLayer = activeCmsVar
     ? CMS_LAYERS.find(l => l.var === activeCmsVar) ?? null
@@ -2775,7 +2804,9 @@ export function ReefMap({
     ? buildLiveTileUrl(
         activeLiveLayer,
         compactLiveDate,
-        activeLiveLayer.elevation != null ? -compactDepthM : null,
+        activeLiveLayer.elevation != null
+          ? (compactDepthM === 0 ? activeLiveLayer.elevation : -compactDepthM)
+          : null,
       )
     : null;
 
@@ -2802,6 +2833,32 @@ export function ReefMap({
   const { data: coralMappingGeoJson } = useQuery<GeoJSON.FeatureCollection>({
     queryKey: ["/api/coral-mapping/regions"],
     staleTime: 24 * 60 * 60 * 1000,
+  });
+
+  const { data: compactWcsReefCloudGeoJson } = useQuery<GeoJSON.FeatureCollection>({
+    queryKey: ["/api/wcs/reefcloud-sites"],
+    staleTime: 24 * 60 * 60 * 1000,
+    enabled: showWcsReefCloudC,
+  });
+  const { data: compactWcsCcGeoJson } = useQuery<GeoJSON.FeatureCollection>({
+    queryKey: ["/api/wcs/cc-sites"],
+    staleTime: 24 * 60 * 60 * 1000,
+    enabled: showWcsCcSitesC,
+  });
+  const { data: compactReefCheckGeoJson } = useQuery<GeoJSON.FeatureCollection>({
+    queryKey: ["/api/wcs/reef-check"],
+    staleTime: 24 * 60 * 60 * 1000,
+    enabled: showReefCheckC,
+  });
+  const { data: compactReefLifeGeoJson } = useQuery<GeoJSON.FeatureCollection>({
+    queryKey: ["/api/wcs/reef-life"],
+    staleTime: 24 * 60 * 60 * 1000,
+    enabled: showReefLifeC,
+  });
+  const { data: compactGcrmnMonGeoJson } = useQuery<GeoJSON.FeatureCollection>({
+    queryKey: ["/api/wcs/gcrmn-mon-sites"],
+    staleTime: 24 * 60 * 60 * 1000,
+    enabled: showGcrmnMonC,
   });
 
   return (
@@ -2926,6 +2983,26 @@ export function ReefMap({
               </Popup>
             </CircleMarker>
           ))}
+          {showWcsReefCloudC && compactWcsReefCloudGeoJson && (
+            <GeoJSON key="wcs-rc-c" data={compactWcsReefCloudGeoJson}
+              pointToLayer={(_f, ll) => L.circleMarker(ll, { radius: 2.5, color: "#e056fd", weight: 0.7, fillColor: "#e056fd", fillOpacity: 0.55, opacity: 0.85 })} />
+          )}
+          {showWcsCcSitesC && compactWcsCcGeoJson && (
+            <GeoJSON key="wcs-cc-c" data={compactWcsCcGeoJson}
+              pointToLayer={(_f, ll) => L.circleMarker(ll, { radius: 2.5, color: "#ff6b9d", weight: 0.7, fillColor: "#ff6b9d", fillOpacity: 0.6, opacity: 0.85 })} />
+          )}
+          {showReefCheckC && compactReefCheckGeoJson && (
+            <GeoJSON key="rc-c" data={compactReefCheckGeoJson}
+              pointToLayer={(_f, ll) => L.circleMarker(ll, { radius: 2.5, color: "#fd9644", weight: 0.7, fillColor: "#fd9644", fillOpacity: 0.6, opacity: 0.85 })} />
+          )}
+          {showReefLifeC && compactReefLifeGeoJson && (
+            <GeoJSON key="rls-c" data={compactReefLifeGeoJson}
+              pointToLayer={(_f, ll) => L.circleMarker(ll, { radius: 2.5, color: "#45aaf2", weight: 0.7, fillColor: "#45aaf2", fillOpacity: 0.6, opacity: 0.85 })} />
+          )}
+          {showGcrmnMonC && compactGcrmnMonGeoJson && (
+            <GeoJSON key="gcrmn-mon-c" data={compactGcrmnMonGeoJson}
+              pointToLayer={(_f, ll) => L.circleMarker(ll, { radius: 2.5, color: "#26de81", weight: 0.7, fillColor: "#26de81", fillOpacity: 0.6, opacity: 0.85 })} />
+          )}
           {showImgs && reefImgs.map((img) => (
             <Marker key={img.id} position={[img.latitude, img.longitude]} icon={makeImagePin()}>
               <Popup maxWidth={210}>
@@ -3170,6 +3247,13 @@ export function ReefMap({
                   { group: "Community", icon: "●", note: "MesoReefDAO members and community reef data.", layers: [
                     { testId: "toggle-dao-members-layer",     label: "DAO Members",         sublabel: `${markers.length} members on the Regen Reef Network`, color: "#83eef0", active: showDaoMembers, toggle: () => setShowDaoMembers(v => !v) },
                     { testId: "toggle-imgs-layer",            label: "Reef Photos",         sublabel: "Community-submitted reef imagery",           color: "#ff9f43", active: showImgs,          toggle: () => setShowImgs(v => !v)          },
+                  ]},
+                  { group: "Field Monitoring", icon: "◎", note: "In-situ reef survey stations worldwide.", layers: [
+                    { testId: "compact-toggle-gcrmn-mon",     label: "GCRMN Benthic Sites", sublabel: "Fixed benthic stations — GCRMN global network",  color: "#26de81", active: showGcrmnMonC,     toggle: () => setShowGcrmnMonC(v => !v)     },
+                    { testId: "compact-toggle-reef-check",    label: "Reef Check",          sublabel: "Coral cover monitoring — global",              color: "#fd9644", active: showReefCheckC,    toggle: () => setShowReefCheckC(v => !v)    },
+                    { testId: "compact-toggle-reef-life",     label: "Reef Life Survey",    sublabel: "Fish & invertebrate survey sites",             color: "#45aaf2", active: showReefLifeC,     toggle: () => setShowReefLifeC(v => !v)     },
+                    { testId: "compact-toggle-wcs-cc",        label: "WCS Coral Cover",     sublabel: "WCS transect survey sites",                   color: "#ff6b9d", active: showWcsCcSitesC,   toggle: () => setShowWcsCcSitesC(v => !v)   },
+                    { testId: "compact-toggle-wcs-reefcloud", label: "WCS ReefCloud",       sublabel: "AI-powered underwater photo survey sites",     color: "#e056fd", active: showWcsReefCloudC, toggle: () => setShowWcsReefCloudC(v => !v) },
                   ]},
                 ]).map(({ group, icon, note, layers }) => {
                   const ls = layers as unknown as any[];
