@@ -11,19 +11,12 @@ const BONFIRES_GRAPH_URL = "https://pepo.app.bonfires.ai/graph";
 const HINT_KEY = "pepo_graph_hint_v1";
 const HINT_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
-// Bonfires.ai top area to crop: logo row (~48px) + tab-nav row (~48px).
-// The iframe is shifted up by this amount so both rows sit above the
-// overflow:hidden boundary and are never visible.
+// Bonfires.ai top nav bar height (logo row + tab row ≈ 96 px).
+// The iframe is shifted up by this amount so the nav sits above the
+// overflow:hidden boundary — our own branded header replaces it.
+// All other panels (Explorer left, Chat right) are fully visible and
+// their native "—" minimize buttons work as intended.
 const NAV_CROP_PX = 96;
-// Small right overflow — keeps the iframe slightly wider than the
-// container so the right edge of the Bonfires.ai page doesn't show.
-// The chat panel is hidden by the CHAT_COVER_PX overlay below.
-const RIGHT_CROP_PX = 60;
-// Width of the opaque overlay placed over the right side of the graph
-// to cover the PepoThePolypBot chat panel.  At 100% zoom the chat
-// panel occupies ~370px; 420px gives a comfortable margin plus a
-// 120px soft gradient lead-in so the graph fades naturally into dark.
-const CHAT_COVER_PX = 420;
 
 const EXAMPLE_PROMPTS = [
   "Any interesting things happened recently?",
@@ -427,29 +420,8 @@ export const ReefInsightDashboardSection = (): JSX.Element => {
     setShowHint(false);
   }, []);
 
-  // After iframe loads, repeatedly ask Bonfires.ai to collapse the chat panel.
-  // We fire immediately and retry at 800 ms / 2 s / 4 s because the page's JS
-  // may not have registered its message listener yet when the load event fires.
-  // Do NOT send explorer-collapse messages — the Explorer panel must stay open.
   const handleIframeLoad = useCallback(() => {
     setGraphLoading(false);
-    const collapse = () => {
-      const win = iframeRef.current?.contentWindow;
-      if (!win) return;
-      [
-        { type: 'minimize-chat' },
-        { type: 'collapse-panel', panel: 'chat' },
-        { type: 'set-panel', panel: 'chat', open: false },
-        { type: 'hide-panel', panel: 'chat' },
-        { action: 'minimize', target: 'chat' },
-      ].forEach(m => {
-        try { win.postMessage(m, 'https://pepo.app.bonfires.ai'); } catch { /* cross-origin ok */ }
-      });
-    };
-    collapse();
-    setTimeout(collapse, 800);
-    setTimeout(collapse, 2000);
-    setTimeout(collapse, 4000);
   }, []);
 
   return (
@@ -523,7 +495,7 @@ export const ReefInsightDashboardSection = (): JSX.Element => {
           </div>
         </div>
 
-        {/* ── iframe wrapper — crops the side panels ───────────────── */}
+        {/* ── iframe wrapper ─────────────────────────────────────── */}
         <div className="relative flex-1 min-h-0 overflow-hidden">
           {/* Edge glows */}
           <div className="absolute top-0 left-0 bottom-0 w-[3px] z-[6] pointer-events-none"
@@ -533,12 +505,11 @@ export const ReefInsightDashboardSection = (): JSX.Element => {
 
           <GraphLoadingShimmer visible={graphLoading} />
 
-          {/* iframe crop strategy:
-              - top: -NAV_CROP_PX  → pushes the Bonfires.ai nav bar above the
-                overflow:hidden boundary so it is never visible.
-              - height: calc(100% + NAV_CROP_PX)  → compensates for the upward shift.
-              - width: calc(100% + RIGHT_CROP_PX)  → overflows the right chat panel
-                outside the container; the left Explorer panel stays fully visible. */}
+          {/* Only the Bonfires.ai top nav bar is cropped (shifted above the
+              overflow:hidden boundary via top: -NAV_CROP_PX).  All panels —
+              Explorer (left), graph canvas (center), PepoThePolypBot (right) —
+              are fully visible.  Users can minimise them with the native "—"
+              buttons inside the Bonfires.ai interface. */}
           <iframe
             ref={iframeRef}
             src={BONFIRES_GRAPH_URL}
@@ -548,27 +519,13 @@ export const ReefInsightDashboardSection = (): JSX.Element => {
               top: `-${NAV_CROP_PX}px`,
               left: 0,
               height: `calc(100% + ${NAV_CROP_PX}px)`,
-              width: `calc(100% + ${RIGHT_CROP_PX}px)`,
+              width: "100%",
               background: "#00080c",
             }}
             allow="clipboard-write; clipboard-read; pointer-lock; fullscreen"
             loading="lazy"
             data-testid="iframe-knowledge-graph"
             onLoad={handleIframeLoad}
-          />
-
-          {/* Full-height overlay covering the PepoThePolypBot chat panel.
-              The chat panel uses responsive positioning inside the Bonfires.ai
-              iframe, so it always appears in the right ~370px of the visible
-              area regardless of iframe width.  A 120px soft gradient lead-in
-              on the left makes the graph fade naturally into our background. */}
-          <div
-            className="absolute top-0 right-0 bottom-0 z-[7] pointer-events-none"
-            style={{
-              width: CHAT_COVER_PX,
-              background:
-                `linear-gradient(to right, transparent 0%, #00080c 29%)`,
-            }}
           />
 
           {/* First-visit hint */}
