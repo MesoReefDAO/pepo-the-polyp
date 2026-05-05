@@ -288,12 +288,38 @@ export const ReefInsightDashboardSection = (): JSX.Element => {
             minHeight: "calc(100vh - 220px)",
           }}
         >
+          {/* Header overlay — covers Bonfires navbar, shows our label */}
+          <div
+            className="absolute top-0 left-0 right-0 z-10 flex items-center gap-2.5 px-4"
+            style={{
+              height: 56,
+              background: "rgba(0,8,12,0.97)",
+              borderBottom: "1px solid rgba(131,238,240,0.12)",
+              backdropFilter: "blur(8px)",
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="shrink-0">
+              <circle cx="5" cy="12" r="2.5" fill="#83eef0" />
+              <circle cx="19" cy="6" r="2.5" fill="#83eef066" />
+              <circle cx="19" cy="18" r="2.5" fill="#83eef066" />
+              <line x1="7" y1="11" x2="17" y2="7" stroke="#83eef080" strokeWidth="1.4"/>
+              <line x1="7" y1="13" x2="17" y2="17" stroke="#83eef080" strokeWidth="1.4"/>
+            </svg>
+            <span className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-bold text-[#83eef0] text-sm leading-none">
+              {t("dashboard.knowledgeGraph")}
+            </span>
+            <span className="text-[9px] [font-family:'Inter',Helvetica] px-2 py-0.5 rounded-full bg-[#83eef015] border border-[#83eef030] text-[#83eef099]">
+              Bonfires.ai
+            </span>
+          </div>
+
+          {/* Iframe pushed down 56px so the graph sits below our header */}
           <GraphLoadingShimmer visible={graphLoading} />
           <iframe
             src={BONFIRES_GRAPH_URL}
             title="Reef Knowledge Graph"
-            className="absolute inset-0 w-full h-full border-0"
-            style={{ background: "#00080c" }}
+            className="absolute left-0 right-0 bottom-0 w-full border-0"
+            style={{ top: 56, background: "#00080c" }}
             allow="clipboard-write; clipboard-read; pointer-lock; fullscreen"
             loading="lazy"
             data-testid="iframe-knowledge-graph"
