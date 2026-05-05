@@ -11,13 +11,14 @@ const BONFIRES_GRAPH_URL = "https://pepo.app.bonfires.ai/graph";
 const HINT_KEY = "pepo_graph_hint_v1";
 const HINT_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
-// Bonfires.ai top navigation bar height — cropped upward so only the
-// Explorer panel + graph canvas are visible (nav sits above the container).
-const NAV_CROP_PX = 52;
-// Width of the Bonfires.ai right chat panel — iframe is rendered wider
-// by this amount so the chat falls outside the overflow:hidden boundary.
-// The Explorer panel on the left remains fully visible.
-const RIGHT_CROP_PX = 275;
+// Bonfires.ai top area to crop: logo row (~48px) + tab-nav row (~48px).
+// The iframe is shifted up by this amount so both rows sit above the
+// overflow:hidden boundary and are never visible.
+const NAV_CROP_PX = 96;
+// Width of the Bonfires.ai right chat/bot panel. The iframe is rendered
+// wider by this amount so the chat overflows outside the container while
+// the left Explorer panel remains fully visible.
+const RIGHT_CROP_PX = 280;
 
 const EXAMPLE_PROMPTS = [
   "Any interesting things happened recently?",
@@ -421,18 +422,15 @@ export const ReefInsightDashboardSection = (): JSX.Element => {
     setShowHint(false);
   }, []);
 
-  // After iframe loads, try to ask Bonfires.ai to collapse the side panels
+  // After iframe loads, try to ask Bonfires.ai to collapse only the right chat panel.
+  // Do NOT send any explorer-related collapse messages — the Explorer panel must stay open.
   const handleIframeLoad = useCallback(() => {
     setGraphLoading(false);
     const win = iframeRef.current?.contentWindow;
     if (!win) return;
-    // Attempt multiple postMessage shapes; Bonfires.ai will ignore unknown ones
     const msgs = [
-      { type: 'minimize-explorer' },
       { type: 'minimize-chat' },
-      { type: 'collapse-panel', panel: 'explorer' },
       { type: 'collapse-panel', panel: 'chat' },
-      { type: 'set-panel', panel: 'explorer', open: false },
       { type: 'set-panel', panel: 'chat', open: false },
     ];
     msgs.forEach(m => {
