@@ -477,7 +477,8 @@ export const ReefInsightDashboardSection = (): JSX.Element => {
   const [mobileTab, setMobileTab] = useState<"graph" | "action">("graph");
 
   return (
-    <div className="flex flex-col flex-1 self-stretch overflow-hidden pb-24 md:pb-0">
+    <div className="flex flex-col flex-1 self-stretch overflow-y-auto overflow-x-hidden pb-24 md:pb-6">
+
       {/* Mobile tab switcher */}
       <div className="flex md:hidden items-center gap-2 px-4 pt-3 pb-0 shrink-0">
         <button
@@ -507,54 +508,56 @@ export const ReefInsightDashboardSection = (): JSX.Element => {
         </button>
       </div>
 
-      {/* Panels row */}
-      <div className="flex flex-col md:flex-row items-start gap-4 md:gap-6 p-3 md:p-6 flex-1 overflow-hidden">
-
-        {/* Left Panel: Reef Knowledge Graph */}
-        <div className={`relative flex-1 self-stretch grow flex flex-col ${mobileTab === "action" ? "hidden md:flex" : "flex"}`}>
+      {/* Knowledge Graph — full width, centered */}
+      <div className={`px-3 md:px-6 pt-3 md:pt-6 ${mobileTab === "action" ? "hidden md:block" : "block"}`}>
+        <div style={{ height: "clamp(360px, 58vh, 680px)" }} className="w-full">
           <KnowledgeGraphPanel />
         </div>
+      </div>
 
-        {/* Right Panel: Clean a Coral + Footer */}
-        <div className={`flex flex-col gap-4 md:gap-6 relative self-stretch w-full md:w-[360px] md:flex-none ${mobileTab === "graph" ? "hidden md:flex" : "flex flex-1"}`}>
+      {/* Bottom row: Clean a Coral + Footer — centered below the graph */}
+      <div className={`flex flex-col md:flex-row items-start md:items-stretch justify-center gap-4 md:gap-6 px-3 md:px-6 pt-4 md:pt-6 ${mobileTab === "graph" ? "hidden md:flex" : "flex"}`}>
+
+        {/* Clean a Coral */}
+        <div className="w-full md:max-w-sm md:flex-none">
           <CleanCoralPanel />
-
-          {/* Footer Card */}
-          <Card className="flex flex-col items-center gap-4 px-0 py-4 md:py-6 relative self-stretch w-full flex-[0_0_auto] bg-[#00000066] rounded-[28px] md:rounded-[48px] border border-solid border-[#ffffff1a] backdrop-blur-md [-webkit-backdrop-filter:blur(12px)_brightness(100%)] shadow-none">
-            <CardContent className="flex flex-col items-center gap-3 md:gap-4 p-0 w-full">
-              <nav className="inline-flex items-start gap-4 md:gap-6 relative flex-[0_0_auto]">
-                {footerLinks.map((link) => (
-                  <a
-                    key={link.label}
-                    className="relative flex items-center w-fit [font-family:'Inter',Helvetica] font-normal text-[#d4e9f366] text-[9px] md:text-[10px] tracking-[1.00px] leading-[15px] whitespace-nowrap hover:text-[#d4e9f3] transition-colors"
-                    href={link.href}
-                    rel="noopener noreferrer"
-                    target="_blank"
-                  >
-                    {link.label}
-                  </a>
-                ))}
-              </nav>
-              <div className="inline-flex flex-col items-center gap-1 relative flex-[0_0_auto] opacity-60">
-                <span className="[font-family:'Inter',Helvetica] font-normal text-[#d4e9f3] text-[8px] text-center leading-3">
-                  Copyright © 2026 MesoReef DAO.
-                </span>
-                <div className="inline-flex items-center gap-1.5 relative flex-[0_0_auto]">
-                  <span className="[font-family:'Inter',Helvetica] font-normal text-[#d4e9f3] text-[8px] text-center leading-3">
-                    Powered by{" "}
-                    <a href="https://bonfires.ai/" rel="noopener noreferrer" target="_blank" className="hover:text-[#d4e9f3] transition-colors">
-                      Bonfires.ai
-                    </a>
-                  </span>
-                  <img src="/figmaAssets/bonfires-ai-logo-new.png" alt="Bonfires.ai" className="h-3.5 w-auto object-contain" />
-                </div>
-                <span className="[font-family:'Inter',Helvetica] font-normal text-[#d4e9f3] text-[8px] text-center leading-3">
-                  All Rights Reserved.
-                </span>
-              </div>
-            </CardContent>
-          </Card>
         </div>
+
+        {/* Footer Card */}
+        <Card className="flex flex-col items-center justify-center gap-4 px-0 py-4 md:py-6 w-full md:max-w-sm md:flex-none bg-[#00000066] rounded-[28px] md:rounded-[48px] border border-solid border-[#ffffff1a] backdrop-blur-md [-webkit-backdrop-filter:blur(12px)_brightness(100%)] shadow-none">
+          <CardContent className="flex flex-col items-center gap-3 md:gap-4 p-0 w-full">
+            <nav className="inline-flex items-start gap-4 md:gap-6 relative flex-[0_0_auto]">
+              {footerLinks.map((link) => (
+                <a
+                  key={link.label}
+                  className="relative flex items-center w-fit [font-family:'Inter',Helvetica] font-normal text-[#d4e9f366] text-[9px] md:text-[10px] tracking-[1.00px] leading-[15px] whitespace-nowrap hover:text-[#d4e9f3] transition-colors"
+                  href={link.href}
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  {link.label}
+                </a>
+              ))}
+            </nav>
+            <div className="inline-flex flex-col items-center gap-1 relative flex-[0_0_auto] opacity-60">
+              <span className="[font-family:'Inter',Helvetica] font-normal text-[#d4e9f3] text-[8px] text-center leading-3">
+                Copyright © 2026 MesoReef DAO.
+              </span>
+              <div className="inline-flex items-center gap-1.5 relative flex-[0_0_auto]">
+                <span className="[font-family:'Inter',Helvetica] font-normal text-[#d4e9f3] text-[8px] text-center leading-3">
+                  Powered by{" "}
+                  <a href="https://bonfires.ai/" rel="noopener noreferrer" target="_blank" className="hover:text-[#d4e9f3] transition-colors">
+                    Bonfires.ai
+                  </a>
+                </span>
+                <img src="/figmaAssets/bonfires-ai-logo-new.png" alt="Bonfires.ai" className="h-3.5 w-auto object-contain" />
+              </div>
+              <span className="[font-family:'Inter',Helvetica] font-normal text-[#d4e9f3] text-[8px] text-center leading-3">
+                All Rights Reserved.
+              </span>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
