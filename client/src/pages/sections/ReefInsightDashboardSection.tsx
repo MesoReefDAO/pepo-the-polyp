@@ -312,6 +312,19 @@ function GraphHintOverlay({ onDismiss }: { onDismiss: () => void }) {
           </span>
         </div>
 
+        {/* Panel tip */}
+        <div
+          className="w-full flex items-start gap-2.5 rounded-2xl px-3.5 py-3"
+          style={{ background: "rgba(131,238,240,0.05)", border: "1px solid rgba(131,238,240,0.12)" }}
+        >
+          <span className="text-sm mt-0.5 shrink-0">💡</span>
+          <span className="[font-family:'Inter',Helvetica] text-[10px] text-[#d4e9f399] leading-relaxed text-left">
+            Click <span className="font-semibold text-[#d4e9f3cc]">—</span> on the{" "}
+            <span className="font-semibold text-[#83eef0]">Explorer</span> (top-left) and{" "}
+            <span className="font-semibold text-[#83eef0]">Bot</span> (top-right) panels inside the graph to collapse them and maximise the view.
+          </span>
+        </div>
+
         {/* Example prompt pills */}
         <div className="flex flex-col gap-2 w-full">
           <span className="[font-family:'Inter',Helvetica] text-[10px] text-[#d4e9f340] uppercase tracking-wider">
@@ -357,6 +370,70 @@ function GraphHintOverlay({ onDismiss }: { onDismiss: () => void }) {
   );
 }
 
+// ── Graph zoom / cloud controls — overlaid top-right of graph container ───────
+function GraphControls({ iframeRef }: { iframeRef: React.RefObject<HTMLIFrameElement> }) {
+  const send = (type: string) => {
+    const win = iframeRef.current?.contentWindow;
+    if (!win) return;
+    // Try several postMessage shapes Bonfires.ai might support
+    win.postMessage({ type }, 'https://pepo.app.bonfires.ai');
+    win.postMessage({ type }, '*');
+  };
+
+  return (
+    <div
+      className="absolute top-4 right-4 z-10 flex flex-col rounded-xl overflow-hidden"
+      style={{
+        background: "rgba(28,28,30,0.92)",
+        border: "1px solid rgba(255,255,255,0.08)",
+        boxShadow: "0 4px 20px rgba(0,0,0,0.6)",
+        backdropFilter: "blur(10px)",
+      }}
+    >
+      {/* Cloud — open in new tab */}
+      <a
+        href={BONFIRES_GRAPH_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        data-testid="button-graph-open"
+        title="Open full graph"
+        className="flex items-center justify-center w-9 h-9 transition-colors hover:bg-white/10"
+        style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+          <path d="M18 10a6 6 0 0 0-11.48-1.7A4.5 4.5 0 0 0 7.5 17H18a3 3 0 0 0 0-6z"
+            stroke="#e5e5e5" strokeWidth="1.7" strokeLinejoin="round" strokeLinecap="round"/>
+        </svg>
+      </a>
+
+      {/* Zoom in */}
+      <button
+        onClick={() => send('zoom-in')}
+        data-testid="button-graph-zoom-in"
+        title="Zoom in"
+        className="flex items-center justify-center w-9 h-9 transition-colors hover:bg-white/10"
+        style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}
+      >
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+          <path d="M12 5v14M5 12h14" stroke="#e5e5e5" strokeWidth="2" strokeLinecap="round"/>
+        </svg>
+      </button>
+
+      {/* Zoom out */}
+      <button
+        onClick={() => send('zoom-out')}
+        data-testid="button-graph-zoom-out"
+        title="Zoom out"
+        className="flex items-center justify-center w-9 h-9 transition-colors hover:bg-white/10"
+      >
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+          <path d="M5 12h14" stroke="#e5e5e5" strokeWidth="2" strokeLinecap="round"/>
+        </svg>
+      </button>
+    </div>
+  );
+}
+
 // ── Graph loading shimmer ─────────────────────────────────────────────────────
 function GraphLoadingShimmer({ visible }: { visible: boolean }) {
   if (!visible) return null;
@@ -383,6 +460,7 @@ function GraphLoadingShimmer({ visible }: { visible: boolean }) {
 export const ReefInsightDashboardSection = (): JSX.Element => {
   const [graphLoading, setGraphLoading] = useState(true);
   const [coralOpen, setCoralOpen] = useState(true);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
   const { t } = useTranslation();
 
   // Show hint overlay unless dismissed within the last 7 days
@@ -399,6 +477,25 @@ export const ReefInsightDashboardSection = (): JSX.Element => {
   const dismissHint = useCallback(() => {
     try { localStorage.setItem(HINT_KEY, String(Date.now())); } catch { /* ignore */ }
     setShowHint(false);
+  }, []);
+
+  // After iframe loads, try to ask Bonfires.ai to collapse the side panels
+  const handleIframeLoad = useCallback(() => {
+    setGraphLoading(false);
+    const win = iframeRef.current?.contentWindow;
+    if (!win) return;
+    // Attempt multiple postMessage shapes; Bonfires.ai will ignore unknown ones
+    const msgs = [
+      { type: 'minimize-explorer' },
+      { type: 'minimize-chat' },
+      { type: 'collapse-panel', panel: 'explorer' },
+      { type: 'collapse-panel', panel: 'chat' },
+      { type: 'set-panel', panel: 'explorer', open: false },
+      { type: 'set-panel', panel: 'chat', open: false },
+    ];
+    msgs.forEach(m => {
+      try { win.postMessage(m, 'https://pepo.app.bonfires.ai'); } catch { /* cross-origin ok */ }
+    });
   }, []);
 
   return (
@@ -427,6 +524,7 @@ export const ReefInsightDashboardSection = (): JSX.Element => {
 
         <GraphLoadingShimmer visible={graphLoading} />
         <iframe
+          ref={iframeRef}
           src={BONFIRES_GRAPH_URL}
           title="Reef Knowledge Graph"
           className="absolute inset-0 w-full h-full border-0"
@@ -434,8 +532,10 @@ export const ReefInsightDashboardSection = (): JSX.Element => {
           allow="clipboard-write; clipboard-read; pointer-lock; fullscreen"
           loading="lazy"
           data-testid="iframe-knowledge-graph"
-          onLoad={() => setGraphLoading(false)}
+          onLoad={handleIframeLoad}
         />
+        {/* Cloud / + / − controls — always visible once loaded */}
+        {!graphLoading && <GraphControls iframeRef={iframeRef} />}
         {/* First-visit hint — fades out automatically or on interaction */}
         {showHint && !graphLoading && (
           <GraphHintOverlay onDismiss={dismissHint} />
