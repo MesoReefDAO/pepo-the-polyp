@@ -398,13 +398,18 @@ function GraphLoadingShimmer({ visible }: { visible: boolean }) {
 }
 
 // ── Main dashboard ─────────────────────────────────────────────────────────────
-// Width of the floating PepoThePolypBot overlay panel.
+// Bonfires.ai side panel widths used to shift the iframe so only the
+// graph canvas is visible by default (both panels go off-screen).
+const EXPLORER_PX  = 260;  // Explorer panel (left)
+const CHAT_SIDE_PX = 380;  // Chat sidebar (right)
+
+// Width of the floating PepoThePolypBot overlay panel (our own UI).
 const CHAT_PANEL_PX = 420;
 
 export const ReefInsightDashboardSection = (): JSX.Element => {
   const [graphLoading, setGraphLoading] = useState(true);
   const [coralOpen, setCoralOpen] = useState(true);
-  const [chatOpen, setChatOpen] = useState(true);
+  const [chatOpen, setChatOpen] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const { t } = useTranslation();
 
@@ -529,11 +534,11 @@ export const ReefInsightDashboardSection = (): JSX.Element => {
 
           <GraphLoadingShimmer visible={graphLoading} />
 
-          {/* Only the Bonfires.ai top nav bar is cropped (shifted above the
-              overflow:hidden boundary via top: -NAV_CROP_PX).  All panels —
-              Explorer (left), graph canvas (center), PepoThePolypBot (right) —
-              are fully visible.  Users can minimise them with the native "—"
-              buttons inside the Bonfires.ai interface. */}
+          {/* The iframe is shifted left by EXPLORER_PX so the Bonfires.ai
+              Explorer sidebar goes off-screen left. Width is expanded by
+              EXPLORER_PX + CHAT_SIDE_PX so the Chat sidebar also goes
+              off-screen right. Result: only the graph canvas is visible,
+              matching the intended full-canvas layout. */}
           <iframe
             ref={iframeRef}
             src={BONFIRES_GRAPH_URL}
@@ -541,9 +546,9 @@ export const ReefInsightDashboardSection = (): JSX.Element => {
             className="absolute border-0"
             style={{
               top: `-${NAV_CROP_PX}px`,
-              left: 0,
+              left: `-${EXPLORER_PX}px`,
               height: `calc(100% + ${NAV_CROP_PX}px)`,
-              width: "100%",
+              width: `calc(100% + ${EXPLORER_PX + CHAT_SIDE_PX}px)`,
               background: "#00080c",
             }}
             allow="clipboard-write; clipboard-read; pointer-lock; fullscreen"
@@ -622,6 +627,29 @@ export const ReefInsightDashboardSection = (): JSX.Element => {
                 />
               </div>
             </div>
+          )}
+
+          {/* "Chat with the graph" floating button — visible when the bot
+              panel is closed. Styled to match the Bonfires.ai native button. */}
+          {!chatOpen && !graphLoading && (
+            <button
+              onClick={() => setChatOpen(true)}
+              data-testid="button-chat-with-graph"
+              className="absolute bottom-5 right-5 z-[10] flex items-center gap-2 px-4 py-3 rounded-full transition-all hover:scale-105 active:scale-95"
+              style={{
+                background: "linear-gradient(135deg, #ff6b3d 0%, #ff4500 100%)",
+                boxShadow: "0 4px 20px rgba(255,69,0,0.45), 0 2px 8px rgba(0,0,0,0.4)",
+                color: "#fff",
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                  stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="rgba(255,255,255,0.15)"/>
+              </svg>
+              <span className="[font-family:'Inter',Helvetica] text-[13px] font-semibold">
+                Chat with the graph
+              </span>
+            </button>
           )}
 
           {/* First-visit hint */}
