@@ -508,24 +508,27 @@ export const ReefInsightDashboardSection = (): JSX.Element => {
         </button>
       </div>
 
-      {/* Knowledge Graph — full width, centered */}
-      <div className={`px-3 md:px-6 pt-3 md:pt-6 ${mobileTab === "action" ? "hidden md:block" : "block"}`}>
-        <div style={{ height: "clamp(360px, 58vh, 680px)" }} className="w-full">
-          <KnowledgeGraphPanel />
+      {/* Main content area — desktop: Knowledge Graph left + Daily Reef Action right */}
+      <div className="flex flex-col md:flex-row flex-1 gap-4 md:gap-6 px-3 md:px-6 pt-3 md:pt-6 min-h-0">
+
+        {/* Knowledge Graph — left / full on mobile */}
+        <div className={`flex-1 min-w-0 ${mobileTab === "action" ? "hidden md:block" : "block"}`}>
+          <div style={{ height: "clamp(360px, 58vh, 680px)" }} className="w-full">
+            <KnowledgeGraphPanel />
+          </div>
         </div>
-      </div>
 
-      {/* Bottom row: Clean a Coral + Footer — centered below the graph */}
-      <div className={`flex flex-col md:flex-row items-start md:items-stretch justify-center gap-4 md:gap-6 px-3 md:px-6 pt-4 md:pt-6 ${mobileTab === "graph" ? "hidden md:flex" : "flex"}`}>
-
-        {/* Clean a Coral */}
-        <div className="w-full md:max-w-sm md:flex-none">
+        {/* Daily Reef Action — right panel on desktop, full-width on mobile */}
+        <div className={`md:w-[300px] md:flex-none shrink-0 ${mobileTab === "graph" ? "hidden md:flex" : "flex"} flex-col`}>
           <CleanCoralPanel />
         </div>
 
-        {/* Footer Card */}
-        <Card className="flex flex-col items-center justify-center gap-4 px-0 py-4 md:py-6 w-full md:max-w-sm md:flex-none bg-[#00000066] rounded-[28px] md:rounded-[48px] border border-solid border-[#ffffff1a] backdrop-blur-md [-webkit-backdrop-filter:blur(12px)_brightness(100%)] shadow-none">
-          <CardContent className="flex flex-col items-center gap-3 md:gap-4 p-0 w-full">
+      </div>
+
+      {/* Footer row — centered below */}
+      <div className="flex justify-center px-3 md:px-6 pt-4 md:pt-5 pb-2">
+        <Card className="flex flex-col items-center justify-center gap-3 px-6 py-4 w-full max-w-lg bg-[#00000066] rounded-[28px] border border-solid border-[#ffffff1a] backdrop-blur-md [-webkit-backdrop-filter:blur(12px)_brightness(100%)] shadow-none">
+          <CardContent className="flex flex-col items-center gap-3 p-0 w-full">
             <nav className="inline-flex items-start gap-4 md:gap-6 relative flex-[0_0_auto]">
               {footerLinks.map((link) => (
                 <a
