@@ -8,6 +8,7 @@ const pt = {
     curation: "Curadoria",
     telegramBot: "Bot do Telegram",
     reefWorkspace: "Espaço de Trabalho",
+    hyperBlogs: "HyperBlogs",
     regenReefNetworkMap: "Mapa da Rede de Recifes",
     chatWithPepo: "Converse com o Pepo no Telegram para atualizações sobre recifes.",
   },

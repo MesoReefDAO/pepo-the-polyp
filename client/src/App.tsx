@@ -17,6 +17,7 @@ import { MobileMapPage } from "@/pages/MobileMapPage";
 import { ReefMapPage } from "@/pages/ReefMapPage";
 import { WorkspacePage } from "@/pages/WorkspacePage";
 import { CurationPage } from "@/pages/CurationPage";
+import { HyperBlogsPage } from "@/pages/HyperBlogsPage";
 import { PRIVY_ENABLED, PRIVY_APP_ID } from "@/lib/privy";
 import { useProfileSync } from "@/hooks/use-profile-sync";
 import { useGeolocation } from "@/hooks/use-geolocation";
@@ -55,6 +56,7 @@ function Router() {
       <Route path="/reef-map" component={ReefMapPage} />
       <Route path="/workspace" component={WorkspacePage} />
       <Route path="/curation" component={CurationPage} />
+      <Route path="/hyperblogs" component={HyperBlogsPage} />
       <Route component={NotFound} />
     </Switch>
   );

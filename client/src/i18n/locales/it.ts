@@ -8,6 +8,7 @@ const it = {
     curation: "Curation",
     telegramBot: "Bot Telegram",
     reefWorkspace: "Reef Workspace",
+    hyperBlogs: "HyperBlogs",
     regenReefNetworkMap: "Mappa Regen Reef Network",
     chatWithPepo: "Chatta con Pepo direttamente su Telegram per aggiornamenti sulla barriera corallina.",
   },

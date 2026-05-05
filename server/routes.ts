@@ -960,6 +960,133 @@ export async function registerRoutes(
     }
   });
 
+  // ── HyperBlogs proxy — proxies pepo.app.bonfires.ai/explore?tab=hyperblogs ──
+  app.get("/api/hyperblogs-embed", async (_req: Request, res: Response) => {
+    try {
+      const upstream = await fetch("https://pepo.app.bonfires.ai/explore?tab=hyperblogs", {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (compatible; MesoReefDAO/1.0)",
+          "Accept": "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8",
+        },
+        redirect: "follow",
+        signal: AbortSignal.timeout(12000),
+      });
+
+      if (!upstream.ok) {
+        return res.status(upstream.status).send(
+          `<html><body style="background:#00080c;color:#83eef0;font-family:Inter,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">HyperBlogs unavailable (${upstream.status})</body></html>`
+        );
+      }
+
+      let html = await upstream.text();
+
+      const injection = `
+<base href="https://pepo.app.bonfires.ai/">
+<style>
+  header { display: none !important; }
+  body { padding-top: 0 !important; margin-top: 0 !important; }
+</style>
+<script>
+/* ── 1. Stub Clerk API calls so React renders without a real Clerk session ── */
+(function () {
+  var _fetch = window.fetch;
+  window.fetch = function (resource, init) {
+    var url = typeof resource === "string" ? resource
+            : (resource instanceof URL ? resource.href
+            : (resource && resource.url ? resource.url : ""));
+    if (url && url.indexOf("clerk.bonfires.ai") !== -1) {
+      var mockClient = {
+        id: "client_mock", object: "client",
+        session_ids: [], sessions: [],
+        sign_in: null, sign_up: null,
+        last_active_session_id: null,
+        created_at: 0, updated_at: 0
+      };
+      return Promise.resolve(
+        new Response(JSON.stringify({ response: mockClient, client: mockClient }), {
+          status: 200, headers: { "content-type": "application/json" }
+        })
+      );
+    }
+    return _fetch.apply(this, arguments);
+  };
+})();
+
+/* ── 2. Hide header + bot panel ─────────────────────────────────────────────── */
+(function () {
+  var MAX = 80; var tries = 0;
+  var headerHidden = false; var botMinimized = false;
+
+  function findBotPanel() {
+    var walker = document.createTreeWalker(document.body || document.documentElement, NodeFilter.SHOW_TEXT, null);
+    var node;
+    while ((node = walker.nextNode())) {
+      if ((node.nodeValue || "").trim() === "PepoThePolypBot") return node.parentElement;
+    }
+    return null;
+  }
+
+  function hideAll() {
+    tries++;
+    if (!headerHidden) {
+      var hdr = document.querySelector("header");
+      if (hdr) { hdr.style.setProperty("display", "none", "important"); headerHidden = true; }
+    }
+    if (!botMinimized) {
+      var label = findBotPanel();
+      if (label) {
+        var el = label;
+        for (var i = 0; i < 12; i++) {
+          if (!el || el === document.body) break;
+          if (el.offsetWidth > 100) {
+            var btns = el.querySelectorAll("button"); var clicked = false;
+            for (var b = 0; b < btns.length; b++) {
+              var txt = (btns[b].textContent || "").trim();
+              if (txt === "−" || txt === "-" || txt === "–" || txt.length === 1) { btns[b].click(); clicked = true; break; }
+            }
+            if (!clicked && btns.length > 0) btns[btns.length - 1].click();
+            botMinimized = true; break;
+          }
+          el = el.parentElement;
+        }
+      }
+    }
+    if ((!headerHidden || !botMinimized) && tries < MAX) setTimeout(hideAll, 150);
+  }
+
+  if (document.body) { hideAll(); } else { document.addEventListener("DOMContentLoaded", hideAll); }
+  [200, 600, 1200, 2500, 5000].forEach(function(t) { setTimeout(hideAll, t); });
+
+  var mo = new MutationObserver(function () { if (!headerHidden || !botMinimized) hideAll(); });
+  function attachObserver() {
+    if (document.body) { mo.observe(document.body, { childList: true, subtree: true }); }
+    else { document.addEventListener("DOMContentLoaded", function () { mo.observe(document.body, { childList: true, subtree: true }); }); }
+  }
+  attachObserver();
+})();
+</script>`;
+
+      if (html.includes("<head>")) {
+        html = html.replace("<head>", "<head>" + injection);
+      } else if (html.includes("<HEAD>")) {
+        html = html.replace("<HEAD>", "<HEAD>" + injection);
+      } else {
+        html = injection + html;
+      }
+
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.setHeader("X-Frame-Options", "SAMEORIGIN");
+      res.setHeader("Cache-Control", "no-store");
+      res.setHeader("Content-Security-Policy", "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;");
+      return res.send(html);
+    } catch (err) {
+      console.error("[hyperblogs-embed]", err);
+      return res.status(502).send(
+        `<html><body style="background:#00080c;color:#83eef0;font-family:Inter,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">HyperBlogs temporarily unavailable</body></html>`
+      );
+    }
+  });
+
   // Recent episodes — sorted newest-first for the Explorer panel
   app.get("/api/graph/recent", async (_req: Request, res: Response) => {
     const queries = ["coral reef", "MesoReefDAO", "DeSci", "marine conservation"];

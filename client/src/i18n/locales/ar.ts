@@ -8,6 +8,7 @@ const ar = {
     curation: "التنظيم",
     telegramBot: "بوت تيليغرام",
     reefWorkspace: "مساحة العمل",
+    hyperBlogs: "هايبربلوغز",
     regenReefNetworkMap: "خريطة شبكة الشعاب المرجانية",
     chatWithPepo: "تحدث مع Pepo على تيليغرام للحصول على تحديثات الشعاب المرجانية.",
   },

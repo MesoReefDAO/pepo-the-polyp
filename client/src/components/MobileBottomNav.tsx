@@ -172,6 +172,21 @@ export function MobileBottomNav() {
       {/* Workspace */}
       <WorkspaceNavItem active={active("/workspace")} />
 
+      {/* HyperBlogs */}
+      <Link
+        href="/hyperblogs"
+        data-testid="nav-mobile-hyperblogs"
+        className={`flex flex-col items-center justify-center gap-1 flex-1 py-3 min-h-[56px] no-underline transition-opacity ${active("/hyperblogs") ? "opacity-100" : "opacity-50"}`}
+      >
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"
+            stroke={active("/hyperblogs") ? "#83eef0" : "#d4e9f380"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+        <span className={`text-[9px] ${active("/hyperblogs") ? "text-[#83eef0] font-medium" : "text-[#d4e9f380]"}`}>
+          {t("nav.hyperBlogs")}
+        </span>
+      </Link>
+
       {/* Reef Map */}
       <Link
         href="/reef-map"
