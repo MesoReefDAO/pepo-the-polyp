@@ -7,14 +7,15 @@ import coralBg from "@assets/coral_textures_1776303814463.jpg";
 import { usePrivy } from "@privy-io/react-auth";
 import { useOrcidAuth } from "@/hooks/use-orcid-auth";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 
 const TELEGRAM_BOT_URL = "https://t.me/PepothePolyp_bot";
 const BONFIRES_GRAPH_URL = "https://pepo.app.bonfires.ai/graph";
 
-const footerLinks = [
-  { label: "PRIVACY", href: "https://mesoreefdao.gitbook.io/privacy-policy" },
-  { label: "TERMS", href: "https://mesoreefdao.gitbook.io/terms-and-conditions" },
-  { label: "CONSERVATION", href: "https://mesoreefdao.org/science-ai" },
+const FOOTER_LINK_HREFS = [
+  { key: "privacy" as const,       href: "https://mesoreefdao.gitbook.io/privacy-policy" },
+  { key: "terms" as const,         href: "https://mesoreefdao.gitbook.io/terms-and-conditions" },
+  { key: "conservation" as const,  href: "https://mesoreefdao.org/science-ai" },
 ];
 
 
@@ -53,6 +54,7 @@ function BonfiresExplorer() {
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const { t } = useTranslation();
 
   const { data: recentData, isLoading: recentLoading } = useQuery<{ episodes: BonfiresEpisode[] }>({
     queryKey: ["/api/graph/recent"],
@@ -109,7 +111,7 @@ function BonfiresExplorer() {
         <div className="flex items-center gap-2">
           <Search size={11} className="text-[#83eef0]" />
           <span className="[font-family:'Inter',Helvetica] text-[#83eef0] text-[11px] font-semibold tracking-wide">
-            Search & Activity
+            {t("dashboard.searchActivity")}
           </span>
         </div>
         {open
@@ -125,7 +127,7 @@ function BonfiresExplorer() {
               type="text"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search the graph…"
+              placeholder={t("dashboard.searchGraph")}
               className="flex-1 bg-[#ffffff0d] border border-[#83eef01a] rounded-lg px-3 py-1.5 text-[#d4e9f3] text-xs placeholder:text-[#d4e9f344] focus:outline-none focus:border-[#83eef066] transition-colors"
               data-testid="input-graph-search"
             />
@@ -142,22 +144,22 @@ function BonfiresExplorer() {
           </form>
 
           {searchError && (
-            <p className="text-[#ff6b6b] text-[10px] text-center">Search unavailable — try again shortly.</p>
+            <p className="text-[#ff6b6b] text-[10px] text-center">{t("dashboard.searchUnavailable")}</p>
           )}
 
           {searchResults !== null && (
             <div className="flex flex-col gap-2">
               <span className="text-[#83eef066] text-[9px] uppercase tracking-widest font-semibold">
-                {allResults.length} result{allResults.length !== 1 ? "s" : ""}
+                {t("dashboard.result", { count: allResults.length })}
               </span>
               {allResults.length === 0 && (
-                <p className="text-[#d4e9f344] text-[11px] text-center py-2">No results found.</p>
+                <p className="text-[#d4e9f344] text-[11px] text-center py-2">{t("dashboard.noResults")}</p>
               )}
               {allResults.slice(0, 6).map(item => (
                 <div key={item.uuid} className="bg-[#ffffff08] rounded-xl px-3 py-2.5 border border-[#83eef01a]">
                   <div className="flex items-center gap-1.5 mb-0.5">
                     <span className="text-[#83eef066] text-[8px] uppercase tracking-widest font-semibold">
-                      {item.node_type === "episode" ? "Episode" : "Entity"}
+                      {item.node_type === "episode" ? t("dashboard.episode") : t("dashboard.entity")}
                     </span>
                   </div>
                   <div className="text-[#d4e9f3] text-[11px] font-medium leading-snug line-clamp-2">{item.name}</div>
@@ -174,14 +176,14 @@ function BonfiresExplorer() {
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-1.5">
               <Clock size={10} className="text-[#83eef066]" />
-              <span className="text-[#83eef066] text-[9px] uppercase tracking-widest font-semibold">Recent Activity</span>
+              <span className="text-[#83eef066] text-[9px] uppercase tracking-widest font-semibold">{t("dashboard.recentActivity")}</span>
             </div>
             {recentLoading ? (
               <div className="flex justify-center py-4">
                 <Loader2 size={16} className="text-[#83eef066] animate-spin" />
               </div>
             ) : (recentData?.episodes || []).length === 0 ? (
-              <p className="text-[#d4e9f344] text-[10px] text-center py-2">No recent activity found.</p>
+              <p className="text-[#d4e9f344] text-[10px] text-center py-2">{t("dashboard.noRecentActivity")}</p>
             ) : (
               (recentData?.episodes || []).slice(0, 6).map(ep => (
                 <div key={ep.uuid} className="bg-[#ffffff08] rounded-xl px-3 py-2.5 border border-[#83eef01a]">
@@ -205,6 +207,7 @@ function BonfiresExplorer() {
 }
 
 function KnowledgeGraphPanel() {
+  const { t } = useTranslation();
   return (
     <div
       className="relative flex-1 self-stretch w-full flex flex-col rounded-[24px] md:rounded-[32px] overflow-hidden border border-solid border-[#83eef01a] bg-[#00080c]"
@@ -216,10 +219,10 @@ function KnowledgeGraphPanel() {
           <img className="w-6 h-6 flex-shrink-0" alt="Bonfires" src="/figmaAssets/container.svg" />
           <div className="flex flex-col">
             <span className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-bold text-[#83eef0] text-sm leading-5">
-              Reef Knowledge Graph
+              {t("dashboard.knowledgeGraph")}
             </span>
             <span className="[font-family:'Inter',Helvetica] font-normal text-[#d4e9f366] text-[10px] leading-4">
-              Powered by Bonfires.ai
+              {t("dashboard.poweredByBonfires")}
             </span>
           </div>
         </div>
@@ -231,7 +234,7 @@ function KnowledgeGraphPanel() {
           data-testid="link-full-graph"
         >
           <ExternalLink size={10} className="text-[#83eef0]" />
-          <span className="[font-family:'Inter',Helvetica] text-[#83eef0] text-[10px] font-medium whitespace-nowrap">Full Graph ↗</span>
+          <span className="[font-family:'Inter',Helvetica] text-[#83eef0] text-[10px] font-medium whitespace-nowrap">{t("dashboard.fullGraph")}</span>
         </a>
       </div>
 
@@ -293,6 +296,7 @@ function CleanCoralPanel() {
   const [checking, setChecking] = useState(true);
   const [sparkle, setSparkle] = useState(false);
   const [ptsFlash, setPtsFlash] = useState(false);
+  const { t } = useTranslation();
 
   const { getAccessToken, login, authenticated: privyAuthenticated } = usePrivy();
   const { orcidAuthenticated } = useOrcidAuth();
@@ -360,10 +364,10 @@ function CleanCoralPanel() {
           </div>
           <div className="flex flex-col">
             <span className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-bold text-[#83eef0] text-sm leading-5">
-              Daily Reef Action
+              {t("dashboard.dailyReefAction")}
             </span>
             <span className="[font-family:'Inter',Helvetica] font-normal text-[#d4e9f366] text-[10px] leading-4">
-              Help Pepo restore the coral
+              {t("dashboard.helpPepoRestore")}
             </span>
           </div>
         </div>
@@ -375,7 +379,7 @@ function CleanCoralPanel() {
           data-testid="link-telegram-bot"
         >
           <TgIcon size={11} />
-          <span className="[font-family:'Inter',Helvetica] text-[#229ED9] text-[10px] font-medium whitespace-nowrap">Telegram</span>
+          <span className="[font-family:'Inter',Helvetica] text-[#229ED9] text-[10px] font-medium whitespace-nowrap">{t("dashboard.telegram")}</span>
         </a>
       </div>
 
@@ -405,23 +409,23 @@ function CleanCoralPanel() {
             <div className="w-5 h-5 rounded-full border-2 border-[#83eef0] border-t-transparent animate-spin" />
           ) : claimed ? (
             <>
-              <p className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-semibold text-[#83eef0] text-base">Coral cleaned! 🎉</p>
+              <p className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-semibold text-[#83eef0] text-base">{t("dashboard.coralCleaned")}</p>
               <p className="[font-family:'Inter',Helvetica] text-[#d4e9f366] text-xs leading-relaxed">
-                You've done your part today. Come back tomorrow to clean another coral and earn more reef points.
+                {t("dashboard.doneForToday")}
               </p>
             </>
           ) : isAuthenticated ? (
             <>
-              <p className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-semibold text-[#d4e9f3] text-base">A coral needs your help!</p>
+              <p className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-semibold text-[#d4e9f3] text-base">{t("dashboard.coralNeedsHelp")}</p>
               <p className="[font-family:'Inter',Helvetica] text-[#d4e9f366] text-xs leading-relaxed">
-                Clean a coral every day to earn reef points and create better coordination for reefs
+                {t("dashboard.cleanCorals")}
               </p>
             </>
           ) : (
             <>
-              <p className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-semibold text-[#d4e9f3] text-base">Help regenerate a reef</p>
+              <p className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-semibold text-[#d4e9f3] text-base">{t("dashboard.helpRegenerate")}</p>
               <p className="[font-family:'Inter',Helvetica] text-[#d4e9f366] text-xs leading-relaxed">
-                Sign in to clean a coral every day and earn <span className="text-[#83eef0] font-semibold">+10 reef points</span>.
+                {t("dashboard.signInToCleanDesc")} <span className="text-[#83eef0] font-semibold">{t("dashboard.reefPoints")}</span>.
               </p>
             </>
           )}
@@ -446,9 +450,9 @@ function CleanCoralPanel() {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
                 </svg>
-                Cleaning…
+                {t("dashboard.cleaning")}
               </span>
-            ) : claimed ? "✓ Cleaned today" : "🪸 Clean a Coral  +10 pts"}
+            ) : claimed ? t("dashboard.cleanedToday") : t("dashboard.cleanCoral")}
           </button>
         ) : (
           <button
@@ -456,21 +460,21 @@ function CleanCoralPanel() {
             data-testid="button-sign-in-to-clean"
             className="px-8 py-3.5 rounded-2xl [font-family:'Plus_Jakarta_Sans',Helvetica] font-bold text-sm bg-[linear-gradient(160deg,rgba(131,238,240,1)_0%,rgba(63,176,179,1)_100%)] text-[#003c3e] hover:opacity-90 active:scale-95 shadow-[0_4px_20px_rgba(131,238,240,0.3)] transition-all duration-300"
           >
-            Sign in to clean
+            {t("dashboard.signInToClean")}
           </button>
         )}
 
         {claimed && (
-          <p className="[font-family:'Inter',Helvetica] text-[#d4e9f330] text-[10px]">Resets at midnight UTC</p>
+          <p className="[font-family:'Inter',Helvetica] text-[#d4e9f330] text-[10px]">{t("dashboard.resetsAtMidnight")}</p>
         )}
       </div>
 
       {isAuthenticated && !claimed && !checking && (
         <div className="relative z-10 shrink-0 px-4 py-2 bg-[#83eef008] border-t border-[#83eef01a] flex items-center justify-center gap-1.5">
-          <span className="text-[9px] [font-family:'Inter',Helvetica] text-[#d4e9f344]">Daily action</span>
+          <span className="text-[9px] [font-family:'Inter',Helvetica] text-[#d4e9f344]">{t("dashboard.dailyAction")}</span>
           <span className="text-[9px] [font-family:'Inter',Helvetica] font-semibold text-[#83eef066]">·</span>
-          <span className="text-[9px] [font-family:'Inter',Helvetica] font-semibold text-[#83eef0]">+10 reef pts</span>
-          <span className="text-[9px] [font-family:'Inter',Helvetica] text-[#d4e9f344]">once per day</span>
+          <span className="text-[9px] [font-family:'Inter',Helvetica] font-semibold text-[#83eef0]">{t("dashboard.reefPts")}</span>
+          <span className="text-[9px] [font-family:'Inter',Helvetica] text-[#d4e9f344]">{t("dashboard.oncePerDay")}</span>
         </div>
       )}
     </div>
@@ -480,6 +484,7 @@ function CleanCoralPanel() {
 // ── Main dashboard ───────────────────────────────────────────────────────────
 export const ReefInsightDashboardSection = (): JSX.Element => {
   const [mobileTab, setMobileTab] = useState<"graph" | "action">("graph");
+  const { t } = useTranslation();
 
   return (
     <div className="flex flex-col flex-1 self-stretch overflow-y-auto overflow-x-hidden pb-24 md:pb-6">
@@ -497,7 +502,7 @@ export const ReefInsightDashboardSection = (): JSX.Element => {
           data-testid="tab-graph"
         >
           <Network size={13} className={mobileTab === "graph" ? "text-[#83eef0]" : "text-[#d4e9f380]"} />
-          Graph
+          {t("dashboard.graphTab")}
         </button>
         <button
           onClick={() => setMobileTab("action")}
@@ -509,7 +514,7 @@ export const ReefInsightDashboardSection = (): JSX.Element => {
           style={mobileTab === "action" ? { boxShadow: "inset 0 2px 6px rgba(0,0,0,0.55), inset 0 1px 2px rgba(0,0,0,0.35)" } : {}}
           data-testid="tab-action"
         >
-          🪸 Daily Action
+          🪸 {t("dashboard.actionTab")}
         </button>
       </div>
 
@@ -535,25 +540,25 @@ export const ReefInsightDashboardSection = (): JSX.Element => {
         <Card className="flex flex-col items-center justify-center gap-3 px-6 py-4 w-full max-w-lg bg-[#00000066] rounded-[28px] border border-solid border-[#ffffff1a] backdrop-blur-md [-webkit-backdrop-filter:blur(12px)_brightness(100%)] shadow-none">
           <CardContent className="flex flex-col items-center gap-3 p-0 w-full">
             <nav className="inline-flex items-start gap-4 md:gap-6 relative flex-[0_0_auto]">
-              {footerLinks.map((link) => (
+              {FOOTER_LINK_HREFS.map(({ key, href }) => (
                 <a
-                  key={link.label}
+                  key={key}
                   className="relative flex items-center w-fit [font-family:'Inter',Helvetica] font-normal text-[#d4e9f366] text-[9px] md:text-[10px] tracking-[1.00px] leading-[15px] whitespace-nowrap hover:text-[#d4e9f3] transition-colors"
-                  href={link.href}
+                  href={href}
                   rel="noopener noreferrer"
                   target="_blank"
                 >
-                  {link.label}
+                  {t(`footer.${key}`)}
                 </a>
               ))}
             </nav>
             <div className="inline-flex flex-col items-center gap-1 relative flex-[0_0_auto] opacity-60">
               <span className="[font-family:'Inter',Helvetica] font-normal text-[#d4e9f3] text-[8px] text-center leading-3">
-                Copyright © 2026 MesoReef DAO.
+                {t("footer.copyright")}
               </span>
               <div className="inline-flex items-center gap-1.5 relative flex-[0_0_auto]">
                 <span className="[font-family:'Inter',Helvetica] font-normal text-[#d4e9f3] text-[8px] text-center leading-3">
-                  Powered by{" "}
+                  {t("footer.poweredBy")}{" "}
                   <a href="https://bonfires.ai/" rel="noopener noreferrer" target="_blank" className="hover:text-[#d4e9f3] transition-colors">
                     Bonfires.ai
                   </a>
@@ -561,7 +566,7 @@ export const ReefInsightDashboardSection = (): JSX.Element => {
                 <img src="/figmaAssets/bonfires-ai-logo-new.png" alt="Bonfires.ai" className="h-3.5 w-auto object-contain" />
               </div>
               <span className="[font-family:'Inter',Helvetica] font-normal text-[#d4e9f3] text-[8px] text-center leading-3">
-                All Rights Reserved.
+                {t("footer.allRightsReserved")}
               </span>
             </div>
           </CardContent>
