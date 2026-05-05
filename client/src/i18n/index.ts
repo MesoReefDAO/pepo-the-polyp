@@ -6,6 +6,8 @@ import es from "./locales/es";
 import pt from "./locales/pt";
 import ar from "./locales/ar";
 import fr from "./locales/fr";
+import it from "./locales/it";
+import zh from "./locales/zh";
 
 export const LANGUAGES = [
   { code: "en", label: "English",    flag: "🇬🇧", dir: "ltr" as const },
@@ -13,6 +15,8 @@ export const LANGUAGES = [
   { code: "pt", label: "Português",  flag: "🇧🇷", dir: "ltr" as const },
   { code: "ar", label: "العربية",    flag: "🇸🇦", dir: "rtl" as const },
   { code: "fr", label: "Français",   flag: "🇫🇷", dir: "ltr" as const },
+  { code: "it", label: "Italiano",   flag: "🇮🇹", dir: "ltr" as const },
+  { code: "zh", label: "中文",        flag: "🇨🇳", dir: "ltr" as const },
 ] as const;
 
 export type LangCode = typeof LANGUAGES[number]["code"];
@@ -27,6 +31,8 @@ i18n
       pt: { translation: pt },
       ar: { translation: ar },
       fr: { translation: fr },
+      it: { translation: it },
+      zh: { translation: zh },
     },
     fallbackLng: "en",
     detection: {
