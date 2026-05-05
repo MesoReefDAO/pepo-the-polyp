@@ -554,6 +554,20 @@ function cmsNavMonth(yyyymm: string, delta: number): string {
   const r = `${ny}-${String(nm).padStart(2,"0")}`;
   return r < CMS_MIN_YM ? CMS_MIN_YM : r > CMS_MAX_YM ? CMS_MAX_YM : r;
 }
+// Convert "YYYY-MM" ↔ zero-based slider index (0 = CMS_MIN_YM)
+function ymToIndex(yyyymm: string): number {
+  const [y, m] = yyyymm.split("-").map(Number);
+  const [y0, m0] = CMS_MIN_YM.split("-").map(Number);
+  return (y - y0) * 12 + (m - m0);
+}
+function indexToYm(idx: number): string {
+  const [y0, m0] = CMS_MIN_YM.split("-").map(Number);
+  const abs = (y0 - 1) * 12 + (m0 - 1) + idx;
+  const y = Math.floor(abs / 12) + 1;
+  const m = abs % 12 + 1;
+  return `${y}-${String(m).padStart(2, "0")}`;
+}
+const CMS_TOTAL_MONTHS = ymToIndex(CMS_MAX_YM); // 342
 function buildCmsTileUrl(v: CmsVar, cmap: string, yyyymm: string, dataset = CMS_DATASET): string {
   return (
     "https://wmts.marine.copernicus.eu/teroWmts" +
@@ -3464,10 +3478,110 @@ export function ReefMap({
           Expand
         </button>
 
+        {/* ── CMS Timelapse bar ── full-width bottom strip ── */}
+        <div
+          data-testid="compact-timelapse-bar"
+          style={{
+            position: "absolute", bottom: 0, left: 0, right: 0, zIndex: 1001,
+            background: "rgba(0,5,10,0.90)", backdropFilter: "blur(4px)",
+            borderTop: "1px solid rgba(131,238,240,0.12)",
+            padding: "4px 10px 3px",
+            pointerEvents: "auto",
+            fontFamily: "Inter,sans-serif",
+          }}
+        >
+          {/* Label + step buttons */}
+          <div style={{ display: "flex", alignItems: "center", gap: 3, marginBottom: 2 }}>
+            <span style={{
+              fontSize: 7, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase",
+              color: activeCmsVar ? "#00b894cc" : "#83eef033",
+            }}>
+              {activeCmsVar ? activeCmsVar : "CMS"}
+            </span>
+            <span style={{ fontSize: 7, color: "#d4e9f322" }}>·</span>
+            <span style={{ fontSize: 7.5, fontWeight: 600, color: activeCmsVar ? "#83eef0cc" : "#83eef044" }}>
+              {cmsMonthLabel(cmsYYYYMM)}
+            </span>
+            <div style={{ flex: 1 }} />
+            <button
+              onClick={() => setCmsYYYYMM(v => cmsNavMonth(v, -1))}
+              disabled={cmsYYYYMM <= CMS_MIN_YM}
+              style={{
+                fontSize: 11, lineHeight: 1.3, padding: "0 5px",
+                background: "none", border: "1px solid rgba(131,238,240,0.15)", borderRadius: 3,
+                color: cmsYYYYMM <= CMS_MIN_YM ? "#83eef020" : "#83eef088",
+                cursor: cmsYYYYMM <= CMS_MIN_YM ? "default" : "pointer",
+              }}
+            >‹</button>
+            <button
+              onClick={() => setCmsYYYYMM(v => cmsNavMonth(v, +1))}
+              disabled={cmsYYYYMM >= CMS_MAX_YM}
+              style={{
+                fontSize: 11, lineHeight: 1.3, padding: "0 5px",
+                background: "none", border: "1px solid rgba(131,238,240,0.15)", borderRadius: 3,
+                color: cmsYYYYMM >= CMS_MAX_YM ? "#83eef020" : "#83eef088",
+                cursor: cmsYYYYMM >= CMS_MAX_YM ? "default" : "pointer",
+              }}
+            >›</button>
+          </div>
+
+          {/* Range slider */}
+          <input
+            type="range"
+            min={0}
+            max={CMS_TOTAL_MONTHS}
+            step={1}
+            value={ymToIndex(cmsYYYYMM)}
+            onChange={e => setCmsYYYYMM(indexToYm(Number(e.target.value)))}
+            data-testid="compact-timelapse-slider"
+            style={{
+              width: "100%", display: "block",
+              accentColor: activeCmsVar ? "#00b894" : "#83eef044",
+              cursor: "pointer", margin: "2px 0",
+              height: 4,
+            }}
+          />
+
+          {/* Year + quarterly tick labels */}
+          <div style={{ position: "relative", height: 11, marginTop: 1 }}>
+            {/* Year labels every 4 years */}
+            {[1998, 2002, 2006, 2010, 2014, 2018, 2022, 2026].map(yr => {
+              const ym = `${yr}-01`;
+              if (ym < CMS_MIN_YM || ym > CMS_MAX_YM) return null;
+              const pct = (ymToIndex(ym) / CMS_TOTAL_MONTHS) * 100;
+              return (
+                <span key={yr} style={{
+                  position: "absolute", left: `${pct}%`,
+                  transform: "translateX(-50%)",
+                  fontSize: 6, color: "rgba(131,238,240,0.45)",
+                  fontWeight: 700, lineHeight: 1, whiteSpace: "nowrap",
+                }}>{yr}</span>
+              );
+            })}
+            {/* Quarterly ticks: Apr / Jul / Oct — no label, just a tick mark */}
+            {Array.from({ length: 30 }, (_, i) => 1997 + i).flatMap(yr =>
+              [4, 7, 10].map(mo => {
+                const ym = `${yr}-${String(mo).padStart(2, "0")}`;
+                if (ym < CMS_MIN_YM || ym > CMS_MAX_YM) return null;
+                const pct = (ymToIndex(ym) / CMS_TOTAL_MONTHS) * 100;
+                const lbl = mo === 4 ? "Apr" : mo === 7 ? "Jul" : "Oct";
+                return (
+                  <span key={ym} style={{
+                    position: "absolute", left: `${pct}%`,
+                    transform: "translateX(-50%)",
+                    fontSize: 5.5, color: "rgba(131,238,240,0.22)",
+                    lineHeight: 1, whiteSpace: "nowrap",
+                  }}>{lbl}</span>
+                );
+              })
+            )}
+          </div>
+        </div>
+
         {/* ── Legend + Login ── */}
         <div
-          className="absolute bottom-2 left-2 flex flex-col gap-1.5"
-          style={{ zIndex: 500 }}
+          className="absolute left-2 flex flex-col gap-1.5"
+          style={{ zIndex: 500, bottom: 52 }}
         >
           {/* Labelled legend — one row per active layer */}
           <div
