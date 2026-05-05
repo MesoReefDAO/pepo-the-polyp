@@ -267,79 +267,96 @@ function GraphLoadingShimmer({ visible }: { visible: boolean }) {
 // ── Main dashboard ─────────────────────────────────────────────────────────────
 export const ReefInsightDashboardSection = (): JSX.Element => {
   const [graphLoading, setGraphLoading] = useState(true);
+  const [coralOpen, setCoralOpen] = useState(false);
   const { t } = useTranslation();
 
   return (
-    <div className="flex flex-col flex-1 self-stretch min-h-0 overflow-hidden px-2 md:px-4 pt-2 md:pt-3 pb-20 md:pb-3 gap-2">
+    <div className="flex flex-col flex-1 self-stretch min-h-0 overflow-hidden px-2 md:px-4 pt-2 md:pt-3 pb-20 md:pb-3">
 
-      {/* ── Two-column row: graph (left) + daily action (right) ─────────── */}
-      <div className="flex flex-col md:flex-row flex-1 min-h-0 gap-2">
+      {/* ════════════════════════════════════════════════════════════════
+          KNOWLEDGE GRAPH — full width
+      ════════════════════════════════════════════════════════════════ */}
+      <div
+        className="relative flex-1 min-h-0 rounded-[16px] md:rounded-[24px] overflow-hidden"
+        style={{
+          minHeight: 320,
+          border: "1px solid rgba(131,238,240,0.20)",
+          boxShadow:
+            "0 0 0 1px rgba(131,238,240,0.05)," +
+            "0 0 60px rgba(131,238,240,0.08)," +
+            "0 24px 64px rgba(0,0,0,0.6)," +
+            "inset 0 0 120px rgba(0,8,12,0.6)",
+        }}
+      >
+        {/* ── Edge glow gradients ─────────────────────────────────── */}
+        <div className="absolute top-0 left-0 bottom-0 w-[3px] z-[6] pointer-events-none"
+          style={{ background: "linear-gradient(180deg,rgba(131,238,240,0.0) 0%,rgba(131,238,240,0.35) 50%,rgba(131,238,240,0.0) 100%)" }} />
+        <div className="absolute top-0 left-0 right-0 h-[2px] z-[6] pointer-events-none"
+          style={{ background: "linear-gradient(90deg,rgba(131,238,240,0.0) 0%,rgba(131,238,240,0.4) 50%,rgba(131,238,240,0.0) 100%)" }} />
 
-        {/* ════════════════════════════════════════════════════════════════
-            KNOWLEDGE GRAPH
-        ════════════════════════════════════════════════════════════════ */}
-        <div
-          className="relative flex-1 min-h-0 rounded-[16px] md:rounded-[24px] overflow-hidden"
+        {/* Iframe — full width/height; Bonfires.ai renders its own header */}
+        <GraphLoadingShimmer visible={graphLoading} />
+        <iframe
+          src={BONFIRES_GRAPH_URL}
+          title="Reef Knowledge Graph"
+          className="absolute inset-0 w-full h-full border-0"
+          style={{ background: "#00080c" }}
+          allow="clipboard-write; clipboard-read; pointer-lock; fullscreen"
+          loading="lazy"
+          data-testid="iframe-knowledge-graph"
+          onLoad={() => setGraphLoading(false)}
+        />
+
+        {/* ── Daily Reef Action — floating toggle overlay ─────────── */}
+        {/* Toggle pill — always visible, above the iframe */}
+        <button
+          onClick={() => setCoralOpen(o => !o)}
+          data-testid="button-coral-toggle"
+          className="absolute bottom-4 right-4 z-20 flex items-center gap-2 px-3 py-2 rounded-full transition-all duration-200"
           style={{
-            minHeight: 320,
-            border: "1px solid rgba(131,238,240,0.20)",
-            boxShadow:
-              "0 0 0 1px rgba(131,238,240,0.05)," +
-              "0 0 60px rgba(131,238,240,0.08)," +
-              "0 24px 64px rgba(0,0,0,0.6)," +
-              "inset 0 0 120px rgba(0,8,12,0.6)",
+            background: coralOpen
+              ? "rgba(0,8,12,0.92)"
+              : "linear-gradient(160deg,rgba(131,238,240,0.9) 0%,rgba(63,176,179,0.9) 100%)",
+            border: coralOpen
+              ? "1px solid rgba(131,238,240,0.35)"
+              : "1px solid rgba(131,238,240,0.6)",
+            boxShadow: "0 4px 20px rgba(0,0,0,0.5)",
+            backdropFilter: "blur(12px)",
           }}
         >
-          {/* ── Decorative corner reef SVGs ─────────────────────────── */}
-          {/* bottom-left */}
-          <svg
-            width="90" height="90" viewBox="0 0 90 90" fill="none"
-            className="absolute bottom-0 left-0 z-[5] pointer-events-none select-none opacity-25"
+          <span className="text-base select-none">🪸</span>
+          <span
+            className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-bold text-xs whitespace-nowrap"
+            style={{ color: coralOpen ? "#83eef0" : "#003c3e" }}
           >
-            <path d="M0 90 Q10 60 30 50 Q20 35 35 20 Q50 30 45 50 Q60 45 70 60 Q55 65 50 80 Q35 75 20 90Z" fill="#83eef0" fillOpacity="0.12"/>
-            <circle cx="18" cy="72" r="4" fill="#83eef0" fillOpacity="0.25"/>
-            <circle cx="38" cy="55" r="2.5" fill="#83eef0" fillOpacity="0.18"/>
-            <circle cx="55" cy="68" r="3" fill="#3fb0b3" fillOpacity="0.2"/>
-          </svg>
-          {/* bottom-right */}
+            {coralOpen ? t("dashboard.dailyReefAction") : t("dashboard.dailyReefAction")}
+          </span>
           <svg
-            width="80" height="80" viewBox="0 0 80 80" fill="none"
-            className="absolute bottom-0 right-0 z-[5] pointer-events-none select-none opacity-20"
+            width="12" height="12" viewBox="0 0 24 24" fill="none"
+            className={`transition-transform duration-200 ${coralOpen ? "rotate-180" : ""}`}
           >
-            <path d="M80 80 Q70 52 50 44 Q62 30 48 18 Q35 28 38 46 Q22 42 14 56 Q28 62 32 76 Q50 70 64 80Z" fill="#83eef0" fillOpacity="0.10"/>
-            <circle cx="62" cy="66" r="3.5" fill="#83eef0" fillOpacity="0.22"/>
-            <circle cx="44" cy="52" r="2" fill="#3fb0b3" fillOpacity="0.2"/>
+            <path
+              d={coralOpen ? "M18 15L12 9L6 15" : "M6 9L12 15L18 9"}
+              stroke={coralOpen ? "#83eef0" : "#003c3e"}
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </svg>
+        </button>
 
-          {/* ── Edge glow gradients ─────────────────────────────────── */}
-          {/* left edge */}
-          <div className="absolute top-0 left-0 bottom-0 w-[3px] z-[6] pointer-events-none"
-            style={{ background: "linear-gradient(180deg,rgba(131,238,240,0.0) 0%,rgba(131,238,240,0.35) 50%,rgba(131,238,240,0.0) 100%)" }} />
-          {/* top edge */}
-          <div className="absolute top-0 left-0 right-0 h-[2px] z-[6] pointer-events-none"
-            style={{ background: "linear-gradient(90deg,rgba(131,238,240,0.0) 0%,rgba(131,238,240,0.4) 50%,rgba(131,238,240,0.0) 100%)" }} />
-
-          {/* Iframe — fills full container; Bonfires.ai renders its own header */}
-          <GraphLoadingShimmer visible={graphLoading} />
-          <iframe
-            src={BONFIRES_GRAPH_URL}
-            title="Reef Knowledge Graph"
-            className="absolute inset-0 w-full h-full border-0"
-            style={{ background: "#00080c" }}
-            allow="clipboard-write; clipboard-read; pointer-lock; fullscreen"
-            loading="lazy"
-            data-testid="iframe-knowledge-graph"
-            onLoad={() => setGraphLoading(false)}
-          />
-        </div>
-
-        {/* ════════════════════════════════════════════════════════════════
-            DAILY REEF ACTION — right panel
-        ════════════════════════════════════════════════════════════════ */}
-        <div className="w-full md:w-[260px] shrink-0 flex flex-col min-h-0">
-          <CleanCoralPanel />
-        </div>
-
+        {/* Panel — slides up from the toggle */}
+        {coralOpen && (
+          <div
+            className="absolute bottom-16 right-4 z-20 w-72 rounded-2xl overflow-hidden"
+            style={{
+              boxShadow: "0 8px 40px rgba(0,0,0,0.7)",
+              border: "1px solid rgba(131,238,240,0.18)",
+            }}
+          >
+            <CleanCoralPanel onClose={() => setCoralOpen(false)} />
+          </div>
+        )}
       </div>
 
     </div>
