@@ -267,14 +267,14 @@ function GraphLoadingShimmer({ visible }: { visible: boolean }) {
 // ── Main dashboard ─────────────────────────────────────────────────────────────
 export const ReefInsightDashboardSection = (): JSX.Element => {
   const [graphLoading, setGraphLoading] = useState(true);
-  const [coralOpen, setCoralOpen] = useState(false);
+  const [coralOpen, setCoralOpen] = useState(true);
   const { t } = useTranslation();
 
   return (
-    <div className="flex flex-col flex-1 self-stretch min-h-0 overflow-hidden px-2 md:px-4 pt-2 md:pt-3 pb-20 md:pb-3">
+    <div className="flex flex-row flex-1 self-stretch min-h-0 overflow-hidden px-2 md:px-4 pt-2 md:pt-3 pb-20 md:pb-3 gap-2">
 
       {/* ════════════════════════════════════════════════════════════════
-          KNOWLEDGE GRAPH — full width
+          KNOWLEDGE GRAPH — takes all remaining width
       ════════════════════════════════════════════════════════════════ */}
       <div
         className="relative flex-1 min-h-0 rounded-[16px] md:rounded-[24px] overflow-hidden"
@@ -288,13 +288,12 @@ export const ReefInsightDashboardSection = (): JSX.Element => {
             "inset 0 0 120px rgba(0,8,12,0.6)",
         }}
       >
-        {/* ── Edge glow gradients ─────────────────────────────────── */}
+        {/* Edge glow */}
         <div className="absolute top-0 left-0 bottom-0 w-[3px] z-[6] pointer-events-none"
           style={{ background: "linear-gradient(180deg,rgba(131,238,240,0.0) 0%,rgba(131,238,240,0.35) 50%,rgba(131,238,240,0.0) 100%)" }} />
         <div className="absolute top-0 left-0 right-0 h-[2px] z-[6] pointer-events-none"
           style={{ background: "linear-gradient(90deg,rgba(131,238,240,0.0) 0%,rgba(131,238,240,0.4) 50%,rgba(131,238,240,0.0) 100%)" }} />
 
-        {/* Iframe — full width/height; Bonfires.ai renders its own header */}
         <GraphLoadingShimmer visible={graphLoading} />
         <iframe
           src={BONFIRES_GRAPH_URL}
@@ -306,55 +305,41 @@ export const ReefInsightDashboardSection = (): JSX.Element => {
           data-testid="iframe-knowledge-graph"
           onLoad={() => setGraphLoading(false)}
         />
+      </div>
 
-        {/* ── Daily Reef Action — floating toggle overlay ─────────── */}
-        {/* Toggle pill — always visible, above the iframe */}
+      {/* ════════════════════════════════════════════════════════════════
+          DAILY REEF ACTION — collapsible right panel
+      ════════════════════════════════════════════════════════════════ */}
+      <div
+        className="hidden md:flex flex-col shrink-0 min-h-0 transition-all duration-300"
+        style={{ width: coralOpen ? 260 : 32 }}
+      >
+        {/* Collapse / expand toggle tab */}
         <button
           onClick={() => setCoralOpen(o => !o)}
           data-testid="button-coral-toggle"
-          className="absolute bottom-4 right-4 z-20 flex items-center gap-2 px-3 py-2 rounded-full transition-all duration-200"
+          title={coralOpen ? "Hide Daily Reef Action" : "Show Daily Reef Action"}
+          className="flex items-center justify-center w-8 h-8 rounded-full shrink-0 self-end mb-2 transition-colors"
           style={{
-            background: coralOpen
-              ? "rgba(0,8,12,0.92)"
-              : "linear-gradient(160deg,rgba(131,238,240,0.9) 0%,rgba(63,176,179,0.9) 100%)",
-            border: coralOpen
-              ? "1px solid rgba(131,238,240,0.35)"
-              : "1px solid rgba(131,238,240,0.6)",
-            boxShadow: "0 4px 20px rgba(0,0,0,0.5)",
-            backdropFilter: "blur(12px)",
+            background: "rgba(131,238,240,0.08)",
+            border: "1px solid rgba(131,238,240,0.20)",
           }}
         >
-          <span className="text-base select-none">🪸</span>
-          <span
-            className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-bold text-xs whitespace-nowrap"
-            style={{ color: coralOpen ? "#83eef0" : "#003c3e" }}
-          >
-            {coralOpen ? t("dashboard.dailyReefAction") : t("dashboard.dailyReefAction")}
-          </span>
-          <svg
-            width="12" height="12" viewBox="0 0 24 24" fill="none"
-            className={`transition-transform duration-200 ${coralOpen ? "rotate-180" : ""}`}
-          >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
             <path
-              d={coralOpen ? "M18 15L12 9L6 15" : "M6 9L12 15L18 9"}
-              stroke={coralOpen ? "#83eef0" : "#003c3e"}
-              strokeWidth="2.2"
+              d={coralOpen ? "M9 18l6-6-6-6" : "M15 18l-6-6 6-6"}
+              stroke="#83eef0"
+              strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
             />
           </svg>
         </button>
 
-        {/* Panel — slides up from the toggle */}
+        {/* Panel content — only rendered when open */}
         {coralOpen && (
-          <div
-            className="absolute bottom-16 right-4 z-20 w-72 rounded-2xl overflow-hidden"
-            style={{
-              boxShadow: "0 8px 40px rgba(0,0,0,0.7)",
-              border: "1px solid rgba(131,238,240,0.18)",
-            }}
-          >
-            <CleanCoralPanel onClose={() => setCoralOpen(false)} />
+          <div className="flex-1 min-h-0 overflow-hidden rounded-[20px]">
+            <CleanCoralPanel />
           </div>
         )}
       </div>
