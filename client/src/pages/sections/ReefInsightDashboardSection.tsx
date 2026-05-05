@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { ExternalLink, Network, ChevronDown, ChevronUp, Search, Clock, Loader2 } from "lucide-react";
+import { ExternalLink, Network, Search, Clock, Loader2, Send, X } from "lucide-react";
 import { KnowledgeGraphCanvas } from "@/components/KnowledgeGraphCanvas";
 import pepoPng from "@assets/MesoReefDAO_Pepo_The_Polyp_1776218616437.png";
 import coralBg from "@assets/coral_textures_1776303814463.jpg";
@@ -47,37 +47,41 @@ interface BonfiresSearchResult {
   content?: { content?: string };
 }
 
+// ── Suggested prompts shown in the Explorer ──────────────────────────────────
+const SUGGESTED_PROMPTS = [
+  "Any interesting things happened recently?",
+  "Who are the most active participants lately?",
+  "What can you do?",
+];
+
 function BonfiresExplorer() {
-  const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<{ entities: BonfiresSearchResult[]; episodes: BonfiresEpisode[] } | null>(null);
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState(false);
+  const [activeTab, setActiveTab] = useState<"search" | "recent">("recent");
   const inputRef = useRef<HTMLInputElement>(null);
   const { t } = useTranslation();
 
   const { data: recentData, isLoading: recentLoading } = useQuery<{ episodes: BonfiresEpisode[] }>({
     queryKey: ["/api/graph/recent"],
-    enabled: open,
     staleTime: 5 * 60 * 1000,
   });
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const q = searchQuery.trim();
-    if (!q) return;
+  const runSearch = async (q: string) => {
+    if (!q.trim()) return;
     setSearching(true);
     setSearchError(false);
     setSearchResults(null);
+    setActiveTab("search");
     try {
       const res = await fetch("/api/graph/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: q }),
+        body: JSON.stringify({ query: q.trim() }),
       });
       if (!res.ok) throw new Error("search failed");
-      const data = await res.json();
-      setSearchResults(data);
+      setSearchResults(await res.json());
     } catch {
       setSearchError(true);
     } finally {
@@ -85,11 +89,14 @@ function BonfiresExplorer() {
     }
   };
 
-  const handleToggle = () => {
-    setOpen(o => {
-      if (!o) setTimeout(() => inputRef.current?.focus(), 150);
-      return !o;
-    });
+  const handleSearch = (e: React.FormEvent) => { e.preventDefault(); runSearch(searchQuery); };
+
+  const clearSearch = () => {
+    setSearchQuery("");
+    setSearchResults(null);
+    setSearchError(false);
+    setActiveTab("recent");
+    setTimeout(() => inputRef.current?.focus(), 50);
   };
 
   const allResults = searchResults ? [...(searchResults.entities || []), ...(searchResults.episodes || [])] : [];
@@ -98,110 +105,156 @@ function BonfiresExplorer() {
     if (!iso) return null;
     const d = new Date(iso);
     return d.toLocaleDateString("en-US", { month: "short", day: "numeric" }) +
-      ", " + d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+      " · " + d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+  };
+
+  const nodeTypePill = (type: string | undefined) => {
+    const isEpisode = (type ?? "episode") === "episode";
+    return (
+      <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[8px] font-semibold uppercase tracking-wider ${
+        isEpisode ? "bg-[#3b82f615] text-[#60a5fa]" : "bg-[#22c55e15] text-[#4ade80]"
+      }`}>
+        {isEpisode ? t("dashboard.episode") : t("dashboard.entity")}
+      </span>
+    );
   };
 
   return (
-    <div className="border-t border-[#83eef01a] shrink-0">
-      <button
-        onClick={handleToggle}
-        className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-[#83eef008] transition-colors"
-        data-testid="button-toggle-explorer"
-      >
-        <div className="flex items-center gap-2">
-          <Search size={11} className="text-[#83eef0]" />
-          <span className="[font-family:'Inter',Helvetica] text-[#83eef0] text-[11px] font-semibold tracking-wide">
-            {t("dashboard.searchActivity")}
-          </span>
-        </div>
-        {open
-          ? <ChevronUp size={12} className="text-[#83eef066]" />
-          : <ChevronDown size={12} className="text-[#83eef066]" />}
-      </button>
+    <div className="flex flex-col border-t border-[#83eef01a] bg-[#00080ccc]">
+      {/* ── Header ── */}
+      <div className="flex items-center justify-between px-4 pt-3 pb-2 shrink-0">
+        <span className="[font-family:'Inter',Helvetica] text-[#d4e9f3] text-[11px] font-bold tracking-widest uppercase">
+          Explorer
+        </span>
+        <span className="text-[9px] text-[#83eef066] [font-family:'Inter',Helvetica]">
+          {t("dashboard.poweredByBonfires")}
+        </span>
+      </div>
 
-      {open && (
-        <div className="px-4 pb-5 flex flex-col gap-4">
-          <form onSubmit={handleSearch} className="flex gap-2">
-            <input
-              ref={inputRef}
-              type="text"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              placeholder={t("dashboard.searchGraph")}
-              className="flex-1 bg-[#ffffff0d] border border-[#83eef01a] rounded-lg px-3 py-1.5 text-[#d4e9f3] text-xs placeholder:text-[#d4e9f344] focus:outline-none focus:border-[#83eef066] transition-colors"
-              data-testid="input-graph-search"
-            />
-            <button
-              type="submit"
-              disabled={searching || !searchQuery.trim()}
-              className="px-3 py-1.5 bg-[#83eef01a] hover:bg-[#83eef026] disabled:opacity-40 rounded-lg border border-[#83eef033] transition-colors"
-              data-testid="button-graph-search-submit"
-            >
-              {searching
-                ? <Loader2 size={12} className="text-[#83eef0] animate-spin" />
-                : <Search size={12} className="text-[#83eef0]" />}
+      {/* ── Search bar ── */}
+      <div className="px-4 pb-2 shrink-0">
+        <form onSubmit={handleSearch} className="relative flex items-center">
+          <Search size={13} className="absolute left-3 text-[#d4e9f333] pointer-events-none" />
+          <input
+            ref={inputRef}
+            type="text"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder={t("dashboard.searchGraph")}
+            className="w-full bg-[#ffffff0a] border border-[#83eef01a] rounded-xl pl-8 pr-8 py-2 text-[#d4e9f3] text-[12px] placeholder:text-[#d4e9f333] focus:outline-none focus:border-[#83eef044] transition-colors"
+            data-testid="input-graph-search"
+          />
+          {searchQuery ? (
+            <button type="button" onClick={clearSearch} className="absolute right-2.5 text-[#d4e9f344] hover:text-[#d4e9f3] transition-colors">
+              <X size={13} />
             </button>
-          </form>
-
-          {searchError && (
-            <p className="text-[#ff6b6b] text-[10px] text-center">{t("dashboard.searchUnavailable")}</p>
+          ) : (
+            <button type="submit" disabled={!searchQuery.trim() || searching} className="absolute right-2.5 text-[#83eef066] hover:text-[#83eef0] disabled:opacity-30 transition-colors">
+              {searching ? <Loader2 size={13} className="animate-spin" /> : <Send size={12} />}
+            </button>
           )}
+        </form>
+      </div>
 
-          {searchResults !== null && (
-            <div className="flex flex-col gap-2">
-              <span className="text-[#83eef066] text-[9px] uppercase tracking-widest font-semibold">
-                {t("dashboard.result", { count: allResults.length })}
+      {/* ── Suggested prompts (idle state) ── */}
+      {!searchResults && !searching && !searchError && (
+        <div className="px-4 pb-3 flex flex-col gap-1.5 shrink-0">
+          <p className="text-[9px] text-[#d4e9f344] [font-family:'Inter',Helvetica] uppercase tracking-wider mb-0.5">
+            {t("dashboard.searchGraph").replace("…", "")} examples
+          </p>
+          {SUGGESTED_PROMPTS.map(prompt => (
+            <button
+              key={prompt}
+              onClick={() => { setSearchQuery(prompt); runSearch(prompt); }}
+              className="text-left text-[11px] text-[#d4e9f380] hover:text-[#83eef0] hover:bg-[#83eef00a] px-3 py-1.5 rounded-xl border border-[#ffffff08] hover:border-[#83eef01a] transition-all [font-family:'Inter',Helvetica]"
+            >
+              {prompt}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* ── Results / Recent feed ── */}
+      <div className="flex-1 overflow-y-auto px-4 pb-4 flex flex-col gap-2" style={{ maxHeight: "320px" }}>
+
+        {/* Search error */}
+        {searchError && (
+          <p className="text-[#ff6b6b] text-[10px] text-center py-3">{t("dashboard.searchUnavailable")}</p>
+        )}
+
+        {/* Search results */}
+        {searching && (
+          <div className="flex justify-center py-6">
+            <Loader2 size={18} className="text-[#83eef066] animate-spin" />
+          </div>
+        )}
+
+        {searchResults !== null && !searching && (
+          <>
+            <div className="flex items-center justify-between mb-0.5">
+              <span className="text-[9px] text-[#83eef066] uppercase tracking-widest font-semibold [font-family:'Inter',Helvetica]">
+                {allResults.length === 0 ? t("dashboard.noResults") : t("dashboard.result", { count: allResults.length })}
               </span>
-              {allResults.length === 0 && (
-                <p className="text-[#d4e9f344] text-[11px] text-center py-2">{t("dashboard.noResults")}</p>
-              )}
-              {allResults.slice(0, 6).map(item => (
-                <div key={item.uuid} className="bg-[#ffffff08] rounded-xl px-3 py-2.5 border border-[#83eef01a]">
-                  <div className="flex items-center gap-1.5 mb-0.5">
-                    <span className="text-[#83eef066] text-[8px] uppercase tracking-widest font-semibold">
-                      {item.node_type === "episode" ? t("dashboard.episode") : t("dashboard.entity")}
-                    </span>
-                  </div>
-                  <div className="text-[#d4e9f3] text-[11px] font-medium leading-snug line-clamp-2">{item.name}</div>
-                  {(item.summary || item.content?.content) && (
-                    <div className="text-[#d4e9f355] text-[10px] mt-1 line-clamp-2 leading-relaxed">
-                      {item.summary || item.content?.content}
-                    </div>
-                  )}
-                </div>
-              ))}
+              <button onClick={clearSearch} className="text-[9px] text-[#d4e9f344] hover:text-[#d4e9f3] transition-colors [font-family:'Inter',Helvetica]">
+                ← Back
+              </button>
             </div>
-          )}
+            {allResults.slice(0, 8).map(item => (
+              <div key={item.uuid} className="bg-[#ffffff06] hover:bg-[#83eef008] rounded-xl px-3 py-2.5 border border-[#ffffff0a] hover:border-[#83eef01a] transition-all cursor-default">
+                <div className="flex items-center gap-1.5 mb-1">
+                  {nodeTypePill(item.node_type)}
+                </div>
+                <div className="text-[#d4e9f3] text-[12px] font-semibold leading-snug line-clamp-2 [font-family:'Inter',Helvetica]">{item.name}</div>
+                {(item.summary || item.content?.content) && (
+                  <div className="text-[#d4e9f355] text-[10px] mt-1 line-clamp-3 leading-relaxed [font-family:'Inter',Helvetica]">
+                    {item.summary || item.content?.content}
+                  </div>
+                )}
+              </div>
+            ))}
+          </>
+        )}
 
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-1.5">
+        {/* Recent activity — default view */}
+        {activeTab === "recent" && !searchResults && !searching && !searchError && (
+          <>
+            <div className="flex items-center gap-1.5 mb-0.5">
               <Clock size={10} className="text-[#83eef066]" />
-              <span className="text-[#83eef066] text-[9px] uppercase tracking-widest font-semibold">{t("dashboard.recentActivity")}</span>
+              <span className="text-[9px] text-[#83eef066] uppercase tracking-widest font-semibold [font-family:'Inter',Helvetica]">
+                {t("dashboard.recentActivity")}
+              </span>
             </div>
             {recentLoading ? (
-              <div className="flex justify-center py-4">
-                <Loader2 size={16} className="text-[#83eef066] animate-spin" />
+              <div className="flex justify-center py-6">
+                <Loader2 size={18} className="text-[#83eef066] animate-spin" />
               </div>
             ) : (recentData?.episodes || []).length === 0 ? (
-              <p className="text-[#d4e9f344] text-[10px] text-center py-2">{t("dashboard.noRecentActivity")}</p>
+              <p className="text-[#d4e9f344] text-[10px] text-center py-3 [font-family:'Inter',Helvetica]">{t("dashboard.noRecentActivity")}</p>
             ) : (
-              (recentData?.episodes || []).slice(0, 6).map(ep => (
-                <div key={ep.uuid} className="bg-[#ffffff08] rounded-xl px-3 py-2.5 border border-[#83eef01a]">
-                  <div className="text-[#d4e9f3] text-[11px] font-medium leading-snug line-clamp-2">{ep.name}</div>
-                  {fmtDate(ep.valid_at || ep.created_at) && (
-                    <div className="text-[#83eef066] text-[9px] mt-0.5">{fmtDate(ep.valid_at || ep.created_at)}</div>
-                  )}
+              (recentData?.episodes || []).slice(0, 8).map(ep => (
+                <div key={ep.uuid} className="bg-[#ffffff06] hover:bg-[#83eef008] rounded-xl px-3 py-2.5 border border-[#ffffff0a] hover:border-[#83eef01a] transition-all cursor-default">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[8px] font-semibold uppercase tracking-wider bg-[#3b82f615] text-[#60a5fa]">
+                      {t("dashboard.episode")}
+                    </span>
+                    {fmtDate(ep.valid_at || ep.created_at) && (
+                      <span className="text-[#83eef055] text-[9px] [font-family:'Inter',Helvetica]">
+                        {fmtDate(ep.valid_at || ep.created_at)}
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-[#d4e9f3] text-[12px] font-semibold leading-snug line-clamp-2 [font-family:'Inter',Helvetica]">{ep.name}</div>
                   {ep.content?.content && (
-                    <div className="text-[#d4e9f355] text-[10px] mt-1 line-clamp-3 leading-relaxed">
+                    <div className="text-[#d4e9f355] text-[10px] mt-1 line-clamp-3 leading-relaxed [font-family:'Inter',Helvetica]">
                       {ep.content.content}
                     </div>
                   )}
                 </div>
               ))
             )}
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </div>
     </div>
   );
 }
