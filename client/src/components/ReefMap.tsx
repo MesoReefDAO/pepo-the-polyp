@@ -517,17 +517,28 @@ const CMS_PRODUCT = "OCEANCOLOUR_GLO_BGC_L4_MY_009_104";
 const CMS_MIN_YM  = "1997-09";
 const CMS_MAX_YM  = "2026-03";
 
+// Ocean-color optics / transparency datasets (same product, different dataset IDs)
+const CMS_DS_OPTICS = "cmems_obs-oc_glo_bgc-optics_my_l4-multi-4km_P1M_202603";
+const CMS_DS_TRANSP = "cmems_obs-oc_glo_bgc-transp_my_l4-multi-4km_P1M_202603";
+
 const CMS_LAYERS = [
-  { var: "CHL",     label: "Chlorophyll-a",      unit: "mg m⁻³",  color: "#00b894", cmap: "algae"   },
-  { var: "DIATO",   label: "Diatoms",             unit: "mg m⁻³",  color: "#e17055", cmap: "matter"  },
-  { var: "DINO",    label: "Dinoflagellates",      unit: "mg m⁻³",  color: "#d63031", cmap: "plasma"  },
-  { var: "GREEN",   label: "Green Algae",         unit: "mg m⁻³",  color: "#55efc4", cmap: "dense"   },
-  { var: "HAPTO",   label: "Haptophytes",         unit: "mg m⁻³",  color: "#a29bfe", cmap: "ice"     },
-  { var: "MICRO",   label: "Microphytoplankton",  unit: ">20 µm",  color: "#fdcb6e", cmap: "thermal" },
-  { var: "NANO",    label: "Nanophytoplankton",   unit: "2–20 µm", color: "#fd79a8", cmap: "tempo"   },
-  { var: "PICO",    label: "Picophytoplankton",   unit: "<2 µm",   color: "#74b9ff", cmap: "solar"   },
-  { var: "PROCHLO", label: "Prochlorococcus",     unit: "mg m⁻³",  color: "#26de81", cmap: "speed"   },
-  { var: "PROKAR",  label: "Prokaryotes",         unit: "mg m⁻³",  color: "#6c5ce7", cmap: "deep"    },
+  // ── Phytoplankton (plankton dataset) ─────────────────────────────────────
+  { var: "CHL",     label: "Chlorophyll-a",        unit: "mg m⁻³",      color: "#00b894", cmap: "algae"   },
+  { var: "DIATO",   label: "Diatoms",               unit: "mg m⁻³",      color: "#e17055", cmap: "matter"  },
+  { var: "DINO",    label: "Dinoflagellates",        unit: "mg m⁻³",      color: "#d63031", cmap: "plasma"  },
+  { var: "GREEN",   label: "Green Algae",           unit: "mg m⁻³",      color: "#55efc4", cmap: "dense"   },
+  { var: "HAPTO",   label: "Haptophytes",           unit: "mg m⁻³",      color: "#a29bfe", cmap: "ice"     },
+  { var: "MICRO",   label: "Microphytoplankton",    unit: ">20 µm",      color: "#fdcb6e", cmap: "thermal" },
+  { var: "NANO",    label: "Nanophytoplankton",     unit: "2–20 µm",     color: "#fd79a8", cmap: "tempo"   },
+  { var: "PICO",    label: "Picophytoplankton",     unit: "<2 µm",       color: "#74b9ff", cmap: "solar"   },
+  { var: "PROCHLO", label: "Prochlorococcus",       unit: "mg m⁻³",      color: "#26de81", cmap: "speed"   },
+  { var: "PROKAR",  label: "Prokaryotes",           unit: "mg m⁻³",      color: "#6c5ce7", cmap: "deep"    },
+  // ── Optics (light attenuation / transparency) ────────────────────────────
+  { var: "KD490",   label: "Light Attenuation",     unit: "m⁻¹",         color: "#0984e3", cmap: "matter",  dataset: CMS_DS_OPTICS },
+  { var: "ZSD",     label: "Secchi Depth",          unit: "m",           color: "#00cec9", cmap: "deep",    dataset: CMS_DS_OPTICS },
+  { var: "BBP",     label: "Particle Backscatter",  unit: "m⁻¹",         color: "#6c5ce7", cmap: "amp",     dataset: CMS_DS_OPTICS },
+  // ── Transparency / particles ──────────────────────────────────────────────
+  { var: "SPM",     label: "Suspended Particles",   unit: "g m⁻³",       color: "#e67e22", cmap: "turbid",  dataset: CMS_DS_TRANSP },
 ] as const;
 type CmsVar = (typeof CMS_LAYERS)[number]["var"];
 
@@ -543,11 +554,11 @@ function cmsNavMonth(yyyymm: string, delta: number): string {
   const r = `${ny}-${String(nm).padStart(2,"0")}`;
   return r < CMS_MIN_YM ? CMS_MIN_YM : r > CMS_MAX_YM ? CMS_MAX_YM : r;
 }
-function buildCmsTileUrl(v: CmsVar, cmap: string, yyyymm: string): string {
+function buildCmsTileUrl(v: CmsVar, cmap: string, yyyymm: string, dataset = CMS_DATASET): string {
   return (
     "https://wmts.marine.copernicus.eu/teroWmts" +
     "?SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetTile" +
-    `&LAYER=${encodeURIComponent(CMS_PRODUCT + "/" + CMS_DATASET + "/" + v)}` +
+    `&LAYER=${encodeURIComponent(CMS_PRODUCT + "/" + dataset + "/" + v)}` +
     `&STYLE=${encodeURIComponent("cmap:" + cmap)}` +
     "&FORMAT=image%2Fpng&TILEMATRIXSET=EPSG%3A3857" +
     "&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}" +
@@ -574,11 +585,13 @@ type LiveLayer = {
 };
 type LiveVar =
   | "thetao" | "so" | "sea_water_velocity" | "zos" | "siconc"
+  | "mlotst" | "bottomT" | "sithick"
   | "analysed_sst"
   | "to_obs" | "ugo"
   | "adt" | "sla"
   | "VHM0" | "VTPK" | "VMDR" | "wind"
-  | "ph" | "o2" | "phyc" | "nppv" | "no3" | "po4" | "si";
+  | "ph" | "o2" | "phyc" | "nppv" | "no3" | "po4" | "si" | "fe" | "zooc" | "zeu"
+  | "spco2" | "talk" | "dissic";
 
 function liveDate(daysBack: number, hour = "00:00:00"): string {
   const d = new Date(); d.setDate(d.getDate() - daysBack);
@@ -680,15 +693,53 @@ const LIVE_LAYERS: LiveLayer[] = [
     product: BGC, dataset: "cmems_mod_glo_bgc-nut_anfc_0.25deg_P1M-m_202311",
     elevation: -0.494, time: () => "2024-01-01T00:00:00Z",  toolboxId: "cmems_mod_glo_bgc-nut_anfc_0.25deg_P1M-m_202311",    group: "BGC Forecast",
     productTitle: "Global Ocean Biogeochemistry Analysis and Forecast", resolution: "1/4° · ~25 km", cadence: "Monthly forecast", depthRange: "0–5727 m · 50 levels", coverage: "Global · 2019–NRT" },
-  { var: "si",                label: "Silicate",           unit: "mmol m⁻³ · monthly",         color: "#74b9ff", cmap: "deep",
+  { var: "si",                label: "Silicate",              unit: "mmol m⁻³ · monthly",         color: "#74b9ff", cmap: "deep",
     product: BGC, dataset: "cmems_mod_glo_bgc-nut_anfc_0.25deg_P1M-m_202311",
     elevation: -0.494, time: () => "2024-01-01T00:00:00Z",  toolboxId: "cmems_mod_glo_bgc-nut_anfc_0.25deg_P1M-m_202311",    group: "BGC Forecast",
+    productTitle: "Global Ocean Biogeochemistry Analysis and Forecast", resolution: "1/4° · ~25 km", cadence: "Monthly forecast", depthRange: "0–5727 m · 50 levels", coverage: "Global · 2019–NRT" },
+  { var: "fe",                label: "Dissolved Iron",        unit: "µmol m⁻³ · monthly",         color: "#e17055", cmap: "amp",
+    product: BGC, dataset: "cmems_mod_glo_bgc-nut_anfc_0.25deg_P1M-m_202311",
+    elevation: -0.494, time: () => "2024-01-01T00:00:00Z",  toolboxId: "cmems_mod_glo_bgc-nut_anfc_0.25deg_P1M-m_202311",    group: "BGC Forecast",
+    productTitle: "Global Ocean Biogeochemistry Analysis and Forecast", resolution: "1/4° · ~25 km", cadence: "Monthly forecast", depthRange: "0–5727 m · 50 levels", coverage: "Global · 2019–NRT" },
+  { var: "zooc",              label: "Zooplankton Carbon",    unit: "mgC m⁻³ · monthly",           color: "#f9ca24", cmap: "solar",
+    product: BGC, dataset: "cmems_mod_glo_bgc-pft_anfc_0.25deg_P1M-m_202311",
+    elevation: null,   time: () => "2024-01-01T00:00:00Z",  toolboxId: "cmems_mod_glo_bgc-pft_anfc_0.25deg_P1M-m_202311",    group: "BGC Forecast",
+    productTitle: "Global Ocean Biogeochemistry Analysis and Forecast", resolution: "1/4° · ~25 km", cadence: "Monthly forecast", depthRange: "Surface", coverage: "Global · 2019–NRT" },
+  { var: "zeu",               label: "Euphotic Zone Depth",   unit: "m · monthly",                 color: "#00b4d8", cmap: "dense",
+    product: BGC, dataset: "cmems_mod_glo_bgc-pft_anfc_0.25deg_P1M-m_202311",
+    elevation: null,   time: () => "2024-01-01T00:00:00Z",  toolboxId: "cmems_mod_glo_bgc-pft_anfc_0.25deg_P1M-m_202311",    group: "BGC Forecast",
+    productTitle: "Global Ocean Biogeochemistry Analysis and Forecast", resolution: "1/4° · ~25 km", cadence: "Monthly forecast", depthRange: "Surface", coverage: "Global · 2019–NRT" },
+  // ── Blue Ocean — Mixed Layer & Ice extras (PHY_001_024) ──────────────────
+  { var: "mlotst",            label: "Mixed Layer Depth",     unit: "m · daily",                   color: "#0984e3", cmap: "matter",
+    product: PHY, dataset: "cmems_mod_glo_phy_anfc_0.083deg_P1D-m_202406",
+    elevation: null,   time: () => liveDate(2),              toolboxId: "cmems_mod_glo_phy_anfc_0.083deg_P1D-m_202406",       group: "Physics Forecast",
+    productTitle: "Global Ocean Physics Analysis and Forecast", resolution: "1/12° · ~9 km", cadence: "Daily forecast", depthRange: "Surface (derived)", coverage: "Global · 2019–NRT" },
+  { var: "bottomT",           label: "Sea Floor Temp.",       unit: "°C · 6H forecast",            color: "#e67e22", cmap: "thermal",
+    product: PHY, dataset: "cmems_mod_glo_phy-thetao_anfc_0.083deg_PT6H-i_202406",
+    elevation: null,   time: () => liveDate(1),              toolboxId: "cmems_mod_glo_phy-thetao_anfc_0.083deg_PT6H-i_202406", group: "Physics Forecast",
+    productTitle: "Global Ocean Physics Analysis and Forecast", resolution: "1/12° · ~9 km", cadence: "6-hourly forecast", depthRange: "Sea floor", coverage: "Global · 2019–NRT" },
+  { var: "sithick",           label: "Sea Ice Thickness",     unit: "m · daily",                   color: "#b2d8f7", cmap: "ice",
+    product: PHY, dataset: "cmems_mod_glo_phy_anfc_0.083deg_P1D-m_202406",
+    elevation: null,   time: () => liveDate(2),              toolboxId: "cmems_mod_glo_phy_anfc_0.083deg_P1D-m_202406",       group: "Physics Forecast",
+    productTitle: "Global Ocean Physics Analysis and Forecast", resolution: "1/12° · ~9 km", cadence: "Daily forecast", depthRange: "Surface", coverage: "Global · 2019–NRT" },
+  // ── Carbon System (BGC_001_028 · carbon dataset) ─────────────────────────
+  { var: "spco2",             label: "Surface pCO₂",          unit: "µatm · monthly",              color: "#e84393", cmap: "matter",
+    product: BGC, dataset: "cmems_mod_glo_bgc-car_anfc_0.25deg_P1M-m_202311",
+    elevation: null,   time: () => "2024-01-01T00:00:00Z",  toolboxId: "cmems_mod_glo_bgc-car_anfc_0.25deg_P1M-m_202311",    group: "Carbon System",
+    productTitle: "Global Ocean Biogeochemistry Analysis and Forecast", resolution: "1/4° · ~25 km", cadence: "Monthly forecast", depthRange: "Surface", coverage: "Global · 2019–NRT" },
+  { var: "talk",              label: "Total Alkalinity",      unit: "mmol m⁻³ · monthly",          color: "#48cae4", cmap: "deep",
+    product: BGC, dataset: "cmems_mod_glo_bgc-car_anfc_0.25deg_P1M-m_202311",
+    elevation: -0.494, time: () => "2024-01-01T00:00:00Z",  toolboxId: "cmems_mod_glo_bgc-car_anfc_0.25deg_P1M-m_202311",    group: "Carbon System",
+    productTitle: "Global Ocean Biogeochemistry Analysis and Forecast", resolution: "1/4° · ~25 km", cadence: "Monthly forecast", depthRange: "0–5727 m · 50 levels", coverage: "Global · 2019–NRT" },
+  { var: "dissic",            label: "Diss. Inorg. Carbon",   unit: "mmol m⁻³ · monthly",          color: "#90e0ef", cmap: "ice",
+    product: BGC, dataset: "cmems_mod_glo_bgc-car_anfc_0.25deg_P1M-m_202311",
+    elevation: -0.494, time: () => "2024-01-01T00:00:00Z",  toolboxId: "cmems_mod_glo_bgc-car_anfc_0.25deg_P1M-m_202311",    group: "Carbon System",
     productTitle: "Global Ocean Biogeochemistry Analysis and Forecast", resolution: "1/4° · ~25 km", cadence: "Monthly forecast", depthRange: "0–5727 m · 50 levels", coverage: "Global · 2019–NRT" },
 ];
 
 const LIVE_GROUPS = [
   "SST NRT", "Physics Forecast", "Observation · Multi-sensor",
-  "Sea Level Altimetry", "Wave & Wind", "BGC Forecast",
+  "Sea Level Altimetry", "Wave & Wind", "BGC Forecast", "Carbon System",
 ] as const;
 
 // Simplified 500 m-interval depth steps for the compact selector (positive metres)
@@ -747,6 +798,9 @@ const CMAP_CSS: Record<string, string> = {
   tempo:   "linear-gradient(90deg,#fff4f0 0%,#f7b7a0 30%,#e56b4c 55%,#a82c1a 80%,#5b0e0a 100%)",
   deep:    "linear-gradient(90deg,#fdfdd9 0%,#d6d67a 25%,#5b9b5b 52%,#1a5c8a 77%,#0d0d4d 100%)",
   phase:   "linear-gradient(90deg,#a777b5 0%,#e87a7a 25%,#f0d870 50%,#7ab870 75%,#4878c0 100%)",
+  solar:   "linear-gradient(90deg,#3c1518 0%,#7c2714 20%,#c0521a 42%,#e8902e 62%,#f9d06a 82%,#ffffd4 100%)",
+  plasma:  "linear-gradient(90deg,#0d0887 0%,#5b02a3 20%,#a82296 42%,#dc3b76 62%,#f77c52 80%,#fdca26 100%)",
+  turbid:  "linear-gradient(90deg,#e8f5e0 0%,#c3d98a 28%,#a8a640 52%,#956c18 77%,#543005 100%)",
 };
 
 // Approximate scientific value ranges [min, max, unit] per live layer variable
@@ -772,6 +826,15 @@ const LAYER_VALUE_RANGES: Record<string, [number, number, string]> = {
   no3:                [0,    50,   "mmol/m³"],
   po4:                [0,    3,    "mmol/m³"],
   si:                 [0,    80,   "mmol/m³"],
+  fe:                 [0,    1,    "µmol/m³"],
+  zooc:               [0,    5,    "mgC/m³"],
+  zeu:                [0,    200,  "m"],
+  mlotst:             [0,    300,  "m"],
+  bottomT:            [-2,   30,   "°C"],
+  sithick:            [0,    4,    "m"],
+  spco2:              [300,  450,  "µatm"],
+  talk:               [2200, 2450, "mmol/m³"],
+  dissic:             [1900, 2200, "mmol/m³"],
 };
 
 // ─── Expanded map modal ───────────────────────────────────────────────────────
@@ -932,7 +995,7 @@ function ExpandedMapModal({
     ? CMS_LAYERS.find(l => l.var === activeCmsVar) ?? null
     : null;
   const cmsTileUrl = activeCmsLayer
-    ? buildCmsTileUrl(activeCmsLayer.var as CmsVar, activeCmsLayer.cmap, cmsYYYYMM)
+    ? buildCmsTileUrl(activeCmsLayer.var as CmsVar, activeCmsLayer.cmap, cmsYYYYMM, (activeCmsLayer as any).dataset)
     : null;
 
   const activeLiveLayer = activeLiveVar
@@ -2880,7 +2943,7 @@ export function ReefMap({
     ? CMS_LAYERS.find(l => l.var === activeCmsVar) ?? null
     : null;
   const cmsTileUrl = activeCmsLayer
-    ? buildCmsTileUrl(activeCmsLayer.var as CmsVar, activeCmsLayer.cmap, cmsYYYYMM)
+    ? buildCmsTileUrl(activeCmsLayer.var as CmsVar, activeCmsLayer.cmap, cmsYYYYMM, (activeCmsLayer as any).dataset)
     : null;
   const activeLiveLayer = activeLiveVar
     ? LIVE_LAYERS.find(l => l.var === activeLiveVar) ?? null
