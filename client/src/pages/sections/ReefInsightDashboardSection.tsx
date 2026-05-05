@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from "react";
-import { ExternalLink } from "lucide-react";
 import pepoPng from "@assets/MesoReefDAO_Pepo_The_Polyp_1776218616437.png";
 import coralBg from "@assets/coral_textures_1776303814463.jpg";
 import { usePrivy } from "@privy-io/react-auth";
@@ -283,44 +282,15 @@ export const ReefInsightDashboardSection = (): JSX.Element => {
       <div className="relative flex-1 min-h-0 w-full rounded-[16px] md:rounded-[20px] overflow-hidden"
            style={{ border: "1px solid rgba(131,238,240,0.12)", minHeight: "calc(100vh - 200px)" }}>
 
-        {/* Graph header bar */}
-        <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-4 py-3 border-b border-[#83eef01a]"
-             style={{ background: "rgba(0,16,23,0.92)", backdropFilter: "blur(8px)" }}>
-          <div className="flex items-center gap-2.5">
-            <img className="w-5 h-5 flex-shrink-0" alt="Bonfires" src="/figmaAssets/container.svg" />
-            <div className="flex flex-col">
-              <span className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-bold text-[#83eef0] text-sm leading-5">
-                {t("dashboard.knowledgeGraph")}
-              </span>
-              <span className="[font-family:'Inter',Helvetica] text-[#d4e9f366] text-[10px] leading-4">
-                {t("dashboard.poweredByBonfires")}
-              </span>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <a
-              href={BONFIRES_GRAPH_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#83eef033] hover:bg-[#83eef026] transition-colors no-underline"
-              style={{ background: "rgba(131,238,240,0.1)" }}
-              data-testid="link-full-graph"
-            >
-              <ExternalLink size={10} className="text-[#83eef0]" />
-              <span className="[font-family:'Inter',Helvetica] text-[#83eef0] text-[10px] font-medium whitespace-nowrap">{t("dashboard.fullGraph")}</span>
-            </a>
-          </div>
-        </div>
-
-        {/* Graph iframe — fills all remaining space below header */}
-        <div className="absolute inset-0 pt-[52px]">
+        {/* Graph iframe — fills the full container */}
+        <div className="absolute inset-0">
           <GraphLoadingShimmer visible={graphLoading} />
           <iframe
-            src="/api/graph-embed"
+            src={BONFIRES_GRAPH_URL}
             title="Reef Knowledge Graph"
             className="w-full h-full border-0"
             style={{ background: "#00080c" }}
-            allow="clipboard-write; clipboard-read; pointer-lock"
+            allow="clipboard-write; clipboard-read; pointer-lock; fullscreen"
             loading="lazy"
             data-testid="iframe-knowledge-graph"
             onLoad={() => setGraphLoading(false)}
