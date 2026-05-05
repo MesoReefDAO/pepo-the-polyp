@@ -6,7 +6,6 @@ import coralBg from "@assets/coral_textures_1776303814463.jpg";
 import { usePrivy } from "@privy-io/react-auth";
 import { useOrcidAuth } from "@/hooks/use-orcid-auth";
 import { useQueryClient } from "@tanstack/react-query";
-import { KnowledgeGraphCanvas } from "@/components/KnowledgeGraphCanvas";
 
 const TELEGRAM_BOT_URL = "https://t.me/PepothePolyp_bot";
 const BONFIRES_GRAPH_URL = "https://pepo.app.bonfires.ai/graph";
@@ -59,8 +58,30 @@ function KnowledgeGraphPanel() {
         </a>
       </div>
 
-      {/* Custom force-directed graph canvas */}
-      <KnowledgeGraphCanvas className="flex-1 w-full" />
+      {/*
+        Bonfires.ai graph — direct cross-origin iframe.
+        CSS clipping hides:
+          • top 44 px  → Bonfires.ai navigation bar
+          • left 560 px → EXPLORER floating panel (occupies x≈265-555 in a 1456 px viewport)
+        The graph canvas fills the remaining visible area; users can still pan/zoom.
+      */}
+      <div className="relative flex-1 w-full overflow-hidden" style={{ minHeight: "280px" }}>
+        <iframe
+          src="https://pepo.app.bonfires.ai/graph"
+          title="Reef Knowledge Graph"
+          style={{
+            position: "absolute",
+            top: "-44px",
+            left: "-560px",
+            width: "calc(100% + 560px)",
+            height: "calc(100% + 44px)",
+            border: "none",
+          }}
+          sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+          loading="lazy"
+          data-testid="iframe-knowledge-graph"
+        />
+      </div>
     </div>
   );
 }

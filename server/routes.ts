@@ -783,6 +783,155 @@ export async function registerRoutes(
     });
   });
 
+  // Proxy: serve Bonfires.ai /graph page with EXPLORER panel hidden via injected script
+  app.get("/api/graph-embed", async (_req: Request, res: Response) => {
+    try {
+      const upstream = await fetch("https://pepo.app.bonfires.ai/graph", {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (compatible; MesoReefDAO/1.0)",
+          "Accept": "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8",
+        },
+        signal: AbortSignal.timeout(12000),
+      });
+
+      if (!upstream.ok) {
+        return res.status(upstream.status).send(
+          `<html><body style="background:#00080c;color:#83eef0;font-family:Inter,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">Graph unavailable (${upstream.status})</body></html>`
+        );
+      }
+
+      let html = await upstream.text();
+
+      // ── Injection block ────────────────────────────────────────────────────
+      // 1. <base> so all /_next/ relative paths resolve against Bonfires.ai
+      // 2. CSS to hide the sticky header immediately (before React hydrates)
+      // 3. MutationObserver script to hide the EXPLORER panel once React renders it
+      const injection = `
+<base href="https://pepo.app.bonfires.ai/">
+<style>
+  header { display: none !important; }
+  body { padding-top: 0 !important; margin-top: 0 !important; }
+</style>
+<script>
+/* ── 1. Stub Clerk API calls so React renders without a real Clerk session ── */
+(function () {
+  var _fetch = window.fetch;
+  window.fetch = function (resource, init) {
+    var url = typeof resource === "string" ? resource
+            : (resource instanceof URL ? resource.href
+            : (resource && resource.url ? resource.url : ""));
+    if (url && url.indexOf("clerk.bonfires.ai") !== -1) {
+      /* Return a minimal Clerk client payload that says "not signed in" */
+      var mockClient = {
+        id: "client_mock",
+        object: "client",
+        session_ids: [],
+        sessions: [],
+        sign_in: null,
+        sign_up: null,
+        last_active_session_id: null,
+        created_at: 0,
+        updated_at: 0
+      };
+      return Promise.resolve(
+        new Response(JSON.stringify({ response: mockClient, client: mockClient }), {
+          status: 200,
+          headers: { "content-type": "application/json" }
+        })
+      );
+    }
+    return _fetch.apply(this, arguments);
+  };
+})();
+
+/* ── 2. Hide header + EXPLORER panel once React hydrates ─────────────────── */
+(function () {
+  var MAX = 60;
+  var tries = 0;
+  var explorerHidden = false;
+  var headerHidden = false;
+
+  function hideAll() {
+    tries++;
+
+    if (!headerHidden) {
+      var hdr = document.querySelector("header");
+      if (hdr) { hdr.style.setProperty("display", "none", "important"); headerHidden = true; }
+    }
+
+    if (!explorerHidden) {
+      var walker = document.createTreeWalker(
+        document.body || document.documentElement,
+        NodeFilter.SHOW_TEXT,
+        null
+      );
+      var node;
+      while ((node = walker.nextNode())) {
+        if ((node.nodeValue || "").trim().toUpperCase() === "EXPLORER") {
+          var el = node.parentElement;
+          for (var i = 0; i < 15; i++) {
+            if (!el || el === document.body || el === document.documentElement) break;
+            if (el.offsetWidth > 60 && el.offsetHeight > 100) {
+              el.style.setProperty("display", "none", "important");
+              explorerHidden = true;
+              break;
+            }
+            el = el.parentElement;
+          }
+          if (explorerHidden) break;
+        }
+      }
+    }
+
+    if ((!explorerHidden || !headerHidden) && tries < MAX) {
+      setTimeout(hideAll, 200);
+    }
+  }
+
+  if (document.body) { hideAll(); }
+  else { document.addEventListener("DOMContentLoaded", hideAll); }
+  setTimeout(hideAll, 300);
+  setTimeout(hideAll, 800);
+  setTimeout(hideAll, 1500);
+  setTimeout(hideAll, 3000);
+  setTimeout(hideAll, 6000);
+
+  var mo = new MutationObserver(function () { hideAll(); });
+  function attachObserver() {
+    if (document.body) { mo.observe(document.body, { childList: true, subtree: true }); }
+    else { document.addEventListener("DOMContentLoaded", function () { mo.observe(document.body, { childList: true, subtree: true }); }); }
+  }
+  attachObserver();
+})();
+</script>`;
+
+      // Inject right after <head> opening tag (before any other content)
+      if (html.includes("<head>")) {
+        html = html.replace("<head>", "<head>" + injection);
+      } else if (html.includes("<HEAD>")) {
+        html = html.replace("<HEAD>", "<HEAD>" + injection);
+      } else {
+        html = injection + html;
+      }
+
+      // Serve with permissive headers so the iframe can load this from our domain
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.setHeader("X-Frame-Options", "SAMEORIGIN");
+      res.setHeader("Cache-Control", "no-store");
+      // Wide-open CSP so Bonfires.ai assets, Clerk, websockets etc. all work
+      res.setHeader(
+        "Content-Security-Policy",
+        "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;"
+      );
+      return res.send(html);
+    } catch (err) {
+      console.error("[graph-embed]", err);
+      return res.status(502).send(
+        `<html><body style="background:#00080c;color:#83eef0;font-family:Inter,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">Graph temporarily unavailable</body></html>`
+      );
+    }
+  });
+
   // Proxy: search knowledge graph
   app.post("/api/graph/search", async (req: Request, res: Response) => {
     const query = sanitizeString(req.body?.query, 500);
