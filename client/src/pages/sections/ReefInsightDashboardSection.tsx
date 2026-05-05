@@ -9,11 +9,6 @@ import { useTranslation } from "react-i18next";
 const TELEGRAM_BOT_URL = "https://t.me/PepothePolyp_bot";
 const BONFIRES_GRAPH_URL = "https://pepo.app.bonfires.ai/graph";
 
-const FOOTER_LINK_HREFS = [
-  { key: "privacy" as const,       href: "https://mesoreefdao.gitbook.io/privacy-policy" },
-  { key: "terms" as const,         href: "https://mesoreefdao.gitbook.io/terms-and-conditions" },
-  { key: "conservation" as const,  href: "https://mesoreefdao.org/science-ai" },
-];
 
 function TgIcon({ size = 16 }: { size?: number }) {
   return (
@@ -324,98 +319,13 @@ export const ReefInsightDashboardSection = (): JSX.Element => {
           <div className="absolute top-0 left-0 right-0 h-[2px] z-[6] pointer-events-none"
             style={{ background: "linear-gradient(90deg,rgba(131,238,240,0.0) 0%,rgba(131,238,240,0.4) 50%,rgba(131,238,240,0.0) 100%)" }} />
 
-          {/* ── Header bar ─────────────────────────────────────────── */}
-          <div
-            className="absolute top-0 left-0 right-0 z-10 flex items-center gap-3 px-5"
-            style={{
-              height: 52,
-              background:
-                "linear-gradient(90deg,rgba(0,10,14,0.99) 0%,rgba(0,20,26,0.97) 60%,rgba(0,14,18,0.99) 100%)",
-              borderBottom: "1px solid rgba(131,238,240,0.12)",
-              backdropFilter: "blur(16px)",
-            }}
-          >
-            {/* Icon pill */}
-            <div
-              className="flex items-center justify-center w-8 h-8 rounded-xl shrink-0"
-              style={{
-                background: "linear-gradient(135deg,rgba(131,238,240,0.14) 0%,rgba(63,176,179,0.08) 100%)",
-                border: "1px solid rgba(131,238,240,0.22)",
-                boxShadow: "0 0 12px rgba(131,238,240,0.12)",
-              }}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <circle cx="5"  cy="12" r="2.8" fill="#83eef0"/>
-                <circle cx="19" cy="6"  r="2.2" fill="#83eef0" fillOpacity="0.55"/>
-                <circle cx="19" cy="18" r="2.2" fill="#83eef0" fillOpacity="0.55"/>
-                <line x1="7.5" y1="10.8" x2="17" y2="7"  stroke="#83eef0" strokeOpacity="0.5" strokeWidth="1.4"/>
-                <line x1="7.5" y1="13.2" x2="17" y2="17" stroke="#83eef0" strokeOpacity="0.5" strokeWidth="1.4"/>
-              </svg>
-            </div>
-
-            {/* Title + subtitle */}
-            <div className="flex flex-col gap-0.5">
-              <span className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-bold text-[#e8f8f9] text-[13px] leading-none tracking-tight">
-                {t("dashboard.knowledgeGraph")}
-              </span>
-              <span className="[font-family:'Inter',Helvetica] text-[#83eef066] text-[9px] leading-none">
-                Research Network
-              </span>
-            </div>
-
-            {/* Live pulse */}
-            <div className="flex items-center gap-1.5 ml-2">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#83eef0] opacity-50" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-[#83eef0]" />
-              </span>
-              <span className="[font-family:'Inter',Helvetica] text-[#83eef0] text-[9px] font-semibold tracking-wider uppercase">Live</span>
-            </div>
-
-            <div className="flex-1" />
-
-            {/* 165+ nodes badge */}
-            <div
-              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full"
-              style={{
-                background: "rgba(131,238,240,0.06)",
-                border: "1px solid rgba(131,238,240,0.16)",
-              }}
-            >
-              <svg width="9" height="9" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="12" r="3.5" fill="#83eef0"/>
-                <circle cx="4"  cy="6"  r="2.2" fill="#83eef0" fillOpacity="0.5"/>
-                <circle cx="20" cy="6"  r="2.2" fill="#83eef0" fillOpacity="0.5"/>
-                <circle cx="4"  cy="18" r="2.2" fill="#83eef0" fillOpacity="0.5"/>
-                <circle cx="20" cy="18" r="2.2" fill="#83eef0" fillOpacity="0.5"/>
-                <line x1="6" y1="7"  x2="10" y2="11" stroke="#83eef0" strokeOpacity="0.35" strokeWidth="1.2"/>
-                <line x1="18" y1="7"  x2="14" y2="11" stroke="#83eef0" strokeOpacity="0.35" strokeWidth="1.2"/>
-                <line x1="6" y1="17" x2="10" y2="13" stroke="#83eef0" strokeOpacity="0.35" strokeWidth="1.2"/>
-                <line x1="18" y1="17" x2="14" y2="13" stroke="#83eef0" strokeOpacity="0.35" strokeWidth="1.2"/>
-              </svg>
-              <span className="[font-family:'Inter',Helvetica] text-[#83eef0] text-[10px] font-semibold">165+ nodes</span>
-            </div>
-
-            {/* Bonfires.ai pill */}
-            <div
-              className="flex items-center gap-1 px-2.5 py-1 rounded-full"
-              style={{
-                background: "rgba(255,255,255,0.03)",
-                border: "1px solid rgba(255,255,255,0.07)",
-              }}
-            >
-              <span className="[font-family:'Inter',Helvetica] text-[#d4e9f330] text-[9px]">powered by</span>
-              <span className="[font-family:'Inter',Helvetica] text-[#d4e9f355] text-[9px] font-semibold">Bonfires.ai</span>
-            </div>
-          </div>
-
-          {/* Iframe */}
+          {/* Iframe — fills full container; Bonfires.ai renders its own header */}
           <GraphLoadingShimmer visible={graphLoading} />
           <iframe
             src={BONFIRES_GRAPH_URL}
             title="Reef Knowledge Graph"
-            className="absolute left-0 right-0 bottom-0 w-full border-0"
-            style={{ top: 52, background: "#00080c" }}
+            className="absolute inset-0 w-full h-full border-0"
+            style={{ background: "#00080c" }}
             allow="clipboard-write; clipboard-read; pointer-lock; fullscreen"
             loading="lazy"
             data-testid="iframe-knowledge-graph"
@@ -430,26 +340,6 @@ export const ReefInsightDashboardSection = (): JSX.Element => {
           <CleanCoralPanel />
         </div>
 
-      </div>
-
-      {/* ── Footer ──────────────────────────────────────────────────────── */}
-      <div className="shrink-0 flex items-center justify-center gap-4 flex-wrap">
-        {FOOTER_LINK_HREFS.map(({ key, href }) => (
-          <a
-            key={key}
-            href={href}
-            rel="noopener noreferrer"
-            target="_blank"
-            className="[font-family:'Inter',Helvetica] text-[#d4e9f340] text-[9px] hover:text-[#d4e9f380] transition-colors tracking-wide"
-          >
-            {t(`footer.${key}`)}
-          </a>
-        ))}
-        <span className="text-[#d4e9f320] text-[9px]">·</span>
-        <a href="https://bonfires.ai/" target="_blank" rel="noopener noreferrer"
-           className="[font-family:'Inter',Helvetica] text-[#d4e9f330] text-[9px] hover:text-[#d4e9f360] transition-colors">
-          Powered by Bonfires.ai
-        </a>
       </div>
 
     </div>
