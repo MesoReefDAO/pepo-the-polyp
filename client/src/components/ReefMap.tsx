@@ -691,6 +691,9 @@ const LIVE_GROUPS = [
   "Sea Level Altimetry", "Wave & Wind", "BGC Forecast",
 ] as const;
 
+// Simplified 500 m-interval depth steps for the compact selector (positive metres)
+const COMPACT_DEPTH_STEPS = [0, 500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500] as const;
+
 // Standard CMEMS depth levels (metres, negative = below surface) — ARMOR3D / PHY 33-level grid
 const DEPTH_LEVELS = [
   -0.494, -1.541, -2.646, -3.819, -5.078, -6.440, -7.929,
@@ -2757,6 +2760,7 @@ export function ReefMap({
     const d = new Date(); d.setDate(d.getDate() - 3);
     return d.toISOString().slice(0, 10) + "T00:00:00Z";
   });
+  const [compactDepthM,     setCompactDepthM]     = useState<number>(0);
 
   const activeCmsLayer = activeCmsVar
     ? CMS_LAYERS.find(l => l.var === activeCmsVar) ?? null
@@ -2768,7 +2772,11 @@ export function ReefMap({
     ? LIVE_LAYERS.find(l => l.var === activeLiveVar) ?? null
     : null;
   const liveTileUrl = activeLiveLayer
-    ? buildLiveTileUrl(activeLiveLayer, compactLiveDate, null)
+    ? buildLiveTileUrl(
+        activeLiveLayer,
+        compactLiveDate,
+        activeLiveLayer.elevation != null ? -compactDepthM : null,
+      )
     : null;
 
   const expanded  = externalExpanded !== undefined ? externalExpanded : internalExpanded;
@@ -3126,6 +3134,29 @@ export function ReefMap({
                         <span style={{ color: activeLiveLayer.color }}>● </span>{activeLiveLayer.unit}
                       </div>
                     </>
+                  )}
+                  {/* ── Depth selector — 500 m steps, only for depth-capable layers ── */}
+                  {activeLiveVar && activeLiveLayer && activeLiveLayer.elevation != null && (
+                    <div style={{ padding: "4px 8px 6px" }}>
+                      <div style={{ fontSize: 6.5, fontFamily: "Inter,sans-serif", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#d4e9f322", marginBottom: 4, paddingLeft: 2 }}>↕ Depth</div>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
+                        {COMPACT_DEPTH_STEPS.map(m => (
+                          <button
+                            key={m}
+                            data-testid={`compact-depth-${m}`}
+                            onClick={() => setCompactDepthM(m)}
+                            style={{
+                              fontSize: 7.5, fontFamily: "Inter,sans-serif", fontWeight: 600,
+                              padding: "2px 6px", borderRadius: 20, cursor: "pointer",
+                              background: compactDepthM === m ? `${activeLiveLayer.color}22` : "rgba(255,255,255,0.04)",
+                              border: `1px solid ${compactDepthM === m ? `${activeLiveLayer.color}99` : "rgba(255,255,255,0.1)"}`,
+                              color: compactDepthM === m ? activeLiveLayer.color : "#d4e9f344",
+                              transition: "all 0.15s",
+                            }}
+                          >{m === 0 ? "Surface" : `${m} m`}</button>
+                        ))}
+                      </div>
+                    </div>
                   )}
                 </div>
 
