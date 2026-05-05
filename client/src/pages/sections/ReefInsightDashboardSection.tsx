@@ -484,7 +484,7 @@ export const ReefInsightDashboardSection = (): JSX.Element => {
               className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-bold text-sm"
               style={{ color: "#d4e9f3" }}
             >
-              Reef Regen Knowledge Graph
+              Regen Reef Knowledge Graph
             </span>
           </div>
 
@@ -528,7 +528,7 @@ export const ReefInsightDashboardSection = (): JSX.Element => {
           <iframe
             ref={iframeRef}
             src={BONFIRES_GRAPH_URL}
-            title="Reef Regen Knowledge Graph"
+            title="Regen Reef Knowledge Graph"
             className="absolute top-0 border-0"
             style={{
               left: 0,
