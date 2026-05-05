@@ -282,7 +282,7 @@ export const ExplorerNavigationSidebarSection = (): JSX.Element => {
   const isCuration = location === "/curation";
   const isReefMap = location === "/reef-map";
   const isHyperBlogs = location === "/hyperblogs";
-  const isGraph = location === "/graph";
+  const isGraph = location === "/" || location === "/graph";
 
   return (
     <nav className="flex flex-col w-64 min-h-screen items-start justify-between p-6 bg-[#00080c99] border-r border-[#ffffff0d] backdrop-blur-md [-webkit-backdrop-filter:blur(12px)_brightness(100%)] relative z-10">
@@ -305,7 +305,7 @@ export const ExplorerNavigationSidebarSection = (): JSX.Element => {
 
         {/* Knowledge Graph */}
         <Link
-          href="/graph"
+          href="/"
           data-testid="link-knowledge-graph"
           className={`${PILL_BASE} ${isGraph ? PILL_ACTIVE : PILL_INACTIVE}`}
           style={isGraph ? EMBOSS : {}}

@@ -94,35 +94,20 @@ export function MobileBottomNav() {
       className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex items-stretch justify-around bg-[#00080cf8] border-t border-[#ffffff0d] backdrop-blur-xl"
       style={{ paddingBottom: "max(10px, env(safe-area-inset-bottom))" }}
     >
-      {/* Chat */}
+      {/* Knowledge Graph (home) */}
       <Link
         href="/"
-        data-testid="nav-mobile-chat"
-        className={`flex flex-col items-center justify-center gap-1 flex-1 py-3 min-h-[56px] no-underline transition-opacity ${active("/") ? "opacity-100" : "opacity-50"}`}
-      >
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-          <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z"
-            stroke={active("/") ? "#83eef0" : "#d4e9f380"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-        <span className={`text-[9px] font-medium ${active("/") ? "text-[#83eef0]" : "text-[#d4e9f380]"}`}>
-          {t("mobile.chat")}
-        </span>
-      </Link>
-
-      {/* Graph */}
-      <Link
-        href="/graph"
         data-testid="nav-mobile-graph"
-        className={`flex flex-col items-center justify-center gap-1 flex-1 py-3 min-h-[56px] no-underline transition-opacity ${active("/graph") ? "opacity-100" : "opacity-50"}`}
+        className={`flex flex-col items-center justify-center gap-1 flex-1 py-3 min-h-[56px] no-underline transition-opacity ${active("/") || active("/graph") ? "opacity-100" : "opacity-50"}`}
       >
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-          <circle cx="5" cy="12" r="2.5" fill={active("/graph") ? "#83eef0" : "#d4e9f380"} />
-          <circle cx="19" cy="6" r="2.5" fill={active("/graph") ? "#83eef066" : "#d4e9f340"} />
-          <circle cx="19" cy="18" r="2.5" fill={active("/graph") ? "#83eef066" : "#d4e9f340"} />
-          <line x1="7" y1="11" x2="17" y2="7" stroke={active("/graph") ? "#83eef0" : "#d4e9f380"} strokeWidth="1.5"/>
-          <line x1="7" y1="13" x2="17" y2="17" stroke={active("/graph") ? "#83eef0" : "#d4e9f380"} strokeWidth="1.5"/>
+          <circle cx="5" cy="12" r="2.5" fill={active("/") || active("/graph") ? "#83eef0" : "#d4e9f380"} />
+          <circle cx="19" cy="6" r="2.5" fill={active("/") || active("/graph") ? "#83eef066" : "#d4e9f340"} />
+          <circle cx="19" cy="18" r="2.5" fill={active("/") || active("/graph") ? "#83eef066" : "#d4e9f340"} />
+          <line x1="7" y1="11" x2="17" y2="7" stroke={active("/") || active("/graph") ? "#83eef0" : "#d4e9f380"} strokeWidth="1.5"/>
+          <line x1="7" y1="13" x2="17" y2="17" stroke={active("/") || active("/graph") ? "#83eef0" : "#d4e9f380"} strokeWidth="1.5"/>
         </svg>
-        <span className={`text-[9px] ${active("/graph") ? "text-[#83eef0] font-medium" : "text-[#d4e9f380]"}`}>
+        <span className={`text-[9px] font-medium ${active("/") || active("/graph") ? "text-[#83eef0]" : "text-[#d4e9f380]"}`}>
           {t("mobile.graph")}
         </span>
       </Link>

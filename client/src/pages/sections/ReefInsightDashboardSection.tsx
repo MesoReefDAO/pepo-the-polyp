@@ -1,6 +1,5 @@
-import { Card, CardContent } from "@/components/ui/card";
 import { useState, useEffect, useCallback } from "react";
-import { ExternalLink, Network } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import pepoPng from "@assets/MesoReefDAO_Pepo_The_Polyp_1776218616437.png";
 import coralBg from "@assets/coral_textures_1776303814463.jpg";
 import { usePrivy } from "@privy-io/react-auth";
@@ -17,8 +16,6 @@ const FOOTER_LINK_HREFS = [
   { key: "conservation" as const,  href: "https://mesoreefdao.org/science-ai" },
 ];
 
-
-// ── Telegram icon SVG ────────────────────────────────────────────────────────
 function TgIcon({ size = 16 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
@@ -27,62 +24,6 @@ function TgIcon({ size = 16 }: { size?: number }) {
   );
 }
 
-
-function KnowledgeGraphPanel() {
-  const { t } = useTranslation();
-  return (
-    <div
-      className="relative flex-1 self-stretch w-full flex flex-col rounded-[24px] md:rounded-[32px] overflow-hidden border border-solid border-[#83eef01a] bg-[#00080c]"
-      style={{ minHeight: "320px", boxShadow: "inset 0 2px 6px rgba(0,0,0,0.55), inset 0 1px 2px rgba(0,0,0,0.35)" }}
-    >
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-[#83eef01a] bg-[#001017bf] shrink-0">
-        <div className="flex items-center gap-2.5">
-          <img className="w-6 h-6 flex-shrink-0" alt="Bonfires" src="/figmaAssets/container.svg" />
-          <div className="flex flex-col">
-            <span className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-bold text-[#83eef0] text-sm leading-5">
-              {t("dashboard.knowledgeGraph")}
-            </span>
-            <span className="[font-family:'Inter',Helvetica] font-normal text-[#d4e9f366] text-[10px] leading-4">
-              {t("dashboard.poweredByBonfires")}
-            </span>
-          </div>
-        </div>
-        <a
-          href={BONFIRES_GRAPH_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-[#83eef01a] rounded-full border border-solid border-[#83eef033] hover:bg-[#83eef026] transition-colors no-underline"
-          data-testid="link-full-graph"
-        >
-          <ExternalLink size={10} className="text-[#83eef0]" />
-          <span className="[font-family:'Inter',Helvetica] text-[#83eef0] text-[10px] font-medium whitespace-nowrap">{t("dashboard.fullGraph")}</span>
-        </a>
-      </div>
-
-      <div className="relative flex-1 w-full overflow-hidden" style={{ minHeight: "400px" }}>
-        {/* Bonfires.ai graph — all screen sizes */}
-        <iframe
-          src="/api/graph-embed"
-          title="Reef Knowledge Graph"
-          style={{
-            position: "absolute",
-            top: "0",
-            left: "0",
-            width: "100%",
-            height: "100%",
-            border: "none",
-          }}
-          allow="clipboard-write; clipboard-read; pointer-lock"
-          loading="lazy"
-          data-testid="iframe-knowledge-graph"
-        />
-      </div>
-    </div>
-  );
-}
-
-// ── Coral sparkle ────────────────────────────────────────────────────────────
 function CoralSparkle({ show }: { show: boolean }) {
   if (!show) return null;
   return (
@@ -106,8 +47,7 @@ function CoralSparkle({ show }: { show: boolean }) {
   );
 }
 
-// ── Clean a Coral panel ──────────────────────────────────────────────────────
-function CleanCoralPanel() {
+function CleanCoralPanel({ onClose }: { onClose?: () => void }) {
   const [claimed, setClaimed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(true);
@@ -167,81 +107,91 @@ function CleanCoralPanel() {
 
   return (
     <div
-      className="relative flex-1 self-stretch w-full flex flex-col rounded-[24px] md:rounded-[32px] overflow-hidden border border-solid border-[#83eef01a] bg-[#00080c]"
-      style={{ minHeight: "320px", boxShadow: "inset 0 2px 6px rgba(0,0,0,0.55), inset 0 1px 2px rgba(0,0,0,0.35)" }}
+      className="relative w-full flex flex-col overflow-hidden"
+      style={{ background: "linear-gradient(160deg,#001a22 0%,#00080c 100%)", border: "1px solid rgba(131,238,240,0.15)", borderRadius: 20, boxShadow: "0 16px 48px rgba(0,0,0,0.7)" }}
     >
-      <img src={coralBg} alt="" aria-hidden className="absolute inset-0 w-full h-full object-cover object-center pointer-events-none select-none" />
-      <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(180deg, rgba(0,8,12,0.72) 0%, rgba(0,8,12,0.58) 40%, rgba(0,8,12,0.80) 100%)" }} />
+      <img src={coralBg} alt="" aria-hidden className="absolute inset-0 w-full h-full object-cover object-center pointer-events-none select-none opacity-30" />
+      <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(180deg,rgba(0,8,12,0.6) 0%,rgba(0,8,12,0.45) 40%,rgba(0,8,12,0.72) 100%)" }} />
 
       {/* Header */}
-      <div className="relative z-10 flex items-center justify-between px-4 py-3 border-b border-[#83eef01a] bg-[#001017bf] shrink-0">
+      <div className="relative z-10 flex items-center justify-between px-4 py-3 border-b border-[#83eef01a]">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-full overflow-hidden border border-[#83eef066] shrink-0">
-            <img src={pepoPng} alt="Pepo the Polyp" className="w-full h-full object-cover object-center" />
+          <div className="w-7 h-7 rounded-full overflow-hidden border border-[#83eef066] shrink-0">
+            <img src={pepoPng} alt="Pepo" className="w-full h-full object-cover object-center" />
           </div>
           <div className="flex flex-col">
             <span className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-bold text-[#83eef0] text-sm leading-5">
               {t("dashboard.dailyReefAction")}
             </span>
-            <span className="[font-family:'Inter',Helvetica] font-normal text-[#d4e9f366] text-[10px] leading-4">
+            <span className="[font-family:'Inter',Helvetica] text-[#d4e9f366] text-[10px]">
               {t("dashboard.helpPepoRestore")}
             </span>
           </div>
         </div>
-        <a
-          href={TELEGRAM_BOT_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-[#229ED91a] rounded-full border border-solid border-[#229ED933] hover:bg-[#229ED926] transition-colors no-underline"
-          data-testid="link-telegram-bot"
-        >
-          <TgIcon size={11} />
-          <span className="[font-family:'Inter',Helvetica] text-[#229ED9] text-[10px] font-medium whitespace-nowrap">{t("dashboard.telegram")}</span>
-        </a>
+        <div className="flex items-center gap-2">
+          <a
+            href={TELEGRAM_BOT_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-full border border-[#229ED933] hover:bg-[#229ED926] transition-colors no-underline"
+            style={{ background: "rgba(34,158,217,0.1)" }}
+            data-testid="link-telegram-bot"
+          >
+            <TgIcon size={11} />
+            <span className="[font-family:'Inter',Helvetica] text-[#229ED9] text-[10px] font-medium">{t("dashboard.telegram")}</span>
+          </a>
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="w-6 h-6 flex items-center justify-center rounded-full text-[#d4e9f340] hover:text-[#d4e9f380] hover:bg-[#ffffff08] transition-colors"
+              data-testid="button-coral-close"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"/>
+              </svg>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Body */}
-      <div className="relative z-10 flex-1 flex flex-col items-center justify-center gap-6 px-6 py-8">
+      <div className="relative z-10 flex flex-col items-center justify-center gap-5 px-6 py-6">
         <CoralSparkle show={sparkle} />
         <div className="relative flex items-center justify-center">
           <div
-            className={`w-28 h-28 rounded-full flex items-center justify-center transition-all duration-500 ${
+            className={`w-24 h-24 rounded-full flex items-center justify-center transition-all duration-500 ${
               claimed
                 ? "bg-[#83eef015] border-2 border-[#83eef040]"
                 : "bg-[#83eef010] border-2 border-[#83eef030] hover:border-[#83eef060] hover:bg-[#83eef020]"
             }`}
             style={{ boxShadow: claimed ? "0 0 32px rgba(131,238,240,0.18)" : "0 0 18px rgba(131,238,240,0.08)" }}
           >
-            <span className="text-6xl select-none" role="img" aria-label="coral">🪸</span>
+            <span className="text-5xl select-none" role="img" aria-label="coral">🪸</span>
           </div>
           {ptsFlash && (
-            <div className="absolute -top-3 -right-3 flex items-center gap-0.5 px-2.5 py-1 bg-[#83eef0] rounded-full shadow-lg animate-bounce" data-testid="badge-clean-points">
+            <div className="absolute -top-2 -right-2 flex items-center px-2.5 py-1 bg-[#83eef0] rounded-full shadow-lg animate-bounce" data-testid="badge-clean-points">
               <span className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-bold text-[#003c3e] text-sm">+10 pts</span>
             </div>
           )}
         </div>
 
-        <div className="flex flex-col items-center gap-1.5 text-center px-2">
+        <div className="flex flex-col items-center gap-1 text-center">
           {checking ? (
             <div className="w-5 h-5 rounded-full border-2 border-[#83eef0] border-t-transparent animate-spin" />
           ) : claimed ? (
             <>
-              <p className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-semibold text-[#83eef0] text-base">{t("dashboard.coralCleaned")}</p>
-              <p className="[font-family:'Inter',Helvetica] text-[#d4e9f366] text-xs leading-relaxed">
-                {t("dashboard.doneForToday")}
-              </p>
+              <p className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-semibold text-[#83eef0] text-sm">{t("dashboard.coralCleaned")}</p>
+              <p className="[font-family:'Inter',Helvetica] text-[#d4e9f366] text-xs">{t("dashboard.doneForToday")}</p>
             </>
           ) : isAuthenticated ? (
             <>
-              <p className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-semibold text-[#d4e9f3] text-base">{t("dashboard.coralNeedsHelp")}</p>
-              <p className="[font-family:'Inter',Helvetica] text-[#d4e9f366] text-xs leading-relaxed">
-                {t("dashboard.cleanCorals")}
-              </p>
+              <p className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-semibold text-[#d4e9f3] text-sm">{t("dashboard.coralNeedsHelp")}</p>
+              <p className="[font-family:'Inter',Helvetica] text-[#d4e9f366] text-xs">{t("dashboard.cleanCorals")}</p>
             </>
           ) : (
             <>
-              <p className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-semibold text-[#d4e9f3] text-base">{t("dashboard.helpRegenerate")}</p>
-              <p className="[font-family:'Inter',Helvetica] text-[#d4e9f366] text-xs leading-relaxed">
+              <p className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-semibold text-[#d4e9f3] text-sm">{t("dashboard.helpRegenerate")}</p>
+              <p className="[font-family:'Inter',Helvetica] text-[#d4e9f366] text-xs">
                 {t("dashboard.signInToCleanDesc")} <span className="text-[#83eef0] font-semibold">{t("dashboard.reefPoints")}</span>.
               </p>
             </>
@@ -253,7 +203,7 @@ function CleanCoralPanel() {
             onClick={handleClean}
             disabled={claimed || loading}
             data-testid="button-clean-coral"
-            className={`relative px-8 py-3.5 rounded-2xl [font-family:'Plus_Jakarta_Sans',Helvetica] font-bold text-sm transition-all duration-300 ${
+            className={`px-7 py-3 rounded-2xl [font-family:'Plus_Jakarta_Sans',Helvetica] font-bold text-sm transition-all duration-300 ${
               claimed
                 ? "bg-[#83eef015] border border-[#83eef030] text-[#83eef066] cursor-default"
                 : loading
@@ -275,7 +225,7 @@ function CleanCoralPanel() {
           <button
             onClick={() => { try { login(); } catch { /* ignore */ } }}
             data-testid="button-sign-in-to-clean"
-            className="px-8 py-3.5 rounded-2xl [font-family:'Plus_Jakarta_Sans',Helvetica] font-bold text-sm bg-[linear-gradient(160deg,rgba(131,238,240,1)_0%,rgba(63,176,179,1)_100%)] text-[#003c3e] hover:opacity-90 active:scale-95 shadow-[0_4px_20px_rgba(131,238,240,0.3)] transition-all duration-300"
+            className="px-7 py-3 rounded-2xl [font-family:'Plus_Jakarta_Sans',Helvetica] font-bold text-sm bg-[linear-gradient(160deg,rgba(131,238,240,1)_0%,rgba(63,176,179,1)_100%)] text-[#003c3e] hover:opacity-90 active:scale-95 shadow-[0_4px_20px_rgba(131,238,240,0.3)] transition-all duration-300"
           >
             {t("dashboard.signInToClean")}
           </button>
@@ -287,9 +237,9 @@ function CleanCoralPanel() {
       </div>
 
       {isAuthenticated && !claimed && !checking && (
-        <div className="relative z-10 shrink-0 px-4 py-2 bg-[#83eef008] border-t border-[#83eef01a] flex items-center justify-center gap-1.5">
+        <div className="relative z-10 shrink-0 px-4 py-2 border-t border-[#83eef01a] flex items-center justify-center gap-1.5">
           <span className="text-[9px] [font-family:'Inter',Helvetica] text-[#d4e9f344]">{t("dashboard.dailyAction")}</span>
-          <span className="text-[9px] [font-family:'Inter',Helvetica] font-semibold text-[#83eef066]">·</span>
+          <span className="text-[9px] text-[#83eef066]">·</span>
           <span className="text-[9px] [font-family:'Inter',Helvetica] font-semibold text-[#83eef0]">{t("dashboard.reefPts")}</span>
           <span className="text-[9px] [font-family:'Inter',Helvetica] text-[#d4e9f344]">{t("dashboard.oncePerDay")}</span>
         </div>
@@ -298,97 +248,141 @@ function CleanCoralPanel() {
   );
 }
 
-// ── Main dashboard ───────────────────────────────────────────────────────────
+// ── Graph loading shimmer ─────────────────────────────────────────────────────
+function GraphLoadingShimmer({ visible }: { visible: boolean }) {
+  if (!visible) return null;
+  return (
+    <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#00080c] z-10 gap-4">
+      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" className="animate-pulse">
+        <circle cx="5" cy="12" r="2.5" fill="#83eef0" />
+        <circle cx="12" cy="5" r="2.5" fill="#83eef066" />
+        <circle cx="19" cy="12" r="2.5" fill="#83eef0" />
+        <circle cx="12" cy="19" r="2.5" fill="#83eef066" />
+        <line x1="5" y1="12" x2="12" y2="5" stroke="#83eef040" strokeWidth="1.2"/>
+        <line x1="12" y1="5" x2="19" y2="12" stroke="#83eef040" strokeWidth="1.2"/>
+        <line x1="5" y1="12" x2="12" y2="19" stroke="#83eef040" strokeWidth="1.2"/>
+        <line x1="12" y1="19" x2="19" y2="12" stroke="#83eef040" strokeWidth="1.2"/>
+        <line x1="5" y1="12" x2="19" y2="12" stroke="#83eef030" strokeWidth="1.2"/>
+        <line x1="12" y1="5" x2="12" y2="19" stroke="#83eef030" strokeWidth="1.2"/>
+      </svg>
+      <span className="[font-family:'Inter',Helvetica] text-[#83eef0] text-sm opacity-70">Loading Knowledge Graph…</span>
+    </div>
+  );
+}
+
+// ── Main dashboard ─────────────────────────────────────────────────────────────
 export const ReefInsightDashboardSection = (): JSX.Element => {
-  const [mobileTab, setMobileTab] = useState<"graph" | "action">("graph");
+  const [coralOpen, setCoralOpen] = useState(false);
+  const [graphLoading, setGraphLoading] = useState(true);
   const { t } = useTranslation();
 
   return (
-    <div className="flex flex-col flex-1 self-stretch overflow-y-auto overflow-x-hidden pb-24 md:pb-6">
+    <div className="flex flex-col flex-1 self-stretch min-h-0 overflow-hidden px-3 md:px-6 pt-3 md:pt-4 pb-20 md:pb-6 gap-0">
 
-      {/* Mobile tab switcher */}
-      <div className="flex md:hidden items-center gap-2 px-4 pt-3 pb-0 shrink-0">
-        <button
-          onClick={() => setMobileTab("graph")}
-          className={`flex items-center gap-2 flex-1 justify-center py-2 rounded-full text-sm [font-family:'Inter',Helvetica] font-medium transition-all ${
-            mobileTab === "graph"
-              ? "bg-[#83eef01a] border border-[#83eef033] text-[#83eef0]"
-              : "text-[#d4e9f380] border border-transparent"
-          }`}
-          style={mobileTab === "graph" ? { boxShadow: "inset 0 2px 6px rgba(0,0,0,0.55), inset 0 1px 2px rgba(0,0,0,0.35)" } : {}}
-          data-testid="tab-graph"
-        >
-          <Network size={13} className={mobileTab === "graph" ? "text-[#83eef0]" : "text-[#d4e9f380]"} />
-          {t("dashboard.graphTab")}
-        </button>
-        <button
-          onClick={() => setMobileTab("action")}
-          className={`flex items-center gap-2 flex-1 justify-center py-2 rounded-full text-sm [font-family:'Inter',Helvetica] font-medium transition-all ${
-            mobileTab === "action"
-              ? "bg-[#83eef01a] border border-[#83eef033] text-[#83eef0]"
-              : "text-[#d4e9f380] border border-transparent"
-          }`}
-          style={mobileTab === "action" ? { boxShadow: "inset 0 2px 6px rgba(0,0,0,0.55), inset 0 1px 2px rgba(0,0,0,0.35)" } : {}}
-          data-testid="tab-action"
-        >
-          🪸 {t("dashboard.actionTab")}
-        </button>
-      </div>
+      {/* ── Full-height Knowledge Graph ─────────────────────────────────── */}
+      <div className="relative flex-1 min-h-0 w-full rounded-[16px] md:rounded-[20px] overflow-hidden"
+           style={{ border: "1px solid rgba(131,238,240,0.12)", minHeight: "calc(100vh - 200px)" }}>
 
-      {/* Main content area — desktop: Knowledge Graph left + Daily Reef Action right */}
-      <div className="flex flex-col md:flex-row flex-1 gap-4 md:gap-6 px-3 md:px-6 pt-3 md:pt-6 min-h-0">
-
-        {/* Knowledge Graph — left / full on mobile */}
-        <div className={`flex-1 min-w-0 ${mobileTab === "action" ? "hidden md:block" : "block"}`}>
-          <div style={{ height: "clamp(420px, 74vh, 920px)" }} className="w-full">
-            <KnowledgeGraphPanel />
+        {/* Graph header bar */}
+        <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-4 py-3 border-b border-[#83eef01a]"
+             style={{ background: "rgba(0,16,23,0.92)", backdropFilter: "blur(8px)" }}>
+          <div className="flex items-center gap-2.5">
+            <img className="w-5 h-5 flex-shrink-0" alt="Bonfires" src="/figmaAssets/container.svg" />
+            <div className="flex flex-col">
+              <span className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-bold text-[#83eef0] text-sm leading-5">
+                {t("dashboard.knowledgeGraph")}
+              </span>
+              <span className="[font-family:'Inter',Helvetica] text-[#d4e9f366] text-[10px] leading-4">
+                {t("dashboard.poweredByBonfires")}
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <a
+              href={BONFIRES_GRAPH_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#83eef033] hover:bg-[#83eef026] transition-colors no-underline"
+              style={{ background: "rgba(131,238,240,0.1)" }}
+              data-testid="link-full-graph"
+            >
+              <ExternalLink size={10} className="text-[#83eef0]" />
+              <span className="[font-family:'Inter',Helvetica] text-[#83eef0] text-[10px] font-medium whitespace-nowrap">{t("dashboard.fullGraph")}</span>
+            </a>
           </div>
         </div>
 
-        {/* Daily Reef Action — right panel on desktop, full-width on mobile */}
-        <div className={`md:w-[300px] md:flex-none shrink-0 ${mobileTab === "graph" ? "hidden md:flex" : "flex"} flex-col`}>
-          <CleanCoralPanel />
+        {/* Graph iframe — fills all remaining space below header */}
+        <div className="absolute inset-0 pt-[52px]">
+          <GraphLoadingShimmer visible={graphLoading} />
+          <iframe
+            src="/api/graph-embed"
+            title="Reef Knowledge Graph"
+            className="w-full h-full border-0"
+            style={{ background: "#00080c" }}
+            allow="clipboard-write; clipboard-read; pointer-lock"
+            loading="lazy"
+            data-testid="iframe-knowledge-graph"
+            onLoad={() => setGraphLoading(false)}
+          />
+        </div>
+
+        {/* ── Floating Daily Coral Action ─────────────────────────────── */}
+        <div className="absolute bottom-4 right-4 z-20 flex flex-col items-end gap-3">
+          {coralOpen && (
+            <div
+              className="w-72"
+              style={{
+                animation: "fadeSlideUp 0.22s ease-out",
+              }}
+            >
+              <CleanCoralPanel onClose={() => setCoralOpen(false)} />
+            </div>
+          )}
+          <button
+            onClick={() => setCoralOpen(o => !o)}
+            data-testid="button-coral-toggle"
+            className="flex items-center gap-2.5 pl-3 pr-4 py-2.5 rounded-full transition-all active:scale-95"
+            style={{
+              background: coralOpen
+                ? "linear-gradient(135deg,rgba(131,238,240,0.18) 0%,rgba(63,176,179,0.18) 100%)"
+                : "linear-gradient(135deg,rgba(0,26,34,0.95) 0%,rgba(0,8,12,0.95) 100%)",
+              border: coralOpen
+                ? "1px solid rgba(131,238,240,0.45)"
+                : "1px solid rgba(131,238,240,0.25)",
+              boxShadow: "0 4px 24px rgba(0,0,0,0.5), 0 2px 8px rgba(131,238,240,0.1)",
+              backdropFilter: "blur(12px)",
+            }}
+          >
+            <span className="text-xl leading-none">🪸</span>
+            <span className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-bold text-[#83eef0] text-sm whitespace-nowrap">
+              {t("dashboard.dailyReefAction")}
+            </span>
+          </button>
         </div>
 
       </div>
 
-      {/* Footer row — centered below */}
-      <div className="flex justify-center px-3 md:px-6 pt-4 md:pt-5 pb-2">
-        <Card className="flex flex-col items-center justify-center gap-3 px-6 py-4 w-full max-w-lg bg-[#00000066] rounded-[28px] border border-solid border-[#ffffff1a] backdrop-blur-md [-webkit-backdrop-filter:blur(12px)_brightness(100%)] shadow-none">
-          <CardContent className="flex flex-col items-center gap-3 p-0 w-full">
-            <nav className="inline-flex items-start gap-4 md:gap-6 relative flex-[0_0_auto]">
-              {FOOTER_LINK_HREFS.map(({ key, href }) => (
-                <a
-                  key={key}
-                  className="relative flex items-center w-fit [font-family:'Inter',Helvetica] font-normal text-[#d4e9f366] text-[9px] md:text-[10px] tracking-[1.00px] leading-[15px] whitespace-nowrap hover:text-[#d4e9f3] transition-colors"
-                  href={href}
-                  rel="noopener noreferrer"
-                  target="_blank"
-                >
-                  {t(`footer.${key}`)}
-                </a>
-              ))}
-            </nav>
-            <div className="inline-flex flex-col items-center gap-1 relative flex-[0_0_auto] opacity-60">
-              <span className="[font-family:'Inter',Helvetica] font-normal text-[#d4e9f3] text-[8px] text-center leading-3">
-                {t("footer.copyright")}
-              </span>
-              <div className="inline-flex items-center gap-1.5 relative flex-[0_0_auto]">
-                <span className="[font-family:'Inter',Helvetica] font-normal text-[#d4e9f3] text-[8px] text-center leading-3">
-                  {t("footer.poweredBy")}{" "}
-                  <a href="https://bonfires.ai/" rel="noopener noreferrer" target="_blank" className="hover:text-[#d4e9f3] transition-colors">
-                    Bonfires.ai
-                  </a>
-                </span>
-                <img src="/figmaAssets/bonfires-ai-logo-new.png" alt="Bonfires.ai" className="h-3.5 w-auto object-contain" />
-              </div>
-              <span className="[font-family:'Inter',Helvetica] font-normal text-[#d4e9f3] text-[8px] text-center leading-3">
-                {t("footer.allRightsReserved")}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
+      {/* ── Footer ──────────────────────────────────────────────────────── */}
+      <div className="shrink-0 flex items-center justify-center gap-4 pt-3 flex-wrap">
+        {FOOTER_LINK_HREFS.map(({ key, href }) => (
+          <a
+            key={key}
+            href={href}
+            rel="noopener noreferrer"
+            target="_blank"
+            className="[font-family:'Inter',Helvetica] text-[#d4e9f340] text-[9px] hover:text-[#d4e9f380] transition-colors tracking-wide"
+          >
+            {t(`footer.${key}`)}
+          </a>
+        ))}
+        <span className="text-[#d4e9f320] text-[9px]">·</span>
+        <a href="https://bonfires.ai/" target="_blank" rel="noopener noreferrer"
+           className="[font-family:'Inter',Helvetica] text-[#d4e9f330] text-[9px] hover:text-[#d4e9f360] transition-colors">
+          Powered by Bonfires.ai
+        </a>
       </div>
+
     </div>
   );
 };
