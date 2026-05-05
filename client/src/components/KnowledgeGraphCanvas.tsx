@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 
 interface GraphNode {
   uuid: string;
@@ -382,13 +383,44 @@ export function KnowledgeGraphCanvas({ className }: { className?: string }) {
   // ── Active tooltip node (hover on desktop, selected on touch) ───────────────
   const activeNode = isTouch ? selected : hovered;
 
+  // ── Zoom controls ────────────────────────────────────────────────────────────
+  const zoomIn  = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const cx = canvas.offsetWidth  / 2;
+    const cy = canvas.offsetHeight / 2;
+    const tr = transform.current;
+    const f  = 1.3;
+    tr.x     = cx - (cx - tr.x) * f;
+    tr.y     = cy - (cy - tr.y) * f;
+    tr.scale = Math.min(4, tr.scale * f);
+  }, []);
+
+  const zoomOut = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const cx = canvas.offsetWidth  / 2;
+    const cy = canvas.offsetHeight / 2;
+    const tr = transform.current;
+    const f  = 1 / 1.3;
+    tr.x     = cx - (cx - tr.x) * f;
+    tr.y     = cy - (cy - tr.y) * f;
+    tr.scale = Math.max(0.25, tr.scale * f);
+  }, []);
+
+  const zoomReset = useCallback(() => {
+    transform.current = { x: 0, y: 0, scale: 1 };
+  }, []);
+
+  const { t } = useTranslation();
+
   // ── Render ───────────────────────────────────────────────────────────────────
   if (isLoading) {
     return (
       <div className={`${className ?? ""} flex items-center justify-center bg-[#00080c]`}>
         <div className="flex flex-col items-center gap-3">
           <div className="w-7 h-7 border-2 border-[#83eef0] border-t-transparent rounded-full animate-spin" />
-          <span className="text-[11px] text-[#83eef066] [font-family:'Inter',Helvetica]">Loading graph…</span>
+          <span className="text-[11px] text-[#83eef066] [font-family:'Inter',Helvetica]">{t("graph.loadingGraph")}</span>
         </div>
       </div>
     );
@@ -397,7 +429,7 @@ export function KnowledgeGraphCanvas({ className }: { className?: string }) {
   if (isError || !data) {
     return (
       <div className={`${className ?? ""} flex items-center justify-center bg-[#00080c]`}>
-        <span className="text-[11px] text-[#d4e9f333] [font-family:'Inter',Helvetica]">Graph unavailable</span>
+        <span className="text-[11px] text-[#d4e9f333] [font-family:'Inter',Helvetica]">{t("graph.graphUnavailable")}</span>
       </div>
     );
   }
@@ -459,6 +491,31 @@ export function KnowledgeGraphCanvas({ className }: { className?: string }) {
         </div>
       )}
 
+      {/* Zoom controls — top-right, matching Bonfires layout */}
+      <div className="absolute top-3 right-3 flex flex-col gap-1 z-10">
+        <button
+          onPointerDown={e => { e.stopPropagation(); zoomIn(); }}
+          aria-label="Zoom in"
+          data-testid="button-zoom-in"
+          className="w-7 h-7 flex items-center justify-center rounded-md border border-[#83eef022] text-[#d4e9f388] hover:text-[#83eef0] hover:border-[#83eef055] hover:bg-[#83eef00a] transition-colors text-base leading-none select-none"
+          style={{ background: "rgba(0,8,15,0.80)", backdropFilter: "blur(8px)" }}
+        >+</button>
+        <button
+          onPointerDown={e => { e.stopPropagation(); zoomReset(); }}
+          aria-label="Reset zoom"
+          data-testid="button-zoom-reset"
+          className="w-7 h-7 flex items-center justify-center rounded-md border border-[#83eef022] text-[#d4e9f355] hover:text-[#83eef0] hover:border-[#83eef055] hover:bg-[#83eef00a] transition-colors text-[9px] leading-none select-none"
+          style={{ background: "rgba(0,8,15,0.80)", backdropFilter: "blur(8px)" }}
+        >⊙</button>
+        <button
+          onPointerDown={e => { e.stopPropagation(); zoomOut(); }}
+          aria-label="Zoom out"
+          data-testid="button-zoom-out"
+          className="w-7 h-7 flex items-center justify-center rounded-md border border-[#83eef022] text-[#d4e9f388] hover:text-[#83eef0] hover:border-[#83eef055] hover:bg-[#83eef00a] transition-colors text-base leading-none select-none"
+          style={{ background: "rgba(0,8,15,0.80)", backdropFilter: "blur(8px)" }}
+        >−</button>
+      </div>
+
       {/* Legend */}
       <div className="pointer-events-none absolute bottom-2.5 left-3 flex items-center gap-3">
         {([["#3b82f6", "Episode"], ["#22c55e", "Entity"], ["#f97316", "Person"]] as const).map(([c, l]) => (
@@ -471,12 +528,12 @@ export function KnowledgeGraphCanvas({ className }: { className?: string }) {
 
       {/* Interaction hint */}
       <div className="pointer-events-none absolute bottom-2.5 right-3 text-[8px] text-[#d4e9f322] [font-family:'Inter',Helvetica]">
-        {isTouch ? "pinch to zoom · drag to pan · tap for details" : "scroll to zoom · drag to pan · hover for details"}
+        {isTouch ? t("graph.pinchToZoom") : t("graph.scrollToZoom")}
       </div>
 
       {/* Node count */}
-      <div className="pointer-events-none absolute top-2 right-3 text-[8px] text-[#83eef033] [font-family:'Inter',Helvetica] tabular-nums">
-        {data.nodes.length} nodes · {data.edges.length} edges
+      <div className="pointer-events-none absolute top-3 left-3 text-[8px] text-[#83eef033] [font-family:'Inter',Helvetica] tabular-nums">
+        {data.nodes.length} {t("dashboard.nodes")} · {data.edges.length} {t("dashboard.edges")}
       </div>
     </div>
   );

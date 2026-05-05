@@ -238,20 +238,20 @@ function KnowledgeGraphPanel() {
         </a>
       </div>
 
-      <div className="relative flex-1 w-full overflow-hidden" style={{ minHeight: "280px" }}>
+      <div className="relative flex-1 w-full overflow-hidden" style={{ minHeight: "400px" }}>
         {/* Mobile: native canvas graph — touch-friendly pan/pinch/tap */}
         <KnowledgeGraphCanvas className="absolute inset-0 w-full h-full md:hidden" />
-        {/* Desktop: bonfires.ai iframe — cropped to graph viewport */}
+        {/* Desktop: full Bonfires interface — only Bonfires navbar cropped */}
         <iframe
           src="https://pepo.app.bonfires.ai/graph"
           title="Reef Knowledge Graph"
           className="hidden md:block"
           style={{
             position: "absolute",
-            top: "-44px",
-            left: "-560px",
-            width: "calc(100% + 560px)",
-            height: "calc(100% + 44px)",
+            top: "-56px",
+            left: "0",
+            width: "100%",
+            height: "calc(100% + 56px)",
             border: "none",
           }}
           sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
@@ -260,7 +260,10 @@ function KnowledgeGraphPanel() {
         />
       </div>
 
-      <BonfiresExplorer />
+      {/* Search & activity — mobile only (desktop uses Bonfires' own explorer panel) */}
+      <div className="md:hidden">
+        <BonfiresExplorer />
+      </div>
     </div>
   );
 }
@@ -523,7 +526,7 @@ export const ReefInsightDashboardSection = (): JSX.Element => {
 
         {/* Knowledge Graph — left / full on mobile */}
         <div className={`flex-1 min-w-0 ${mobileTab === "action" ? "hidden md:block" : "block"}`}>
-          <div style={{ height: "clamp(360px, 58vh, 680px)" }} className="w-full">
+          <div style={{ height: "clamp(420px, 74vh, 920px)" }} className="w-full">
             <KnowledgeGraphPanel />
           </div>
         </div>
