@@ -2337,38 +2337,32 @@ function ExpandedMapModal({
                 )}
               </div>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: 5, marginBottom: activeLiveVar ? 8 : 0 }}>
-                {LIVE_GROUPS.map(grp => {
-                  const grpLayers = LIVE_LAYERS.filter(l => l.group === grp);
-                  return (
-                    <div key={grp}>
-                      <div style={{ fontSize: 7, fontFamily: "Inter,sans-serif", fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: "#d4e9f322", marginBottom: 3 }}>{grp}</div>
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
-                        {grpLayers.map(layer => (
-                          <button
-                            key={layer.var}
-                            data-testid={`expanded-toggle-live-${layer.var}`}
-                            onClick={() => {
-                              setActiveLiveVar(v => (v === layer.var ? null : layer.var as LiveVar));
-                              setActiveCmsVar(null);
-                              if (showToolbox === 'cms') setShowToolbox(null);
-                            }}
-                            title={`${layer.label} · ${layer.unit}`}
-                            style={{
-                              fontSize: 8, fontFamily: "Inter,sans-serif", fontWeight: 600,
-                              padding: "3px 7px", borderRadius: 20, cursor: "pointer",
-                              background: activeLiveVar === layer.var ? layer.color + "22" : "rgba(255,255,255,0.04)",
-                              border: `1px solid ${activeLiveVar === layer.var ? layer.color + "99" : "rgba(255,255,255,0.1)"}`,
-                              color: activeLiveVar === layer.var ? layer.color : "#d4e9f355",
-                              transition: "all 0.15s",
-                            }}
-                          >{layer.label}</button>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+              {/* Ocean State select — all 7 groups as optgroups */}
+              <select
+                data-testid="expanded-live-layer-select"
+                value={activeLiveVar ?? ""}
+                onChange={e => {
+                  setActiveLiveVar((e.target.value as LiveVar) || null);
+                  setActiveCmsVar(null);
+                  if (showToolbox === 'cms') setShowToolbox(null);
+                }}
+                style={{
+                  width: "100%", fontSize: 10, fontFamily: "Inter,sans-serif", fontWeight: 600,
+                  background: "rgba(116,185,255,0.08)", border: "1px solid rgba(116,185,255,0.22)",
+                  borderRadius: 7, padding: "6px 10px",
+                  color: activeLiveVar ? "#74b9ff" : "#d4e9f355",
+                  cursor: "pointer", outline: "none", marginBottom: activeLiveVar ? 8 : 0,
+                }}
+              >
+                <option value="">— Off —</option>
+                {LIVE_GROUPS.map(grp => (
+                  <optgroup key={grp} label={grp}>
+                    {LIVE_LAYERS.filter(l => l.group === grp).map(l => (
+                      <option key={l.var} value={l.var}>{l.label} · {l.unit}</option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
 
               {activeLiveVar && activeLiveLayer && (
                 <div style={{ marginBottom: 6 }}>
@@ -3323,36 +3317,31 @@ export function ReefMap({
                       >off</button>
                     )}
                   </div>
-                  <div style={{ padding: "0 8px 4px" }}>
-                    {LIVE_GROUPS.map(grp => {
-                      const grpLayers = LIVE_LAYERS.filter(l => l.group === grp);
-                      return (
-                        <div key={grp} style={{ marginBottom: 5 }}>
-                          <div style={{ fontSize: 6.5, fontFamily: "Inter,sans-serif", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#d4e9f322", marginBottom: 3, paddingLeft: 2 }}>{grp}</div>
-                          <div style={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
-                            {grpLayers.map(layer => (
-                              <button
-                                key={layer.var}
-                                data-testid={`compact-live-${layer.var}`}
-                                onClick={() => {
-                                  setActiveLiveVar(v => (v === layer.var ? null : layer.var as LiveVar));
-                                  setActiveCmsVar(null);
-                                }}
-                                title={`${layer.label} · ${layer.unit}`}
-                                style={{
-                                  fontSize: 8, fontFamily: "Inter,sans-serif", fontWeight: 600,
-                                  padding: "3px 7px", borderRadius: 20, cursor: "pointer",
-                                  background: activeLiveVar === layer.var ? layer.color + "22" : "rgba(255,255,255,0.04)",
-                                  border: `1px solid ${activeLiveVar === layer.var ? layer.color + "99" : "rgba(255,255,255,0.1)"}`,
-                                  color: activeLiveVar === layer.var ? layer.color : "#d4e9f355",
-                                  transition: "all 0.15s",
-                                }}
-                              >{layer.label}</button>
-                            ))}
-                          </div>
-                        </div>
-                      );
-                    })}
+                  <div style={{ padding: "0 10px 4px" }}>
+                    <select
+                      data-testid="compact-live-layer-select"
+                      value={activeLiveVar ?? ""}
+                      onChange={e => {
+                        setActiveLiveVar((e.target.value as LiveVar) || null);
+                        setActiveCmsVar(null);
+                      }}
+                      style={{
+                        width: "100%", fontSize: 9, fontFamily: "Inter,sans-serif", fontWeight: 600,
+                        background: "rgba(116,185,255,0.08)", border: "1px solid rgba(116,185,255,0.22)",
+                        borderRadius: 6, padding: "4px 8px",
+                        color: activeLiveVar ? "#74b9ff" : "#d4e9f355",
+                        cursor: "pointer", outline: "none",
+                      }}
+                    >
+                      <option value="">— Off —</option>
+                      {LIVE_GROUPS.map(grp => (
+                        <optgroup key={grp} label={grp}>
+                          {LIVE_LAYERS.filter(l => l.group === grp).map(l => (
+                            <option key={l.var} value={l.var}>{l.label}</option>
+                          ))}
+                        </optgroup>
+                      ))}
+                    </select>
                   </div>
                   {/* Compact date navigator for live layers */}
                   {activeLiveVar && activeLiveLayer && (

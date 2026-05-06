@@ -61,7 +61,7 @@ function MetricCard({ icon, value, label, color }: { icon: React.ReactNode; valu
 
 export function MobileMapPage() {
   const [, navigate] = useLocation();
-  const [activeTab, setActiveTab] = useState<"legend" | "links" | "alerts">("legend");
+  const [activeTab, setActiveTab] = useState<"layers" | "links" | "alerts">("layers");
 
   const { data: markers = [] } = useQuery<MapMarker[]>({
     queryKey: ["/api/map/markers"],
@@ -136,8 +136,8 @@ export function MobileMapPage() {
         display: "flex", borderBottom: "1px solid rgba(131,238,240,0.1)",
         background: "rgba(0,13,20,0.97)", flexShrink: 0,
       }}>
-        {(["legend", "links", "alerts"] as const).map((tab) => {
-          const labels = { legend: "GCRMN Regions", links: "Conservation", alerts: "Heat Stress" };
+        {(["layers", "links", "alerts"] as const).map((tab) => {
+          const labels = { layers: "Layers", links: "Conservation", alerts: "Heat Stress" };
           return (
             <button
               key={tab}
@@ -165,33 +165,118 @@ export function MobileMapPage() {
         background: "rgba(0,13,20,0.97)",
         paddingBottom: "max(80px, calc(env(safe-area-inset-bottom) + 72px))",
       }}>
-        {activeTab === "legend" && (
+        {activeTab === "layers" && (
           <div style={{ padding: "14px 16px" }}>
-            {/* Member pins */}
-            <div style={{ fontSize: 9, color: "#83eef066", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 10 }}>Map Key</div>
-            <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ width: 13, height: 13, borderRadius: "50%", background: "#83eef0", border: "2px solid #83eef0", display: "inline-block" }}/>
-                <span style={{ fontSize: 11, color: "#d4e9f3bb" }}>DAO Member</span>
+
+            {/* How-to tip */}
+            <div style={{
+              background: "rgba(131,238,240,0.06)", border: "1px solid rgba(131,238,240,0.18)",
+              borderRadius: 12, padding: "10px 13px", marginBottom: 16,
+              display: "flex", alignItems: "flex-start", gap: 10,
+            }}>
+              <Layers size={14} color="#83eef0" style={{ flexShrink: 0, marginTop: 1 }} />
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "#83eef0cc", marginBottom: 2 }}>Toggle layers on the map</div>
+                <div style={{ fontSize: 10, color: "#d4e9f355", lineHeight: 1.5 }}>
+                  Tap the <strong style={{ color: "#83eef099" }}>⊞ Layers</strong> button at the top-left of the map to show or hide any layer. Ocean data layers (Copernicus Marine Service) are available as dropdowns.
+                </div>
               </div>
             </div>
 
-            {/* GCRMN regions */}
-            <div style={{ fontSize: 9, color: "#83eef066", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 10 }}>GCRMN Regions</div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
-              {Object.entries(GCRMN_COLORS).map(([key, color]) => (
-                <div key={key} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{
-                    width: 14, height: 9, borderRadius: 2, flexShrink: 0,
-                    background: color + "40", border: `1.5px solid ${color}`,
-                    display: "inline-block",
-                  }}/>
-                  <span style={{ fontSize: 10.5, color: "#d4e9f3bb", lineHeight: 1.3 }}>
-                    {GCRMN_LONG[key] ?? key}
-                  </span>
+            {/* Boundaries & Regions */}
+            <div style={{ fontSize: 9, color: "#83eef055", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8 }}>Boundaries &amp; Regions</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 7, marginBottom: 18 }}>
+              {[
+                { swatch: "rect", color: "#fd7272", label: "Coral Reef Regions", sub: "Allen Coral Atlas reef extents" },
+                { swatch: "rect", color: "#fdcb6e", label: "EEZ Boundaries",     sub: "Exclusive Economic Zones · VLIZ" },
+                { swatch: "rect", color: "#1dd1a1", label: "GCRMN Regions",      sub: "10 global reef monitoring zones" },
+                { swatch: "dot",  color: "#A6CE39", label: "GCRMN Sites 2026",   sub: "Territories · circle size ∝ surveys" },
+              ].map(({ swatch, color, label, sub }) => (
+                <div key={label} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  {swatch === "rect"
+                    ? <span style={{ width: 16, height: 10, borderRadius: 3, background: color + "35", border: `1.5px solid ${color}`, flexShrink: 0, display: "inline-block" }}/>
+                    : <span style={{ width: 12, height: 12, borderRadius: "50%", background: color + "35", border: `1.5px solid ${color}`, flexShrink: 0, display: "inline-block" }}/>
+                  }
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: "#d4e9f3cc" }}>{label}</div>
+                    <div style={{ fontSize: 9.5, color: "#d4e9f344", marginTop: 1 }}>{sub}</div>
+                  </div>
                 </div>
               ))}
             </div>
+
+            {/* Community */}
+            <div style={{ fontSize: 9, color: "#83eef055", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8 }}>Community</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 7, marginBottom: 18 }}>
+              {[
+                { swatch: "dot",  color: "#83eef0", label: "DAO Members",  sub: `${markers.length || "—"} members on the Regen Reef Network` },
+                { swatch: "rect", color: "#ff9f43", label: "Reef Photos",  sub: "Community-submitted reef imagery" },
+              ].map(({ swatch, color, label, sub }) => (
+                <div key={label} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  {swatch === "rect"
+                    ? <span style={{ width: 16, height: 10, borderRadius: 3, background: color + "35", border: `1.5px solid ${color}`, flexShrink: 0, display: "inline-block" }}/>
+                    : <span style={{ width: 12, height: 12, borderRadius: "50%", background: color, border: `2px solid ${color}`, flexShrink: 0, display: "inline-block" }}/>
+                  }
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: "#d4e9f3cc" }}>{label}</div>
+                    <div style={{ fontSize: 9.5, color: "#d4e9f344", marginTop: 1 }}>{sub}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Field Monitoring */}
+            <div style={{ fontSize: 9, color: "#83eef055", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8 }}>Field Monitoring</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 7, marginBottom: 18 }}>
+              {[
+                { color: "#26de81", label: "GCRMN Benthic Sites", sub: "Fixed benthic stations · GCRMN" },
+                { color: "#fd9644", label: "Reef Check",           sub: "Coral cover monitoring · global" },
+                { color: "#45aaf2", label: "Reef Life Survey",     sub: "Fish & invertebrate survey sites" },
+                { color: "#ff6b9d", label: "WCS Coral Cover",      sub: "WCS transect survey sites" },
+                { color: "#e056fd", label: "WCS ReefCloud",        sub: "AI-powered underwater photo surveys" },
+              ].map(({ color, label, sub }) => (
+                <div key={label} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ width: 10, height: 10, borderRadius: "50%", background: color + "55", border: `1.5px solid ${color}`, flexShrink: 0, display: "inline-block" }}/>
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: "#d4e9f3cc" }}>{label}</div>
+                    <div style={{ fontSize: 9.5, color: "#d4e9f344", marginTop: 1 }}>{sub}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Ocean Data */}
+            <div style={{ fontSize: 9, color: "#83eef055", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8 }}>Ocean Data · Copernicus</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {[
+                { color: "#00b894", label: "Ocean Colour (CMS)", sub: "Chlorophyll, turbidity, reflectance · monthly archive from 1997" },
+                { color: "#74b9ff", label: "Ocean State · Live",  sub: "SST, salinity, currents, waves, sea-ice & more · daily snapshots" },
+              ].map(({ color, label, sub }) => (
+                <div key={label} style={{
+                  background: color + "0d", border: `1px solid ${color}25`,
+                  borderRadius: 10, padding: "9px 12px",
+                  display: "flex", alignItems: "flex-start", gap: 10,
+                }}>
+                  <span style={{ width: 10, height: 10, borderRadius: 2, background: color, flexShrink: 0, marginTop: 2, display: "inline-block" }}/>
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: color + "cc" }}>{label}</div>
+                    <div style={{ fontSize: 9.5, color: "#d4e9f344", marginTop: 2, lineHeight: 1.5 }}>{sub}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* GCRMN region colour key */}
+            <div style={{ fontSize: 9, color: "#83eef055", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8, marginTop: 18 }}>GCRMN Region Colours</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+              {Object.entries(GCRMN_COLORS).map(([key, color]) => (
+                <div key={key} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ width: 14, height: 9, borderRadius: 2, flexShrink: 0, background: color + "40", border: `1.5px solid ${color}`, display: "inline-block" }}/>
+                  <span style={{ fontSize: 10.5, color: "#d4e9f3bb", lineHeight: 1.3 }}>{GCRMN_LONG[key] ?? key}</span>
+                </div>
+              ))}
+            </div>
+
           </div>
         )}
 
