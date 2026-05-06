@@ -194,6 +194,7 @@ const ar = {
     workspace: "العمل",
     reefMap: "الخريطة",
     logIn: "دخول",
+    graph: "الشبكة",
     telegram: "تيليغرام",
   },
   cookies: {

@@ -194,6 +194,7 @@ const fr = {
     workspace: "Espace",
     reefMap: "Carte",
     logIn: "Connexion",
+    graph: "Graphe",
     telegram: "Telegram",
   },
   cookies: {

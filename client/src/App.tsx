@@ -17,6 +17,7 @@ import { MobileMapPage } from "@/pages/MobileMapPage";
 import { ReefMapPage } from "@/pages/ReefMapPage";
 import { WorkspacePage } from "@/pages/WorkspacePage";
 import { CurationPage } from "@/pages/CurationPage";
+import { GraphPage } from "@/pages/GraphPage";
 import { PRIVY_ENABLED, PRIVY_APP_ID } from "@/lib/privy";
 import { useProfileSync } from "@/hooks/use-profile-sync";
 import { useGeolocation } from "@/hooks/use-geolocation";
@@ -55,6 +56,7 @@ function Router() {
       <Route path="/reef-map" component={ReefMapPage} />
       <Route path="/workspace" component={WorkspacePage} />
       <Route path="/curation" component={CurationPage} />
+      <Route path="/graph" component={GraphPage} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -90,40 +92,61 @@ function LoginGate() {
   const doLogin = () => { try { login(); } catch { /* ignore */ } };
   return (
     <div className="fixed inset-0 z-40 flex flex-col items-center justify-center px-6">
-      <img
-        src={coralBg}
-        alt=""
-        aria-hidden="true"
-        className="absolute inset-0 w-full h-full object-cover"
-      />
+      <img src={coralBg} alt="" aria-hidden="true" className="absolute inset-0 w-full h-full object-cover" />
       <div className="absolute inset-0" style={{ background: "linear-gradient(160deg,rgba(0,8,12,0.82) 0%,rgba(0,26,34,0.75) 60%,rgba(0,8,12,0.88) 100%)" }} />
       <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 60% 40% at 50% 40%, rgba(131,238,240,0.08) 0%, transparent 70%)" }} />
 
-      <div className="relative z-10 flex flex-col items-center">
-        <img
-          src="/figmaAssets/mesoreef-dao-logo-new.png"
-          alt="MesoReef DAO"
-          className="h-16 w-auto object-contain mb-8 opacity-90"
-        />
+      <div className="relative z-10 flex flex-col items-center w-full max-w-xs">
+        <img src="/figmaAssets/mesoreef-dao-logo-new.png" alt="MesoReef DAO" className="h-16 w-auto object-contain mb-8 opacity-90" />
         <h1 className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-bold text-[#d4e9f3] text-2xl md:text-3xl text-center mb-3 leading-tight">
           {t("auth.pepoThePolyp")}
         </h1>
-        <p className="[font-family:'Inter',Helvetica] text-[#d4e9f380] text-sm md:text-base text-center max-w-xs mb-8 leading-relaxed">
+        <p className="[font-family:'Inter',Helvetica] text-[#d4e9f380] text-sm md:text-base text-center mb-8 leading-relaxed">
           {t("auth.accessNetwork")}
         </p>
 
-        <button
-          onClick={doLogin}
-          data-testid="button-gate-login"
-          className="inline-flex items-center justify-center gap-2.5 px-8 py-3.5 rounded-full bg-[linear-gradient(170deg,#83eef0_0%,#3fb0b3_100%)] shadow-[0_4px_24px_rgba(131,238,240,0.3)] hover:shadow-[0_6px_32px_rgba(131,238,240,0.45)] hover:opacity-95 transition-all w-64"
+        {/* Primary sign-in (Privy) */}
+        {PRIVY_ENABLED && (
+          <button
+            onClick={doLogin}
+            data-testid="button-gate-login"
+            className="inline-flex items-center justify-center gap-2.5 px-8 py-3.5 rounded-full bg-[linear-gradient(170deg,#83eef0_0%,#3fb0b3_100%)] shadow-[0_4px_24px_rgba(131,238,240,0.3)] hover:shadow-[0_6px_32px_rgba(131,238,240,0.45)] hover:opacity-95 transition-all w-full"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3" stroke="#00585a" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <span className="[font-family:'Inter',Helvetica] font-bold text-[#00585a] text-base leading-none">
+              {t("auth.signIn")}
+            </span>
+          </button>
+        )}
+
+        {/* Divider */}
+        {PRIVY_ENABLED && (
+          <div className="flex items-center gap-3 w-full my-4">
+            <div className="flex-1 h-px bg-[#ffffff12]" />
+            <span className="[font-family:'Inter',Helvetica] text-[#d4e9f330] text-xs">or</span>
+            <div className="flex-1 h-px bg-[#ffffff12]" />
+          </div>
+        )}
+
+        {/* ORCID sign-in */}
+        <a
+          href="/api/auth/orcid/login"
+          data-testid="button-gate-login-orcid"
+          className="inline-flex items-center justify-center gap-2.5 px-8 py-3.5 rounded-full w-full no-underline transition-opacity hover:opacity-90"
+          style={{ background: "rgba(166,206,57,0.12)", border: "1px solid rgba(166,206,57,0.35)", color: "#a6ce39" }}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-            <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3" stroke="#00585a" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/>
+            <circle cx="12" cy="12" r="10" stroke="#a6ce39" strokeWidth="1.8"/>
+            <path d="M9 7h1.5a3.5 3.5 0 010 7H9V7z" stroke="#a6ce39" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+            <circle cx="7.5" cy="7" r="0.75" fill="#a6ce39"/>
+            <path d="M7.5 9.5v5" stroke="#a6ce39" strokeWidth="1.6" strokeLinecap="round"/>
           </svg>
-          <span className="[font-family:'Inter',Helvetica] font-bold text-[#00585a] text-base leading-none">
-            {t("auth.signIn")}
+          <span className="[font-family:'Inter',Helvetica] font-bold text-base leading-none">
+            Sign in with ORCID iD
           </span>
-        </button>
+        </a>
       </div>
     </div>
   );

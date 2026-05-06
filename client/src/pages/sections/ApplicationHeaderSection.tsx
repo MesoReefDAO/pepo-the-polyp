@@ -1,58 +1,22 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { Button } from "@/components/ui/button";
 import { OrcidLoginButton } from "@/components/OrcidLoginButton";
 import { PrivyLoginButton } from "@/components/PrivyLoginButton";
 import { FileverseWorkspacePanel } from "@/components/FileverseWorkspacePanel";
+import { MetaMaskIcon, CopyIcon, LoginArrowIcon, OrcidIcon } from "@/components/icons";
 import { PRIVY_ENABLED } from "@/lib/privy";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { useOrcidAuth } from "@/hooks/use-orcid-auth";
 
-const navLinks = [
+const NAV_LINKS = [
   { label: "MesoReef DAO", href: "https://mesoreefdao.org/" },
-  { label: "ReefRegen", href: "https://reefregen.org/" },
-  { label: "Workspace", href: "/workspace", internal: true },
-  { label: "bio", href: "https://app.bio.xyz/launchpad", badge: "soon" },
-  { label: "Join", href: "https://linktr.ee/mesoreefdao" },
+  { label: "ReefRegen",    href: "https://reefregen.org/" },
+  { label: "Workspace",   href: "/workspace", internal: true },
+  { label: "bio",         href: "https://app.bio.xyz/launchpad", badge: "soon" },
+  { label: "Join",        href: "https://linktr.ee/mesoreefdao" },
 ];
 
-function MetaMaskIcon({ size = 14 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 35 33" fill="none">
-      <path d="M32.958 1L19.48 10.858l2.45-5.813L32.958 1z" fill="#E17726" stroke="#E17726" strokeWidth=".25" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M2.042 1l13.365 9.957-2.33-5.912L2.042 1z" fill="#E27625" stroke="#E27625" strokeWidth=".25" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M28.178 23.533l-3.588 5.487 7.677 2.114 2.202-7.48-6.291-.121zM1.55 23.654l2.19 7.48 7.666-2.114-3.577-5.487-6.279.121z" fill="#E27625" stroke="#E27625" strokeWidth=".25" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M11.406 29.02l4.58-2.224-3.95-3.083-.63 5.307zM19.014 26.796l4.591 2.224-.642-5.307-3.95 3.083z" fill="#E27625" stroke="#E27625" strokeWidth=".25" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M19.256 22.01l-.88 4.544.627.44 3.95-3.083.12-3.118-3.817 1.217zM15.744 22.01l-3.808-1.218.099 3.118 3.95 3.083.638-.44-.88-4.543z" fill="#F5841F" stroke="#F5841F" strokeWidth=".25" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M32.012 16.44l-7.59-2.222 2.15 3.233-3.193 6.236 4.215-.055h6.29l-1.872-7.192zM10.978 14.218l-7.59 2.222-1.86 7.192h6.28l4.204.055-3.193-6.236 2.16-3.233z" fill="#F5841F" stroke="#F5841F" strokeWidth=".25" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  );
-}
-
-function CopyIcon() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-      <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" strokeWidth="2"/>
-      <path d="M5 15H4C2.9 15 2 14.1 2 13V4C2 2.9 2.9 2 4 2H13C14.1 2 15 2.9 15 4V5" stroke="currentColor" strokeWidth="2"/>
-    </svg>
-  );
-}
-
-function PlainLoginButton({ onClick }: { onClick?: () => void }) {
-  return (
-    <Button
-      className="relative inline-flex items-center justify-center px-5 py-2 h-auto min-h-[44px] rounded-full bg-[linear-gradient(170deg,rgba(131,238,240,1)_0%,rgba(63,176,179,1)_100%)] border-none shadow-none hover:opacity-90 transition-opacity w-full"
-      asChild={false}
-      onClick={onClick ?? (() => window.open("https://dashboard.privy.io", "_blank"))}
-    >
-      <span className="relative [font-family:'Inter',Helvetica] font-semibold text-[#00585a] text-sm text-center tracking-[0] leading-6 whitespace-nowrap">
-        Log in
-      </span>
-    </Button>
-  );
-}
-
-/** Wallet section shown inside the mobile overlay when the user is Privy-authenticated */
+// ── Mobile wallet section (Privy-authenticated) ───────────────────────────────
 function MobileWalletSection() {
   const { linkWallet } = usePrivy();
   const { wallets } = useWallets();
@@ -64,29 +28,24 @@ function MobileWalletSection() {
     setTimeout(() => setCopied(null), 2000);
   }
 
-  const embeddedWallets = wallets.filter((w) => w.walletClientType === "privy");
-  const externalWallets = wallets.filter((w) => w.walletClientType !== "privy");
-  const hasWallets = wallets.length > 0;
+  const embedded = wallets.filter(w => w.walletClientType === "privy");
+  const external  = wallets.filter(w => w.walletClientType !== "privy");
 
   return (
     <div className="flex flex-col gap-2">
-      <p className="[font-family:'Inter',Helvetica] text-[#d4e9f350] text-xs px-1 uppercase tracking-wider">
-        Wallet
-      </p>
+      <p className="[font-family:'Inter',Helvetica] text-[#d4e9f350] text-xs px-1 uppercase tracking-wider">Wallet</p>
 
       <div className="flex flex-col gap-2 px-1 py-3 rounded-2xl bg-[#0a293366] border border-[#83eef01a]">
-        {!hasWallets && (
+        {wallets.length === 0 && (
           <p className="[font-family:'Inter',Helvetica] text-[#9aaeb8] text-xs px-2 leading-5">
             No wallet connected. Add one to participate in DAO governance.
           </p>
         )}
 
-        {embeddedWallets.length > 0 && (
+        {embedded.length > 0 && (
           <div className="flex flex-col gap-1.5 px-1">
-            <span className="[font-family:'Inter',Helvetica] text-[#d4e9f340] text-[9px] uppercase tracking-widest px-1">
-              Embedded
-            </span>
-            {embeddedWallets.map((w) => (
+            <span className="[font-family:'Inter',Helvetica] text-[#d4e9f340] text-[9px] uppercase tracking-widest px-1">Embedded</span>
+            {embedded.map(w => (
               <button
                 key={w.address}
                 onClick={() => copyAddr(w.address)}
@@ -97,60 +56,35 @@ function MobileWalletSection() {
                   {w.address.slice(0, 8)}…{w.address.slice(-6)}
                 </span>
                 <span className="text-[#83eef0b2] flex-shrink-0">
-                  {copied === w.address ? (
-                    <span className="text-[#83eef0] text-xs [font-family:'Inter',Helvetica]">Copied!</span>
-                  ) : (
-                    <CopyIcon />
-                  )}
+                  {copied === w.address
+                    ? <span className="text-[#83eef0] text-xs">Copied!</span>
+                    : <CopyIcon size={12} />}
                 </span>
               </button>
             ))}
           </div>
         )}
 
-        {externalWallets.length > 0 && (
+        {external.length > 0 && (
           <div className="flex flex-col gap-1.5 px-1">
-            <span className="[font-family:'Inter',Helvetica] text-[#d4e9f340] text-[9px] uppercase tracking-widest px-1">
-              External
-            </span>
-            {externalWallets.map((w) => {
+            <span className="[font-family:'Inter',Helvetica] text-[#d4e9f340] text-[9px] uppercase tracking-widest px-1">External</span>
+            {external.map(w => {
               const wct = w.walletClientType;
-              const isMM       = wct === "metamask";
-              const isCoinbase = wct === "coinbase_wallet";
-              const isBinance  = wct === "binance";
-              const isWC       = (w as any).connectorType === "wallet_connect";
-
-              const bgClass = isMM       ? "bg-[#E2761B0a] border-[#E2761B25] active:bg-[#E2761B18]"
-                            : isCoinbase ? "bg-[#0052FF0a] border-[#0052FF25] active:bg-[#0052FF18]"
-                            : isBinance  ? "bg-[#F3BA2F0a] border-[#F3BA2F25] active:bg-[#F3BA2F18]"
-                            : isWC       ? "bg-[#3B99FC0a] border-[#3B99FC25] active:bg-[#3B99FC18]"
-                            :              "bg-[#ffffff08] border-[#ffffff12] active:bg-[#ffffff10]";
-
-              const WalletIcon = () => {
-                if (isMM)       return <MetaMaskIcon size={14} />;
-                if (isCoinbase) return (
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect width="24" height="24" rx="6" fill="#0052FF"/><path d="M12 4.5A7.5 7.5 0 104.5 12 7.51 7.51 0 0012 4.5zm0 13.5A6 6 0 1118 12a6 6 0 01-6 6zm-2.25-6a2.25 2.25 0 104.5 0 2.25 2.25 0 00-4.5 0z" fill="white"/></svg>
-                );
-                if (isBinance)  return (
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect width="24" height="24" rx="12" fill="#F3BA2F"/><path d="M12 7.5l1.2 1.2-3.45 3.3 3.45 3.3L12 16.5l-4.5-4.5 4.5-4.5zm0 0l-1.2 1.2 3.45 3.3-3.45 3.3L12 16.5l4.5-4.5-4.5-4.5z" fill="#1A1A1A"/></svg>
-                );
-                if (isWC)       return (
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M4.91 7.52C9.86 2.67 17.58 2.67 22.52 7.52L23.1 8.09a.5.5 0 010 .71l-2.06 2.02a.27.27 0 01-.37 0l-.82-.8c-3.47-3.39-9.09-3.39-12.56 0l-.88.86a.27.27 0 01-.37 0L4.01 8.87a.5.5 0 010-.71l.9-.64z" fill="#3B99FC"/></svg>
-                );
-                return null;
-              };
-
-              const label = isMM ? "MetaMask" : isCoinbase ? "Coinbase" : isBinance ? "Binance" : isWC ? "WalletConnect" : "Wallet";
+              const isMM = wct === "metamask";
+              const bgCls = isMM
+                ? "bg-[#E2761B0a] border-[#E2761B25] active:bg-[#E2761B18]"
+                : "bg-[#ffffff08] border-[#ffffff12] active:bg-[#ffffff10]";
+              const label = isMM ? "MetaMask" : "Wallet";
 
               return (
                 <button
                   key={w.address}
                   onClick={() => copyAddr(w.address)}
                   data-testid={`wallet-external-mobile-${w.address.slice(-4)}`}
-                  className={`flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl border transition-colors text-left w-full ${bgClass}`}
+                  className={`flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl border transition-colors text-left w-full ${bgCls}`}
                 >
                   <div className="flex items-center gap-2">
-                    <WalletIcon />
+                    {isMM && <MetaMaskIcon size={14} />}
                     <div className="flex flex-col">
                       <span className="[font-family:'Inter',Helvetica] text-[#d4e9f380] text-[9px] uppercase tracking-wider leading-none mb-0.5">{label}</span>
                       <span className="[font-family:'Inter',Helvetica] text-[#d4e9f3b2] text-sm font-mono tracking-tight">
@@ -159,11 +93,9 @@ function MobileWalletSection() {
                     </div>
                   </div>
                   <span className="text-[#d4e9f380] flex-shrink-0">
-                    {copied === w.address ? (
-                      <span className="text-[#83eef0] text-xs [font-family:'Inter',Helvetica]">Copied!</span>
-                    ) : (
-                      <CopyIcon />
-                    )}
+                    {copied === w.address
+                      ? <span className="text-[#83eef0] text-xs">Copied!</span>
+                      : <CopyIcon size={12} />}
                   </span>
                 </button>
               );
@@ -188,6 +120,7 @@ function MobileWalletSection() {
   );
 }
 
+// ── Mobile overlay auth section ───────────────────────────────────────────────
 function MobileOverlayAuthSection({ onClose }: { onClose: () => void }) {
   const { authenticated: privyAuthenticated, user, login, logout: privyLogout } = usePrivy();
   const { orcidAuthenticated, orcidName, orcidId, logout: orcidLogout } = useOrcidAuth();
@@ -202,12 +135,13 @@ function MobileOverlayAuthSection({ onClose }: { onClose: () => void }) {
     ? `@${twitterAcct.username}`
     : emailAcct?.address
     ?? googleAcct?.email?.split("@")[0]
-    ?? (walletAddr ? walletAddr.slice(0, 6) + "…" + walletAddr.slice(-4) : "Explorer");
+    ?? (walletAddr ? `${walletAddr.slice(0, 6)}…${walletAddr.slice(-4)}` : "Explorer");
 
+  // ── Privy-authenticated state ─────────────────────────────────────────────
   if (privyAuthenticated) {
     return (
       <div className="flex flex-col gap-4">
-        {/* User identity row */}
+        {/* Identity row */}
         <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-[#83eef008] border border-[#83eef018]">
           <div className="w-9 h-9 rounded-full bg-[linear-gradient(135deg,rgba(131,238,240,0.25)_0%,rgba(63,176,179,0.15)_100%)] border border-[#83eef040] flex items-center justify-center flex-shrink-0">
             <span className="[font-family:'Inter',Helvetica] font-semibold text-[#83eef0] text-sm leading-none">
@@ -215,22 +149,14 @@ function MobileOverlayAuthSection({ onClose }: { onClose: () => void }) {
             </span>
           </div>
           <div className="flex flex-col flex-1 min-w-0">
-            <span className="[font-family:'Inter',Helvetica] text-[#d4e9f3] text-sm font-medium truncate">
-              {privyDisplayName}
-            </span>
-            <span className="[font-family:'Inter',Helvetica] text-[#83eef080] text-xs">
-              MesoReef DAO member
-            </span>
+            <span className="[font-family:'Inter',Helvetica] text-[#d4e9f3] text-sm font-medium truncate">{privyDisplayName}</span>
+            <span className="[font-family:'Inter',Helvetica] text-[#83eef080] text-xs">MesoReef DAO member</span>
           </div>
         </div>
 
-        {/* Wallet section */}
         <MobileWalletSection />
-
-        {/* Fileverse Workspace */}
         <FileverseWorkspacePanel variant="overlay" />
 
-        {/* Sign out */}
         <button
           onClick={() => { onClose(); privyLogout().catch(() => {}); }}
           data-testid="button-sign-out-mobile"
@@ -242,22 +168,40 @@ function MobileOverlayAuthSection({ onClose }: { onClose: () => void }) {
     );
   }
 
+  // ── ORCID-authenticated state ─────────────────────────────────────────────
   if (orcidAuthenticated) {
     return (
       <div className="flex flex-col gap-3">
+        {/* Identity row */}
         <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-[#a6ce3908] border border-[#a6ce3920]">
           <div className="w-9 h-9 rounded-full bg-[#a6ce3920] border border-[#a6ce3940] flex items-center justify-center flex-shrink-0">
-            <span className="text-[#a6ce39] font-bold text-[11px] [font-family:'Inter',Helvetica]">iD</span>
+            <OrcidIcon size={18} />
           </div>
           <div className="flex flex-col flex-1 min-w-0">
             <span className="[font-family:'Inter',Helvetica] text-[#d4e9f3] text-sm font-medium truncate">
               {orcidName || "Researcher"}
             </span>
-            <span className="[font-family:'Inter',Helvetica] text-[#a6ce39] text-[10px] font-mono truncate">
-              {orcidId}
-            </span>
+            <span className="[font-family:'Inter',Helvetica] text-[#a6ce39] text-[10px] font-mono truncate">{orcidId}</span>
           </div>
         </div>
+
+        {/* Workspace access */}
+        <FileverseWorkspacePanel variant="overlay" />
+
+        {/* Connect wallet nudge */}
+        {PRIVY_ENABLED && (
+          <button
+            onClick={() => { onClose(); setTimeout(() => { try { login(); } catch {} }, 150); }}
+            data-testid="button-connect-wallet-orcid-mobile"
+            className="flex items-center justify-center gap-2 px-5 py-3 min-h-[44px] rounded-2xl bg-[#83eef00a] border border-[#83eef020] text-[#83eef0cc] [font-family:'Inter',Helvetica] text-sm font-medium active:bg-[#83eef018] transition-colors"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+              <path d="M21 18V19C21 20.1 20.1 21 19 21H5C3.89 21 3 20.1 3 19V5C3 3.9 3.89 3 5 3H19C20.1 3 21 3.9 21 5V6H12C10.89 6 10 6.9 10 8V16C10 17.1 10.89 18 12 18H21ZM12 16H22V8H12V16ZM16 13.5C15.17 13.5 14.5 12.83 14.5 12C14.5 11.17 15.17 10.5 16 10.5C16.83 10.5 17.5 11.17 17.5 12C17.5 12.83 16.83 13.5 16 13.5Z" fill="currentColor"/>
+            </svg>
+            Connect Wallet
+          </button>
+        )}
+
         <button
           onClick={() => { onClose(); orcidLogout(); }}
           data-testid="button-sign-out-orcid-mobile"
@@ -269,18 +213,19 @@ function MobileOverlayAuthSection({ onClose }: { onClose: () => void }) {
     );
   }
 
+  // ── Unauthenticated state ─────────────────────────────────────────────────
   return (
     <div className="flex flex-col gap-3">
-      <button
-        onClick={() => { onClose(); setTimeout(() => { try { login(); } catch { } }, 150); }}
-        data-testid="button-login-mobile-overlay"
-        className="flex items-center justify-center gap-2 w-full px-5 py-3.5 min-h-[52px] rounded-2xl bg-[linear-gradient(170deg,rgba(131,238,240,1)_0%,rgba(63,176,179,1)_100%)] text-[#00585a] [font-family:'Inter',Helvetica] text-base font-semibold active:opacity-80 transition-opacity shadow-[0_4px_20px_rgba(131,238,240,0.2)]"
-      >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-          <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3" stroke="#00585a" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-        Log in to MesoReef DAO
-      </button>
+      {PRIVY_ENABLED && (
+        <button
+          onClick={() => { onClose(); setTimeout(() => { try { login(); } catch {} }, 150); }}
+          data-testid="button-login-mobile-overlay"
+          className="flex items-center justify-center gap-2 w-full px-5 py-3.5 min-h-[52px] rounded-2xl bg-[linear-gradient(170deg,rgba(131,238,240,1)_0%,rgba(63,176,179,1)_100%)] text-[#00585a] [font-family:'Inter',Helvetica] text-base font-semibold active:opacity-80 transition-opacity shadow-[0_4px_20px_rgba(131,238,240,0.2)]"
+        >
+          <LoginArrowIcon size={18} color="#00585a" />
+          Log in to MesoReef DAO
+        </button>
+      )}
       <div className="flex items-center gap-3">
         <div className="flex-1 h-px bg-[#ffffff10]" />
         <span className="[font-family:'Inter',Helvetica] text-[#d4e9f330] text-xs">or</span>
@@ -291,39 +236,40 @@ function MobileOverlayAuthSection({ onClose }: { onClose: () => void }) {
   );
 }
 
+// ── Main header ───────────────────────────────────────────────────────────────
 export const ApplicationHeaderSection = (): JSX.Element => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
     <>
-      <header className="flex w-full items-center justify-between px-4 md:px-8 py-3 md:py-4 border-b border-[#ffffff0d] backdrop-blur-[20px] backdrop-brightness-[100%] [-webkit-backdrop-filter:blur(20px)_brightness(100%)] bg-[linear-gradient(180deg,rgba(0,22,30,1)_0%,rgba(0,16,23,0.4)_100%),linear-gradient(0deg,rgba(0,8,12,0.8)_0%,rgba(0,8,12,0.8)_100%)] relative z-20">
+      <header className="flex w-full items-center justify-between px-4 md:px-6 py-2 md:py-2.5 border-b border-[#ffffff0d] backdrop-blur-[20px] [-webkit-backdrop-filter:blur(20px)_brightness(100%)] bg-[linear-gradient(180deg,rgba(0,22,30,1)_0%,rgba(0,16,23,0.4)_100%),linear-gradient(0deg,rgba(0,8,12,0.8)_0%,rgba(0,8,12,0.8)_100%)] relative z-20">
         {/* Logo */}
         <img
           src="/figmaAssets/mesoreef-dao-logo-new.png"
           alt="MesoReef DAO"
-          className="h-11 md:h-14 w-auto flex-shrink-0 object-contain"
+          className="h-8 md:h-9 w-auto flex-shrink-0 object-contain"
         />
 
-        {/* Desktop navigation links */}
-        <nav className="hidden md:inline-flex items-center gap-8">
-          {navLinks.map((link) =>
+        {/* Desktop nav links */}
+        <nav className="hidden md:inline-flex items-center gap-6">
+          {NAV_LINKS.map(link =>
             link.internal ? (
               <Link
                 key={link.label}
                 href={link.href}
                 data-testid={`nav-header-${link.label.toLowerCase()}`}
-                className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-normal text-[#d4e9f3b2] text-base tracking-[-0.40px] leading-6 whitespace-nowrap hover:text-[#d4e9f3] transition-colors no-underline"
+                className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-normal text-[#d4e9f3b2] text-sm tracking-[-0.20px] leading-5 whitespace-nowrap hover:text-[#d4e9f3] transition-colors no-underline"
               >
                 {link.label}
               </Link>
             ) : (
               <a
                 key={link.label}
-                data-testid={`nav-header-${link.label.toLowerCase()}`}
-                className="relative flex items-center gap-1.5 [font-family:'Plus_Jakarta_Sans',Helvetica] font-normal text-[#d4e9f3b2] text-base tracking-[-0.40px] leading-6 whitespace-nowrap hover:text-[#d4e9f3] transition-colors no-underline"
                 href={link.href}
+                data-testid={`nav-header-${link.label.toLowerCase()}`}
                 rel="noopener noreferrer"
                 target="_blank"
+                className="relative flex items-center gap-1.5 [font-family:'Plus_Jakarta_Sans',Helvetica] font-normal text-[#d4e9f3b2] text-sm tracking-[-0.20px] leading-5 whitespace-nowrap hover:text-[#d4e9f3] transition-colors no-underline"
               >
                 {link.label}
                 {link.badge && (
@@ -336,27 +282,17 @@ export const ApplicationHeaderSection = (): JSX.Element => {
           )}
         </nav>
 
-        {/* Right side: auth button (desktop) + compact auth + hamburger (mobile) */}
+        {/* Right side */}
         <div className="flex items-center gap-2">
-          {/* Full auth button — desktop only */}
+          {/* Desktop auth button */}
           <div className="hidden md:block">
-            {PRIVY_ENABLED ? <PrivyLoginButton /> : <PlainLoginButton />}
+            {PRIVY_ENABLED ? <PrivyLoginButton /> : <OrcidLoginButton label="Sign in" size="sm" />}
           </div>
 
-          {/* Mobile: compact auth icon + hamburger */}
+          {/* Mobile: compact auth + hamburger */}
           <div className="flex md:hidden items-center gap-2">
-            {PRIVY_ENABLED ? (
+            {PRIVY_ENABLED && (
               <PrivyLoginButton compact onOpenMenu={() => setMobileMenuOpen(true)} />
-            ) : (
-              <button
-                onClick={() => setMobileMenuOpen(true)}
-                className="w-9 h-9 rounded-full bg-[linear-gradient(135deg,rgba(131,238,240,0.9)_0%,rgba(63,176,179,0.9)_100%)] flex items-center justify-center"
-                aria-label="Log in"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                  <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3" stroke="#00585a" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </button>
             )}
             <button
               onClick={() => setMobileMenuOpen(true)}
@@ -372,7 +308,7 @@ export const ApplicationHeaderSection = (): JSX.Element => {
         </div>
       </header>
 
-      {/* Mobile full-screen menu overlay */}
+      {/* Mobile full-screen overlay */}
       {mobileMenuOpen && (
         <div
           className="md:hidden fixed inset-0 z-50 flex flex-col"
@@ -380,11 +316,7 @@ export const ApplicationHeaderSection = (): JSX.Element => {
         >
           {/* Overlay header */}
           <div className="flex items-center justify-between px-4 py-4 border-b border-[#ffffff0d] flex-shrink-0">
-            <img
-              src="/figmaAssets/mesoreef-dao-logo-new.png"
-              alt="MesoReef DAO"
-              className="h-11 w-auto object-contain"
-            />
+            <img src="/figmaAssets/mesoreef-dao-logo-new.png" alt="MesoReef DAO" className="h-11 w-auto object-contain" />
             <button
               onClick={() => setMobileMenuOpen(false)}
               aria-label="Close menu"
@@ -396,10 +328,10 @@ export const ApplicationHeaderSection = (): JSX.Element => {
             </button>
           </div>
 
-          {/* Overlay body — scrollable */}
+          {/* Scrollable body */}
           <div className="flex flex-col gap-3 px-4 py-6 flex-1 overflow-y-auto">
             {/* Nav links */}
-            {navLinks.map((link) =>
+            {NAV_LINKS.map(link =>
               link.internal ? (
                 <Link
                   key={link.label}
@@ -407,9 +339,7 @@ export const ApplicationHeaderSection = (): JSX.Element => {
                   onClick={() => setMobileMenuOpen(false)}
                   className="flex items-center justify-between px-5 py-4 min-h-[56px] rounded-2xl bg-[#ffffff06] border border-[#ffffff0d] text-[#d4e9f3b2] hover:bg-[#83eef00a] hover:border-[#83eef01a] hover:text-[#d4e9f3] active:bg-[#83eef00f] transition-colors no-underline"
                 >
-                  <span className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-semibold text-base">
-                    {link.label}
-                  </span>
+                  <span className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-semibold text-base">{link.label}</span>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                     <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
@@ -438,27 +368,12 @@ export const ApplicationHeaderSection = (): JSX.Element => {
               )
             )}
 
-            {/* Divider */}
             <div className="border-t border-[#ffffff08] my-1" />
 
             {/* Account section */}
             <div className="flex flex-col gap-3">
-              <p className="[font-family:'Inter',Helvetica] text-[#d4e9f350] text-xs px-1 uppercase tracking-wider">
-                Account
-              </p>
-              {PRIVY_ENABLED ? (
-                <MobileOverlayAuthSection onClose={() => setMobileMenuOpen(false)} />
-              ) : (
-                <div className="flex flex-col gap-3">
-                  <PlainLoginButton onClick={() => setMobileMenuOpen(false)} />
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1 h-px bg-[#ffffff10]" />
-                    <span className="[font-family:'Inter',Helvetica] text-[#d4e9f330] text-xs">or</span>
-                    <div className="flex-1 h-px bg-[#ffffff10]" />
-                  </div>
-                  <OrcidLoginButton className="w-full" label="Sign in with ORCID iD" size="md" />
-                </div>
-              )}
+              <p className="[font-family:'Inter',Helvetica] text-[#d4e9f350] text-xs px-1 uppercase tracking-wider">Account</p>
+              <MobileOverlayAuthSection onClose={() => setMobileMenuOpen(false)} />
             </div>
           </div>
         </div>

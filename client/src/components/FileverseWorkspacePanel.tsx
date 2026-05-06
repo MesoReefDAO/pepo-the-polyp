@@ -1,7 +1,8 @@
 import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { useState } from "react";
-import { ExternalLink, FileText, Table2, Plus, CheckCircle2, Images } from "lucide-react";
+import { ExternalLink, FileText, Table2, Plus, CheckCircle2, Images, Wallet } from "lucide-react";
 import { PRIVY_ENABLED } from "@/lib/privy";
+import { useOrcidAuth } from "@/hooks/use-orcid-auth";
 
 function dDocsIcon(size = 16) {
   return (
@@ -32,6 +33,17 @@ function FileverseIcon(size = 14) {
   );
 }
 
+function OrcidIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="12" r="10" stroke="#a6ce39" strokeWidth="1.8"/>
+      <path d="M9 7h1.5a3.5 3.5 0 010 7H9V7z" stroke="#a6ce39" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+      <circle cx="7.5" cy="7" r="0.75" fill="#a6ce39"/>
+      <path d="M7.5 9.5v5" stroke="#a6ce39" strokeWidth="1.6" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
 function CopyIcon() {
   return (
     <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
@@ -42,13 +54,7 @@ function CopyIcon() {
 }
 
 interface FileverseWorkspacePanelProps {
-  /**
-   * sidebar  — compact, fits the left sidebar (no title, small buttons)
-   * overlay  — medium, for the mobile hamburger overlay
-   * page     — full width banner on the Workspace page
-   */
   variant?: "sidebar" | "overlay" | "page";
-  /** called when user taps "Log in" from sidebar/overlay variant */
   onLogin?: () => void;
 }
 
@@ -56,16 +62,31 @@ export function FileverseWorkspacePanel({
   variant = "sidebar",
   onLogin,
 }: FileverseWorkspacePanelProps) {
-  const { authenticated, login, user } = usePrivy();
+  const { authenticated: privyAuthenticated, login: privyLogin, user } = usePrivy();
   const { wallets } = useWallets();
+  const { orcidAuthenticated, orcidName } = useOrcidAuth();
   const [copied, setCopied] = useState(false);
-  const doLogin = () => { try { login(); } catch { /* ignore */ } };
+
+  const doPrivyLogin = () => { try { privyLogin(); } catch { /* ignore */ } };
 
   const primaryWallet = wallets[0];
   const walletAddr = primaryWallet?.address ?? user?.wallet?.address;
   const shortAddr = walletAddr
     ? `${walletAddr.slice(0, 6)}…${walletAddr.slice(-4)}`
     : null;
+
+  // Any valid identity = connected
+  const privyReady = PRIVY_ENABLED && privyAuthenticated;
+  const isConnected = orcidAuthenticated || privyReady;
+
+  // Label for the identity in use
+  const identityLabel = privyReady && shortAddr
+    ? shortAddr
+    : orcidAuthenticated && orcidName
+      ? orcidName
+      : orcidAuthenticated
+        ? "ORCID user"
+        : null;
 
   function copyAddr() {
     if (!walletAddr) return;
@@ -76,7 +97,7 @@ export function FileverseWorkspacePanel({
 
   /* ────────────────── SIDEBAR VARIANT ───────────────────────────────── */
   if (variant === "sidebar") {
-    if (!PRIVY_ENABLED || !authenticated) {
+    if (!isConnected) {
       return (
         <>
           <div className="flex gap-1.5">
@@ -112,7 +133,7 @@ export function FileverseWorkspacePanel({
               <span style={{ fontSize: 9, fontWeight: 700, color: "#ff9f43bb", fontFamily: "Inter,sans-serif", letterSpacing: "0.04em" }}>Reef Imgs</span>
             </a>
             <button
-              onClick={onLogin ?? doLogin}
+              onClick={onLogin ?? doPrivyLogin}
               data-testid="button-workspace-login-sidebar"
               className="flex-1 flex flex-col items-center gap-1 py-2 rounded-[10px] transition-colors cursor-pointer"
               style={{ background: "rgba(131,238,240,0.05)", border: "1px solid rgba(131,238,240,0.14)", outline: "none" }}
@@ -141,18 +162,26 @@ export function FileverseWorkspacePanel({
           </span>
         </div>
 
-        {/* Wallet chip */}
-        {shortAddr && (
+        {/* Identity chip */}
+        {identityLabel && (
           <button
-            onClick={copyAddr}
+            onClick={privyReady && walletAddr ? copyAddr : undefined}
             data-testid="button-copy-wallet-workspace"
             className="flex items-center justify-between gap-1 px-2 py-1 rounded-full text-left transition-colors"
-            style={{ background: "rgba(131,238,240,0.07)", border: "1px solid rgba(131,238,240,0.18)" }}
+            style={{
+              background: "rgba(131,238,240,0.07)",
+              border: "1px solid rgba(131,238,240,0.18)",
+              cursor: privyReady && walletAddr ? "pointer" : "default",
+            }}
           >
-            <span style={{ fontSize: 9.5, fontFamily: "monospace", color: "#83eef0cc" }}>{shortAddr}</span>
-            <span className="text-[#83eef070]">
-              {copied ? <span style={{ fontSize: 8, color: "#1dd1a1" }}>Copied!</span> : <CopyIcon />}
+            <span style={{ fontSize: 9.5, fontFamily: privyReady && walletAddr ? "monospace" : "Inter,sans-serif", color: "#83eef0cc" }}>
+              {identityLabel}
             </span>
+            {privyReady && walletAddr && (
+              <span className="text-[#83eef070]">
+                {copied ? <span style={{ fontSize: 8, color: "#1dd1a1" }}>Copied!</span> : <CopyIcon />}
+              </span>
+            )}
           </button>
         )}
 
@@ -207,11 +236,10 @@ export function FileverseWorkspacePanel({
 
   /* ────────────────── OVERLAY VARIANT (mobile hamburger) ─────────────── */
   if (variant === "overlay") {
-    if (!PRIVY_ENABLED || !authenticated) return null;
+    if (!isConnected) return null;
 
     return (
       <div className="flex flex-col gap-2">
-        {/* Section label */}
         <p className="[font-family:'Inter',Helvetica] text-[#d4e9f350] text-xs px-1 uppercase tracking-wider">
           Reef Workspace
         </p>
@@ -220,7 +248,7 @@ export function FileverseWorkspacePanel({
           className="flex flex-col gap-3 px-3 py-3 rounded-2xl"
           style={{ background: "rgba(29,209,161,0.05)", border: "1px solid rgba(29,209,161,0.18)" }}
         >
-          {/* Connected + wallet */}
+          {/* Connected + identity */}
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-1.5">
               <CheckCircle2 size={13} className="text-[#1dd1a1]" />
@@ -228,23 +256,31 @@ export function FileverseWorkspacePanel({
                 Fileverse connected
               </span>
             </div>
-            {shortAddr && (
+            {identityLabel && (
               <button
-                onClick={copyAddr}
+                onClick={privyReady && walletAddr ? copyAddr : undefined}
                 data-testid="button-copy-wallet-workspace-mobile"
                 className="flex items-center gap-1 px-2.5 py-1 rounded-full text-left transition-colors"
-                style={{ background: "rgba(131,238,240,0.07)", border: "1px solid rgba(131,238,240,0.18)" }}
+                style={{
+                  background: "rgba(131,238,240,0.07)",
+                  border: "1px solid rgba(131,238,240,0.18)",
+                  cursor: privyReady && walletAddr ? "pointer" : "default",
+                }}
               >
-                <span className="[font-family:'Inter',Helvetica] text-[#83eef0cc] text-[10px] font-mono">{shortAddr}</span>
-                <span className="text-[#83eef070]">
-                  {copied ? <span className="text-[#1dd1a1] text-[9px]">✓</span> : <CopyIcon />}
-                </span>
+                <span className="[font-family:'Inter',Helvetica] text-[#83eef0cc] text-[10px] font-mono">{identityLabel}</span>
+                {privyReady && walletAddr && (
+                  <span className="text-[#83eef070]">
+                    {copied ? <span className="text-[#1dd1a1] text-[9px]">✓</span> : <CopyIcon />}
+                  </span>
+                )}
               </button>
             )}
           </div>
 
           <p className="[font-family:'Inter',Helvetica] text-[#9aaeb8] text-[11px] leading-5 px-0.5">
-            Your Privy wallet is your Fileverse identity. Tap below to open your decentralised workspace.
+            {privyReady
+              ? "Your Privy wallet is your Fileverse identity. Tap below to open your decentralised workspace."
+              : "Your ORCID identity is your Fileverse login. Tap below to open your decentralised workspace."}
           </p>
 
           {/* dDocs + dSheets + Reef Image Repo */}
@@ -311,36 +347,53 @@ export function FileverseWorkspacePanel({
   }
 
   /* ────────────────── PAGE VARIANT (WorkspacePage) ───────────────────── */
-  if (!PRIVY_ENABLED || !authenticated) {
+
+  /* Not connected — offer both login options */
+  if (!isConnected) {
     return (
       <div
-        className="w-full flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-2xl px-5 py-4 mb-6"
+        className="w-full flex flex-col gap-4 rounded-2xl px-5 py-5 mb-6"
         style={{ background: "rgba(131,238,240,0.04)", border: "1px solid rgba(131,238,240,0.14)" }}
       >
         <div>
-          <p className="[font-family:'Inter',Helvetica] text-[#d4e9f3cc] text-sm font-semibold mb-0.5">
-            Connect your wallet to access your workspace
+          <p className="[font-family:'Inter',Helvetica] text-[#d4e9f3cc] text-sm font-semibold mb-1">
+            Sign in to access your Fileverse workspace
           </p>
           <p className="[font-family:'Inter',Helvetica] text-[#9aaeb8] text-xs leading-5">
-            Your Privy wallet is your Fileverse identity. No separate account needed.
+            Use your ORCID identity or connect a wallet — no separate Fileverse account needed.
           </p>
         </div>
-        <button
-          onClick={onLogin ?? (() => { try { login(); } catch {} })}
-          data-testid="button-workspace-login-page"
-          className="flex-shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-full font-semibold text-sm transition-opacity hover:opacity-90"
-          style={{ background: "linear-gradient(135deg,#83eef0,#3fb0b3)", color: "#00585a" }}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-            <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3" stroke="#00585a" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-          Log in with Privy
-        </button>
+
+        <div className="flex flex-col sm:flex-row gap-3">
+          {/* ORCID login */}
+          <a
+            href="/api/auth/orcid/login"
+            data-testid="button-workspace-login-orcid"
+            className="flex-1 flex items-center justify-center gap-2.5 px-5 py-3 rounded-xl no-underline font-semibold text-sm transition-opacity hover:opacity-90"
+            style={{ background: "linear-gradient(135deg,#a6ce3922,#a6ce3911)", border: "1px solid #a6ce3944", color: "#a6ce39" }}
+          >
+            <OrcidIcon size={16} />
+            Log in with ORCID
+          </a>
+
+          {/* Privy wallet login */}
+          {PRIVY_ENABLED && (
+            <button
+              onClick={onLogin ?? doPrivyLogin}
+              data-testid="button-workspace-login-privy"
+              className="flex-1 flex items-center justify-center gap-2.5 px-5 py-3 rounded-xl font-semibold text-sm transition-opacity hover:opacity-90 cursor-pointer"
+              style={{ background: "linear-gradient(135deg,#83eef022,#3fb0b311)", border: "1px solid rgba(131,238,240,0.28)", color: "#83eef0", outline: "none" }}
+            >
+              <Wallet size={15} />
+              Connect Wallet
+            </button>
+          )}
+        </div>
       </div>
     );
   }
 
-  /* Authenticated page banner */
+  /* Connected page banner */
   return (
     <div
       className="w-full rounded-2xl px-5 py-4 mb-6 flex flex-col gap-4"
@@ -360,28 +413,58 @@ export function FileverseWorkspacePanel({
               Fileverse workspace connected
             </p>
             <p className="[font-family:'Inter',Helvetica] text-[#9aaeb8] text-xs leading-4 mt-0.5">
-              Your Privy wallet is your Fileverse identity. No separate login needed.
+              {privyReady
+                ? "Your Privy wallet is your Fileverse identity."
+                : "Your ORCID identity is your Fileverse login."}
             </p>
           </div>
         </div>
 
-        {/* Wallet chip */}
-        {shortAddr && (
+        {/* Identity chip */}
+        {identityLabel && (
           <button
-            onClick={copyAddr}
+            onClick={privyReady && walletAddr ? copyAddr : undefined}
             data-testid="button-copy-wallet-workspace-page"
             className="flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-full transition-colors"
-            style={{ background: "rgba(131,238,240,0.07)", border: "1px solid rgba(131,238,240,0.2)" }}
+            style={{
+              background: "rgba(131,238,240,0.07)",
+              border: "1px solid rgba(131,238,240,0.2)",
+              cursor: privyReady && walletAddr ? "pointer" : "default",
+            }}
           >
-            <span className="[font-family:'Inter',Helvetica] text-[#83eef0cc] text-xs font-mono">{shortAddr}</span>
-            <span className="text-[#83eef070]">
-              {copied
-                ? <span className="[font-family:'Inter',Helvetica] text-[#1dd1a1] text-xs">Copied!</span>
-                : <CopyIcon />}
-            </span>
+            {orcidAuthenticated && !privyReady && <OrcidIcon size={12} />}
+            <span className="[font-family:'Inter',Helvetica] text-[#83eef0cc] text-xs font-mono">{identityLabel}</span>
+            {privyReady && walletAddr && (
+              <span className="text-[#83eef070]">
+                {copied
+                  ? <span className="[font-family:'Inter',Helvetica] text-[#1dd1a1] text-xs">Copied!</span>
+                  : <CopyIcon />}
+              </span>
+            )}
           </button>
         )}
       </div>
+
+      {/* Optional: connect wallet nudge for ORCID-only users */}
+      {orcidAuthenticated && !privyReady && PRIVY_ENABLED && (
+        <div
+          className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl"
+          style={{ background: "rgba(131,238,240,0.04)", border: "1px solid rgba(131,238,240,0.12)" }}
+        >
+          <p className="[font-family:'Inter',Helvetica] text-[#9aaeb8] text-xs leading-5">
+            Connect a wallet to unlock on-chain features and IPFS uploads.
+          </p>
+          <button
+            onClick={doPrivyLogin}
+            data-testid="button-connect-wallet-nudge"
+            className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-opacity hover:opacity-90 cursor-pointer"
+            style={{ background: "rgba(131,238,240,0.1)", border: "1px solid rgba(131,238,240,0.25)", color: "#83eef0cc", outline: "none" }}
+          >
+            <Wallet size={12} />
+            Connect wallet
+          </button>
+        </div>
+      )}
 
       {/* Quick-launch row */}
       <div className="flex flex-col sm:flex-row gap-3">
