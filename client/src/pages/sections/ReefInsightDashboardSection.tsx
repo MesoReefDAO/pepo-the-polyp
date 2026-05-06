@@ -11,18 +11,19 @@ const BONFIRES_GRAPH_URL = "https://pepo.app.bonfires.ai/graph";
 const HINT_KEY = "pepo_graph_hint_v1";
 const HINT_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
-// Bonfires.ai top nav bar height (logo row + tab row ≈ 96 px).
+// Bonfires.ai top nav bar height — single row with logo + tabs ≈ 50 px.
 // The iframe is shifted up by this amount so the nav sits above the
-// overflow:hidden boundary — our own branded header replaces it.
-const NAV_CROP_PX = 96;
+// overflow:hidden boundary; our own branded header replaces it.
+// (Previously 96 — that over-cropped and hid the top of the panels.)
+const NAV_CROP_PX = 50;
 
 // Scale factor applied to the Bonfires.ai iframe via CSS transform.
-// < 1 makes Bonfires.ai render at a larger internal viewport (better
-// panel proportions) and then scales the result down visually so all
-// three panels — Explorer · graph canvas · PepoThePolypBot — fit
-// cleanly inside our container.  Pointer events are remapped correctly
-// by the browser so the interface remains fully interactive.
-const SCALE = 0.75;
+// 0.62 → iframe renders at 161% internal viewport width, which at an
+// 800 px container ≈ 1290 px internal — wide enough to render all three
+// Bonfires.ai panels: EXPLORER (left) · graph canvas (center) ·
+// PepoThePolypBot (right).  Pointer events are remapped correctly by
+// the browser so the interface remains fully interactive.
+const SCALE = 0.62;
 
 const EXAMPLE_PROMPTS = [
   "Any interesting things happened recently?",
