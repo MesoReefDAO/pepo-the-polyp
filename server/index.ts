@@ -3,7 +3,7 @@ import helmet from "helmet";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import { pool } from "./db";
-import { registerRoutes } from "./routes";
+import { registerRoutes, pinProfileAsync } from "./routes";
 import { serveStatic } from "./static";
 import { storage } from "./storage";
 import { createServer } from "http";
@@ -186,6 +186,23 @@ app.use((req, res, next) => {
     })
     .catch((err) => {
       console.error("[points-sync] startup sync failed:", err);
+    });
+
+  // Backfill IPFS pinning for all profiles that don't yet have a CID (fire-and-forget)
+  storage.getAllProfilesRaw()
+    .then(async (allProfiles) => {
+      const unpinned = allProfiles.filter(p => !p.ipfsCid);
+      if (unpinned.length === 0) {
+        log(`IPFS backfill: all ${allProfiles.length} profiles already pinned`);
+        return;
+      }
+      log(`IPFS backfill: pinning ${unpinned.length} of ${allProfiles.length} profiles`);
+      for (const p of unpinned) {
+        void pinProfileAsync(p as Record<string, unknown>, p.id);
+      }
+    })
+    .catch((err) => {
+      console.error("[ipfs-backfill] startup pin failed:", err);
     });
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {

@@ -591,7 +591,7 @@ function sanitizeString(value: unknown, maxLength = 2000): string | null {
 }
 
 // ─── IPFS profile pinning (background, fire-and-forget) ───────────────────────
-async function pinProfileAsync(profile: Record<string, unknown>, profileId: string): Promise<void> {
+export async function pinProfileAsync(profile: Record<string, unknown>, profileId: string): Promise<void> {
   try {
     const isFirstPin = !profile.ipfsCid;
     const jsonStr = JSON.stringify({
