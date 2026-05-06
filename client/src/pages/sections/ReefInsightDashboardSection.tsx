@@ -11,19 +11,21 @@ const BONFIRES_GRAPH_URL = "https://pepo.app.bonfires.ai/graph";
 const HINT_KEY = "pepo_graph_hint_v1";
 const HINT_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
-// Bonfires.ai top nav bar height — single row with logo + tabs ≈ 50 px.
-// The iframe is shifted up by this amount so the nav sits above the
-// overflow:hidden boundary; our own branded header replaces it.
-// (Previously 96 — that over-cropped and hid the top of the panels.)
-const NAV_CROP_PX = 50;
+// Bonfires.ai nav bar (single logo + tabs row) + dark strip below = ~80 px.
+// Shifting the iframe up by this amount hides the Bonfires.ai nav so that
+// the EXPLORER panel appears right at the top of our container, matching
+// the reference layout where EXPLORER is flush with the top.
+const NAV_CROP_PX = 80;
 
-// Scale factor applied to the Bonfires.ai iframe via CSS transform.
-// 0.62 → iframe renders at 161% internal viewport width, which at an
-// 800 px container ≈ 1290 px internal — wide enough to render all three
-// Bonfires.ai panels: EXPLORER (left) · graph canvas (center) ·
-// PepoThePolypBot (right).  Pointer events are remapped correctly by
-// the browser so the interface remains fully interactive.
-const SCALE = 0.62;
+// Dynamic scale targets: the ResizeObserver below keeps the iframe's
+// internal viewport at TARGET_INTERNAL_PX regardless of container size,
+// capped between MIN_SCALE and MAX_SCALE (0.90 = "90% of fit" as
+// requested — things look close to native but slightly smaller).
+// At TARGET_INTERNAL_PX = 1250, Bonfires.ai reliably renders all three
+// panels: EXPLORER (left) · graph canvas (center) · PepoThePolypBot (right).
+const TARGET_INTERNAL_PX = 1250;
+const MAX_SCALE = 0.90;
+const MIN_SCALE = 0.48;
 
 const EXAMPLE_PROMPTS = [
   "Any interesting things happened recently?",
@@ -408,7 +410,10 @@ function GraphLoadingShimmer({ visible }: { visible: boolean }) {
 export const ReefInsightDashboardSection = (): JSX.Element => {
   const [graphLoading, setGraphLoading] = useState(true);
   const [coralOpen, setCoralOpen] = useState(true);
+  // Dynamic scale: computed from container width so all three panels always fit
+  const [scale, setScale] = useState(0.75);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const iframeWrapperRef = useRef<HTMLDivElement>(null);
   const { t } = useTranslation();
 
   // Show hint overlay unless dismissed within the last 7 days
@@ -429,6 +434,21 @@ export const ReefInsightDashboardSection = (): JSX.Element => {
 
   const handleIframeLoad = useCallback(() => {
     setGraphLoading(false);
+  }, []);
+
+  // ResizeObserver: keep the iframe's internal viewport = TARGET_INTERNAL_PX
+  // wide regardless of how wide/narrow the container is, capped at MAX_SCALE
+  // so things never exceed 90 % of native size (the "90 % of fit" UX goal).
+  useEffect(() => {
+    const el = iframeWrapperRef.current;
+    if (!el) return;
+    const obs = new ResizeObserver(([entry]) => {
+      const w = entry.contentRect.width;
+      const computed = w / TARGET_INTERNAL_PX;
+      setScale(Math.min(MAX_SCALE, Math.max(MIN_SCALE, computed)));
+    });
+    obs.observe(el);
+    return () => obs.disconnect();
   }, []);
 
   return (
@@ -503,12 +523,12 @@ export const ReefInsightDashboardSection = (): JSX.Element => {
         </div>
 
         {/* ── iframe wrapper ─────────────────────────────────────── */}
-        {/* overflow-hidden clips the Bonfires.ai nav bar (shifted above   */}
-        {/* the top boundary).  SCALE=0.75 makes the iframe render at      */}
-        {/* 133% internal width so all three Bonfires.ai panels —          */}
-        {/* EXPLORER (left) · graph canvas (center) · PepoThePolypBot      */}
-        {/* (right) — are visible and proportionally sized.                */}
-        <div className="relative flex-1 min-h-0 overflow-hidden">
+        {/* ResizeObserver (attached via iframeWrapperRef) watches this    */}
+        {/* div's width and recalculates `scale` so the iframe always      */}
+        {/* renders at TARGET_INTERNAL_PX (1250 px) internally — wide      */}
+        {/* enough for all three Bonfires.ai panels — while the visual     */}
+        {/* output is scaled down to fill this container exactly.          */}
+        <div ref={iframeWrapperRef} className="relative flex-1 min-h-0 overflow-hidden">
           {/* Subtle teal edge glows */}
           <div className="absolute top-0 left-0 bottom-0 w-[3px] z-[6] pointer-events-none"
             style={{ background: "linear-gradient(180deg,rgba(131,238,240,0.0) 0%,rgba(131,238,240,0.30) 50%,rgba(131,238,240,0.0) 100%)" }} />
@@ -517,21 +537,21 @@ export const ReefInsightDashboardSection = (): JSX.Element => {
 
           <GraphLoadingShimmer visible={graphLoading} />
 
-          {/* Single iframe — full container width, scaled to SCALE.
-              Pre-scale dimensions are (1/SCALE)× the container so the
-              scaled result fills it exactly. Nav bar cropped by top-shift. */}
+          {/* iframe: internal viewport = TARGET_INTERNAL_PX px wide (1250 px).
+              `scale` is recomputed on every container resize so the visual
+              result always fills the wrapper exactly, panels always visible. */}
           <iframe
             ref={iframeRef}
             src={BONFIRES_GRAPH_URL}
             title="Regen Reef Knowledge Graph"
             className="absolute border-0"
             style={{
-              transform: `scale(${SCALE})`,
+              transform: `scale(${scale})`,
               transformOrigin: "top left",
-              top: `${-(NAV_CROP_PX / SCALE)}px`,
+              top: `${-(NAV_CROP_PX / scale)}px`,
               left: 0,
-              width: `${(1 / SCALE) * 100}%`,
-              height: `calc(${(1 / SCALE) * 100}% + ${NAV_CROP_PX / SCALE}px)`,
+              width: `${(1 / scale) * 100}%`,
+              height: `calc(${(1 / scale) * 100}% + ${NAV_CROP_PX / scale}px)`,
               background: "#00080c",
             }}
             allow="clipboard-write; clipboard-read; pointer-lock; fullscreen"
