@@ -419,6 +419,57 @@ export function PublicProfile() {
             </div>
           )}
 
+          {/* ── IPFS permanent record card ──────────────────────────────────── */}
+          {profile.ipfsCid ? (
+            <div
+              className="flex items-center gap-4 p-4 rounded-2xl border"
+              style={{ background: "#83eef008", borderColor: "#83eef025" }}
+              data-testid="card-ipfs-record"
+            >
+              <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                style={{ background: "#83eef015" }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"
+                    stroke="#83eef0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-semibold text-sm"
+                  style={{ color: "#83eef0" }}>
+                  Permanent IPFS Record
+                </p>
+                <p className="[font-family:'Inter',Helvetica] text-[10px] text-[#d4e9f355] mt-0.5 font-mono truncate"
+                  data-testid="text-ipfs-cid">
+                  {profile.ipfsCid}
+                </p>
+              </div>
+              <a
+                href={ipfsPublicUrl(profile.ipfsCid)}
+                target="_blank"
+                rel="noopener noreferrer"
+                data-testid="link-ipfs-record"
+                className="text-[10px] [font-family:'Inter',Helvetica] font-semibold px-3 py-1.5 rounded-full no-underline hover:opacity-80 transition-opacity flex-shrink-0"
+                style={{ background: "#83eef015", color: "#83eef0", border: "1px solid #83eef030" }}
+              >
+                View on IPFS ↗
+              </a>
+            </div>
+          ) : (
+            <div
+              className="flex items-center gap-3 p-3 rounded-2xl border"
+              style={{ background: "#83eef005", borderColor: "#83eef015" }}
+              data-testid="card-ipfs-pending"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="flex-shrink-0 opacity-40">
+                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"
+                  stroke="#83eef0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              <span className="[font-family:'Inter',Helvetica] text-[11px] text-[#d4e9f333]">
+                IPFS record syncing — will appear after next sign-in
+              </span>
+            </div>
+          )}
+
 
           {/* ── Wallet address ──────────────────────────────────────────────── */}
           {profile.walletAddress && (

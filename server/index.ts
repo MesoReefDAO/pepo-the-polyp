@@ -3,7 +3,7 @@ import helmet from "helmet";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import { pool } from "./db";
-import { registerRoutes } from "./routes";
+import { registerRoutes, pinProfileAsync } from "./routes";
 import { serveStatic } from "./static";
 import { storage } from "./storage";
 import { createServer } from "http";
@@ -186,6 +186,18 @@ app.use((req, res, next) => {
     })
     .catch((err) => {
       console.error("[points-sync] startup sync failed:", err);
+    });
+
+  // Pin all profiles to IPFS on every startup so every member's latest content is saved (fire-and-forget)
+  storage.getAllProfilesRaw()
+    .then(async (allProfiles) => {
+      log(`IPFS save: pinning all ${allProfiles.length} profiles with current content`);
+      for (const p of allProfiles) {
+        void pinProfileAsync(p as Record<string, unknown>, p.id);
+      }
+    })
+    .catch((err) => {
+      console.error("[ipfs-save] startup pin failed:", err);
     });
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {

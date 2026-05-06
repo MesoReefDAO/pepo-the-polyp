@@ -1220,12 +1220,10 @@ function ExpandedMapModal({
                         <div style={{ width: 32, height: 32, borderRadius: "50%", background: "rgba(131,238,240,0.15)", border: "2px solid #83eef0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>🪸</div>
                       )}
                       <div>
-                        <div style={{ fontWeight: 700, color: "#00131c", fontSize: 12, lineHeight: 1.3 }}>{m.displayName}</div>
-                        {m.orcidId && <div style={{ fontSize: 9, color: "#00b894", fontWeight: 600, marginTop: 1 }}>ORCID ✓</div>}
+                        {m.orcidId && <div style={{ fontSize: 9, color: "#00b894", fontWeight: 600 }}>ORCID ✓</div>}
                       </div>
                     </div>
-                    <div style={{ color: "#83eef0", fontWeight: 700, fontSize: 10, marginBottom: 2 }}>⚓ DAO Member · MesoReefDAO</div>
-                    {m.points > 0 && <div style={{ color: "#666", fontSize: 9 }}>{m.points.toLocaleString()} contribution pts</div>}
+                    <div style={{ color: "#83eef0", fontWeight: 700, fontSize: 10, marginBottom: 2 }}>🪸 Regen Reef Member</div>
                   </div>
                 </Popup>
               </CircleMarker>
@@ -2503,8 +2501,8 @@ function ExpandedMapModal({
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "10px 0 2px" }}>
               <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#d4e9f340" }}>Community</span>
             </div>
-            <div style={{ fontSize: 7.5, color: "#d4e9f328", marginBottom: 5, lineHeight: 1.5 }}>MesoReefDAO members who've shared their location and community-submitted reef imagery.</div>
-            <LayerToggle label="DAO Members"         sublabel={`${markers.length} members on the Regen Reef Network · MesoReefDAO`}                    active={showDaoMembers}    color="#83eef0" onClick={() => setShowDaoMembers(v => !v)} testId="expanded-toggle-dao-members" />
+            <div style={{ fontSize: 7.5, color: "#d4e9f328", marginBottom: 5, lineHeight: 1.5 }}>Members who've shared their location and community-submitted reef imagery.</div>
+            <LayerToggle label="Regen Reef Members"  sublabel={`${markers.length} members on the Regen Reef Network`}                                   active={showDaoMembers}    color="#83eef0" onClick={() => setShowDaoMembers(v => !v)} testId="expanded-toggle-dao-members" />
             <LayerToggle label="Reef Photos"         sublabel={`${reefImgs.length} peer-reviewed photos from community reef surveys`}                   active={showImgs}          color="#ff9f43" onClick={() => setShowImgs(v => !v)}          testId="expanded-toggle-imgs" />
           </SideSection>
 
@@ -2543,7 +2541,7 @@ function ExpandedMapModal({
             {showDaoMembers && markers.length > 0 && (
               <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "3px 0" }}>
                 <span style={{ width:11,height:11,borderRadius:"50%",background:"#83eef0",border:"2px solid #83eef0",display:"inline-block",flexShrink:0 }}/>
-                <span style={{ fontSize: 10.5, color: "#d4e9f3bb" }}>DAO Member</span>
+                <span style={{ fontSize: 10.5, color: "#d4e9f3bb" }}>Regen Reef Member</span>
               </div>
             )}
             {showImgs && reefImgs.length > 0 && (

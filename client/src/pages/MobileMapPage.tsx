@@ -209,7 +209,7 @@ export function MobileMapPage() {
             <div style={{ fontSize: 9, color: "#83eef055", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 8 }}>Community</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 7, marginBottom: 18 }}>
               {[
-                { swatch: "dot",  color: "#83eef0", label: "DAO Members",  sub: `${markers.length || "—"} members on the Regen Reef Network` },
+                { swatch: "dot",  color: "#83eef0", label: "Regen Reef Members", sub: `${markers.length || "—"} members on the Regen Reef Network` },
                 { swatch: "rect", color: "#ff9f43", label: "Reef Photos",  sub: "Community-submitted reef imagery" },
               ].map(({ swatch, color, label, sub }) => (
                 <div key={label} style={{ display: "flex", alignItems: "center", gap: 10 }}>
