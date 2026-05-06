@@ -1640,14 +1640,12 @@ hr, [class*="divider"], [class*="separator"] {
     }
     try {
       const all = await storage.getAllProfilesRaw();
-      const unpinned = all.filter(p => !p.ipfsCid);
-      for (const p of unpinned) {
+      for (const p of all) {
         void pinProfileAsync(p as Record<string, unknown>, p.id);
       }
       return res.json({
-        message: `Queued ${unpinned.length} profiles for IPFS pinning`,
+        message: `Queued all ${all.length} profiles for IPFS pinning`,
         total: all.length,
-        alreadyPinned: all.length - unpinned.length,
       });
     } catch (err) {
       console.error("[pin-all]", err);

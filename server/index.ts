@@ -188,21 +188,16 @@ app.use((req, res, next) => {
       console.error("[points-sync] startup sync failed:", err);
     });
 
-  // Backfill IPFS pinning for all profiles that don't yet have a CID (fire-and-forget)
+  // Pin all profiles to IPFS on every startup so every member's latest content is saved (fire-and-forget)
   storage.getAllProfilesRaw()
     .then(async (allProfiles) => {
-      const unpinned = allProfiles.filter(p => !p.ipfsCid);
-      if (unpinned.length === 0) {
-        log(`IPFS backfill: all ${allProfiles.length} profiles already pinned`);
-        return;
-      }
-      log(`IPFS backfill: pinning ${unpinned.length} of ${allProfiles.length} profiles`);
-      for (const p of unpinned) {
+      log(`IPFS save: pinning all ${allProfiles.length} profiles with current content`);
+      for (const p of allProfiles) {
         void pinProfileAsync(p as Record<string, unknown>, p.id);
       }
     })
     .catch((err) => {
-      console.error("[ipfs-backfill] startup pin failed:", err);
+      console.error("[ipfs-save] startup pin failed:", err);
     });
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
