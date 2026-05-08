@@ -121,32 +121,6 @@ function LoginGate() {
           </button>
         )}
 
-        {/* Divider */}
-        {PRIVY_ENABLED && (
-          <div className="flex items-center gap-3 w-full my-4">
-            <div className="flex-1 h-px bg-[#ffffff12]" />
-            <span className="[font-family:'Inter',Helvetica] text-[#d4e9f330] text-xs">or</span>
-            <div className="flex-1 h-px bg-[#ffffff12]" />
-          </div>
-        )}
-
-        {/* ORCID sign-in */}
-        <a
-          href="/api/auth/orcid/login"
-          data-testid="button-gate-login-orcid"
-          className="inline-flex items-center justify-center gap-2.5 px-8 py-3.5 rounded-full w-full no-underline transition-opacity hover:opacity-90"
-          style={{ background: "rgba(166,206,57,0.12)", border: "1px solid rgba(166,206,57,0.35)", color: "#a6ce39" }}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-            <circle cx="12" cy="12" r="10" stroke="#a6ce39" strokeWidth="1.8"/>
-            <path d="M9 7h1.5a3.5 3.5 0 010 7H9V7z" stroke="#a6ce39" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
-            <circle cx="7.5" cy="7" r="0.75" fill="#a6ce39"/>
-            <path d="M7.5 9.5v5" stroke="#a6ce39" strokeWidth="1.6" strokeLinecap="round"/>
-          </svg>
-          <span className="[font-family:'Inter',Helvetica] font-bold text-base leading-none">
-            Sign in with ORCID iD
-          </span>
-        </a>
       </div>
     </div>
   );

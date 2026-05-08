@@ -119,36 +119,6 @@ export function LoginModal({ onClose }: LoginModalProps) {
           </p>
         </div>
 
-        {/* ORCID — primary research option */}
-        <a
-          href="/api/auth/orcid"
-          data-testid="link-orcid-modal"
-          className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all group"
-          style={{
-            background: "rgba(166,206,57,0.07)",
-            border: "1px solid rgba(166,206,57,0.28)",
-          }}
-          onMouseEnter={e => (e.currentTarget.style.background = "rgba(166,206,57,0.13)")}
-          onMouseLeave={e => (e.currentTarget.style.background = "rgba(166,206,57,0.07)")}
-        >
-          <OrcidLogo size={36} />
-          <div className="flex flex-col">
-            <span className="text-white font-semibold text-sm leading-none mb-0.5" style={{ fontFamily: "Inter, sans-serif" }}>
-              Sign in with ORCID iD
-            </span>
-            <span className="text-xs" style={{ color: "#A6CE39bb", fontFamily: "Inter, sans-serif" }}>
-              For researchers & scientists
-            </span>
-          </div>
-        </a>
-
-        {/* Divider */}
-        <div className="flex items-center gap-3 my-0.5">
-          <div className="flex-1 h-px" style={{ background: "rgba(255,255,255,0.07)" }} />
-          <span className="text-xs" style={{ color: "#484f58", fontFamily: "Inter, sans-serif" }}>or</span>
-          <div className="flex-1 h-px" style={{ background: "rgba(255,255,255,0.07)" }} />
-        </div>
-
         {/* Wallet options → open Privy */}
         {[
           { icon: <MetaMaskIcon />, label: "MetaMask" },
