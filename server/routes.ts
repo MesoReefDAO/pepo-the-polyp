@@ -25,6 +25,9 @@ type NeFeature = { name: string; polygons: number[][][][] };
 let _neCountries: NeFeature[] | null = null;
 let _neAdmin1:    NeFeature[] | null = null;
 
+// ─── DeepReefMap GitHub info cache (10 min TTL) ───────────────────────────────
+let _deepReefMapCache: { data: object; expiresAt: number } | null = null;
+
 /** Ray-casting point-in-polygon for a single GeoJSON ring. */
 function _raycast(lon: number, lat: number, ring: number[][]): boolean {
   let inside = false;
@@ -2485,6 +2488,35 @@ hr, [class*="divider"], [class*="separator"] {
         ? `https://auth.privy.io/api/v1/apps/${PRIVY_APP_ID}/jwks.json`
         : null,
     });
+  });
+
+  // ── DeepReefMap GitHub info proxy ──────────────────────────────────────────
+  app.get("/api/deepreefmap/info", async (_req: Request, res: Response) => {
+    try {
+      if (_deepReefMapCache && Date.now() < _deepReefMapCache.expiresAt) {
+        return res.json(_deepReefMapCache.data);
+      }
+      const ghHeaders: Record<string, string> = {
+        "Accept": "application/vnd.github.v3+json",
+        "User-Agent": "pepo-the-polyp/1.0",
+      };
+      const [repoRes, commitsRes, releasesRes] = await Promise.all([
+        fetch("https://api.github.com/repos/ECEO-EPFL/deepreefmap", { headers: ghHeaders }),
+        fetch("https://api.github.com/repos/ECEO-EPFL/deepreefmap/commits?per_page=5", { headers: ghHeaders }),
+        fetch("https://api.github.com/repos/ECEO-EPFL/deepreefmap/releases?per_page=3", { headers: ghHeaders }),
+      ]);
+      const [repo, commits, releases] = await Promise.all([
+        repoRes.json(),
+        commitsRes.json(),
+        releasesRes.json(),
+      ]);
+      const data = { repo, commits, releases };
+      _deepReefMapCache = { data, expiresAt: Date.now() + 10 * 60_000 };
+      return res.json(data);
+    } catch (err) {
+      console.error("[deepreefmap] Failed to fetch GitHub info:", err);
+      return res.status(500).json({ error: "Failed to fetch DeepReefMap info" });
+    }
   });
 
   return httpServer;

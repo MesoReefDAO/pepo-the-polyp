@@ -237,6 +237,7 @@ export const ExplorerNavigationSidebarSection = (): JSX.Element => {
   const isCuration = location === "/curation";
   const isReefMap = location === "/reef-map";
   const isGraph = location === "/" || location === "/graph";
+  const isVideos = location === "/videos";
 
   return (
     <nav className="flex flex-col w-56 h-full items-start justify-between p-4 overflow-y-auto bg-[#00080c99] border-r border-[#ffffff0d] backdrop-blur-md [-webkit-backdrop-filter:blur(12px)_brightness(100%)] relative z-10">
@@ -361,6 +362,29 @@ export const ExplorerNavigationSidebarSection = (): JSX.Element => {
           </span>
         </Link>
 
+
+        {/* Videos Monitoring */}
+        <Link
+          href="/videos"
+          data-testid="link-videos-monitoring"
+          className={`${PILL_BASE} ${isVideos ? PILL_ACTIVE : PILL_INACTIVE}`}
+          style={isVideos ? EMBOSS : {}}
+        >
+          <div className="w-5 h-5 flex-shrink-0 flex items-center justify-center">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <rect x="2" y="4" width="16" height="13" rx="2" stroke={isVideos ? "#83eef0" : "#d4e9f380"} strokeWidth="1.8"/>
+              <path d="M18 9l4-2v8l-4-2V9z" stroke={isVideos ? "#83eef0" : "#d4e9f380"} strokeWidth="1.8" strokeLinejoin="round"/>
+              <circle cx="8" cy="17.5" r="2.5" fill={isVideos ? "#83eef030" : "none"} stroke={isVideos ? "#83eef0" : "#d4e9f380"} strokeWidth="1.4"/>
+              <path d="M10.5 17.5h5" stroke={isVideos ? "#83eef0" : "#d4e9f380"} strokeWidth="1.4" strokeLinecap="round"/>
+            </svg>
+          </div>
+          <span className={`${TEXT_BASE} ${isVideos ? "font-bold text-[#83eef0]" : "font-medium text-[#d4e9f380]"}`}>
+            Videos
+          </span>
+          <span className="ml-auto text-[8px] [font-family:'Inter',Helvetica] px-1.5 py-0.5 rounded-full bg-[#83eef018] border border-[#83eef033] text-[#83eef0cc]">
+            DeepReef
+          </span>
+        </Link>
 
         {/* Telegram Bot */}
         <button

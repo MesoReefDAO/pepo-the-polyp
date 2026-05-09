@@ -181,6 +181,20 @@ export function MobileBottomNav() {
         }
       />
 
+      {/* Videos Monitoring */}
+      <NavItem
+        href="/videos"
+        testId="nav-mobile-videos"
+        active={at("/videos")}
+        label="Videos"
+        icon={
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <rect x="2" y="5" width="15" height="12" rx="2" stroke={c("/videos")} strokeWidth="1.8"/>
+            <path d="M17 9l5-2v8l-5-2V9z" stroke={c("/videos")} strokeWidth="1.8" strokeLinejoin="round"/>
+          </svg>
+        }
+      />
+
       {/* Login (unauthenticated) or Telegram (authenticated) */}
       {isAuthed ? (
         <NavItem
