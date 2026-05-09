@@ -25,8 +25,10 @@ Pepo is a full-stack DeSci and marine conservation web app that fuses six parall
 | **👤 User Profiles** | Bio, tags, location, ORCID iD badge, IPFS avatar/images |
 | **🧭 Onboarding Wizard** | 5-step guided tour for new users — Framer Motion overlay, localStorage flag |
 | **📊 Journey / Profile Status** | Collapsible completeness bar — links to ORCID, avatar, bio, display name + points |
+| **🎥 Video Monitor** | DeepReefMap AI pipeline — benthic classification from underwater video transects |
+| **📷 Reef Curation** | Community submission queue for reef images and video surveys — ORCID-gated review |
 | **🗂️ Reef Workspace** | Fileverse dDocs + dSheets for decentralized collaborative documents |
-| **📦 IPFS Image Storage** | Pinata-backed IPFS pinning — avatar and reef image archiving |
+| **📦 IPFS Storage** | Pinata-backed IPFS pinning — avatar, reef images, and video survey archiving |
 | **🌍 Multilingual** | i18next with RTL support — English, Spanish, French, Arabic, and more |
 | **🍪 Cookie Consent** | GDPR-compliant cookie banner with accept/decline |
 
@@ -207,7 +209,21 @@ Registered redirect URIs:
 | `/api/gcrmn/regions` | GET | GCRMN region polygons as GeoJSON |
 | `/api/coral-mapping/regions` | GET | CoralMapping GlobalMappingRegions GeoJSON |
 | `/api/reef-images` | GET | Approved reef images with lat/lng for map pins |
-| `/api/reef-images` | POST | Submit a new reef image pin (ORCID-verified review) |
+| `/api/reef-images` | POST | Submit a new reef image (auth required) |
+| `/api/reef-images/mine` | GET | Current user's own image submissions |
+| `/api/reef-videos` | GET | Approved video surveys with lat/lng for map pins |
+| `/api/reef-videos` | POST | Submit a new reef video survey (auth required) |
+| `/api/reef-videos/mine` | GET | Current user's own video submissions |
+| `/api/deepreefmap/info` | GET | DeepReefMap GitHub repo stats, commits, and releases |
+
+### Curation
+
+| Route | Method | Description |
+|-------|--------|-------------|
+| `/api/curation/queue` | GET | Pending image submissions (ORCID-required) |
+| `/api/curation/:id` | POST `{ decision, curatorNote }` | Approve or reject an image; awards 5 pts |
+| `/api/curation/video-queue` | GET | Pending video submissions (ORCID-required) |
+| `/api/curation/video/:id` | POST `{ decision, curatorNote }` | Approve or reject a video; awards 5 pts |
 
 ### GitHub Proxy
 
@@ -225,6 +241,10 @@ Registered redirect URIs:
 | Asking a question | +10 (once per day) |
 | Linking ORCID iD | +25 (once) |
 | Daily coral clean | +5 (once per day) |
+| Submitting a reef image | +25 |
+| Submitting a video survey | +25 |
+| Curating an image (approve/reject) | +5 per decision |
+| Curating a video (approve/reject) | +5 per decision |
 
 Points are stored persistently in PostgreSQL and displayed on the Community leaderboard.
 
@@ -243,7 +263,8 @@ client/src/
     WorkspacePage.tsx                      — /workspace: Fileverse dDocs + dSheets
     MobileMapPage.tsx                      — /map: full-screen mobile reef map
     ReefMapPage.tsx                        — /reef-map: desktop reef map page
-    CurationPage.tsx                       — /curation: content curation tools
+    VideosMonitoringPage.tsx               — /video-monitor: DeepReefMap AI pipeline + community video surveys
+    CurationPage.tsx                       — /curation: image & video review queue (📷 Images | 🎥 Videos tabs)
     sections/
       ApplicationHeaderSection.tsx         — Top nav with auth button + completeness dot
       ExplorerNavigationSidebarSection.tsx  — Sidebar nav with profile completeness badge
