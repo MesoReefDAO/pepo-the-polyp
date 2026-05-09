@@ -19,6 +19,7 @@ import { WorkspacePage } from "@/pages/WorkspacePage";
 import { CurationPage } from "@/pages/CurationPage";
 import { GraphPage } from "@/pages/GraphPage";
 import { VideosMonitoringPage } from "@/pages/VideosMonitoringPage";
+import { RegenReefIndexPage } from "@/pages/RegenReefIndexPage";
 import { PRIVY_ENABLED, PRIVY_APP_ID } from "@/lib/privy";
 import { useProfileSync } from "@/hooks/use-profile-sync";
 import { useGeolocation } from "@/hooks/use-geolocation";
@@ -59,6 +60,7 @@ function Router() {
       <Route path="/curation" component={CurationPage} />
       <Route path="/graph" component={GraphPage} />
       <Route path="/videos" component={VideosMonitoringPage} />
+      <Route path="/rri" component={RegenReefIndexPage} />
       <Route component={NotFound} />
     </Switch>
   );

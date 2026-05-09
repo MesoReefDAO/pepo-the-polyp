@@ -25,11 +25,12 @@ Pepo is a full-stack DeSci and marine conservation web app that fuses six parall
 | **👤 User Profiles** | Bio, tags, location, ORCID iD badge, IPFS avatar/images |
 | **🧭 Onboarding Wizard** | 5-step guided tour for new users - Framer Motion overlay, localStorage flag |
 | **📊 Journey / Profile Status** | Collapsible completeness bar - links to ORCID, avatar, bio, display name + points |
+| **📊 Regen Reef Index** | Holistic socio-ecological framework (RRI) - 4 dimensions: Abiotic Stability, Structural Integrity, Functional Integrity, Social & Economic |
 | **🎥 Video Monitor** | DeepReefMap AI pipeline - benthic classification from underwater video transects |
 | **📷 Reef Curation** | Community submission queue for reef images and video surveys - ORCID-gated review |
 | **🗂️ Reef Workspace** | Fileverse dDocs + dSheets for decentralized collaborative documents |
 | **📦 IPFS Storage** | Pinata-backed IPFS pinning - avatar, reef images, and video survey archiving |
-| **🌍 Multilingual** | i18next with RTL support - English, Spanish, French, Arabic, and more |
+| **🌍 Multilingual** | i18next with RTL support - English, Spanish, French, Arabic, Portuguese, Italian, Chinese, Indonesian, Tagalog, Malay, Thai, Tok Pisin |
 | **🍪 Cookie Consent** | GDPR-compliant cookie banner with accept/decline |
 
 ---
@@ -263,8 +264,9 @@ client/src/
     WorkspacePage.tsx                      - /workspace: Fileverse dDocs + dSheets
     MobileMapPage.tsx                      - /map: full-screen mobile reef map
     ReefMapPage.tsx                        - /reef-map: desktop reef map page
-    VideosMonitoringPage.tsx               - /video-monitor: DeepReefMap AI pipeline + community video surveys
-    CurationPage.tsx                       - /curation: image & video review queue (📷 Images | 🎥 Videos tabs)
+    VideosMonitoringPage.tsx               - /videos: DeepReefMap AI pipeline + community video surveys
+    CurationPage.tsx                       - /curation: image & video review queue (Images | Videos tabs)
+    RegenReefIndexPage.tsx                 - /rri: Regen Reef Index framework dashboard (4 dimensions + 4 platform verticals)
     sections/
       ApplicationHeaderSection.tsx         - Top nav with auth button + completeness dot
       ExplorerNavigationSidebarSection.tsx  - Sidebar nav with profile completeness badge

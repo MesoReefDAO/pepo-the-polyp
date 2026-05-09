@@ -238,6 +238,7 @@ export const ExplorerNavigationSidebarSection = (): JSX.Element => {
   const isReefMap = location === "/reef-map";
   const isGraph = location === "/" || location === "/graph";
   const isVideos = location === "/videos";
+  const isRRI = location === "/rri";
 
   return (
     <nav className="flex flex-col w-56 h-full items-start justify-between p-4 overflow-y-auto bg-[#00080c99] border-r border-[#ffffff0d] backdrop-blur-md [-webkit-backdrop-filter:blur(12px)_brightness(100%)] relative z-10">
@@ -383,6 +384,26 @@ export const ExplorerNavigationSidebarSection = (): JSX.Element => {
           </span>
           <span className="ml-auto text-[8px] [font-family:'Inter',Helvetica] px-1.5 py-0.5 rounded-full bg-[#83eef018] border border-[#83eef033] text-[#83eef0cc]">
             DeepReef
+          </span>
+        </Link>
+
+        {/* Regen Reef Index */}
+        <Link
+          href="/rri"
+          data-testid="link-regen-reef-index"
+          className={`${PILL_BASE} ${isRRI ? PILL_ACTIVE : PILL_INACTIVE}`}
+          style={isRRI ? EMBOSS : {}}
+        >
+          <div className="w-5 h-5 flex-shrink-0 flex items-center justify-center">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M18 20V10M12 20V4M6 20v-6" stroke={isRRI ? "#83eef0" : "#d4e9f380"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+          <span className={`${TEXT_BASE} ${isRRI ? "font-bold text-[#83eef0]" : "font-medium text-[#d4e9f380]"}`}>
+            Regen Reef Index
+          </span>
+          <span className="ml-auto text-[8px] [font-family:'Inter',Helvetica] px-1.5 py-0.5 rounded-full bg-[#83eef018] border border-[#83eef033] text-[#83eef0cc]">
+            RRI
           </span>
         </Link>
 
