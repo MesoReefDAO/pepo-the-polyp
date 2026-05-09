@@ -4,3 +4,10 @@ dist
 server/public
 vite.config.ts.*
 *.tar.gz
+
+# Replit-specific files
+.replit
+replit.md
+.local/
+generated-icon.png
+attached_assets/
