@@ -23,7 +23,7 @@ declare module "http" {
 // ─── Security headers via Helmet ──────────────────────────────────────────────
 app.use(
   helmet({
-    // Content-Security-Policy — carefully tuned for Privy, Bonfires iframe, and Vite
+    // Content-Security-Policy - carefully tuned for Privy, Bonfires iframe, and Vite
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
@@ -82,16 +82,16 @@ app.use(
         objectSrc: ["'none'"],
         baseUri: ["'self'"],
         formAction: ["'self'", "https://orcid.org"],
-        frameAncestors: ["'none'"], // Prevent clickjacking — this page cannot be iframed
+        frameAncestors: ["'none'"], // Prevent clickjacking - this page cannot be iframed
         upgradeInsecureRequests: process.env.NODE_ENV === "production" ? [] : null,
       },
     },
-    // HSTS — only enforce in production (HTTPS only)
+    // HSTS - only enforce in production (HTTPS only)
     hsts: process.env.NODE_ENV === "production"
       ? { maxAge: 31536000, includeSubDomains: true }
       : false,
     // X-Content-Type-Options: nosniff (default ON)
-    // X-Frame-Options: SAMEORIGIN (default ON — we still set frameAncestors in CSP for belt-and-suspenders)
+    // X-Frame-Options: SAMEORIGIN (default ON - we still set frameAncestors in CSP for belt-and-suspenders)
     // X-XSS-Protection: disabled (modern browsers use CSP instead)
     xssFilter: false,
     // Cross-Origin-Opener-Policy: must NOT be same-origin to allow wallet popup flows (Privy/WalletConnect)
@@ -182,7 +182,7 @@ app.use((req, res, next) => {
   // Backfill + recalculate points for all users on every startup (idempotent)
   storage.syncAllUserPoints()
     .then(({ synced, pointsAdded }) => {
-      log(`Points sync complete — ${synced} profiles synced, ${pointsAdded} pts backfilled`);
+      log(`Points sync complete - ${synced} profiles synced, ${pointsAdded} pts backfilled`);
     })
     .catch((err) => {
       console.error("[points-sync] startup sync failed:", err);

@@ -132,7 +132,7 @@ export class DbStorage implements IStorage {
   async getAllProfiles(): Promise<Profile[]> {
     const rows = await db.select().from(profiles).where(eq(profiles.isPublic, true)).orderBy(desc(profiles.points));
     // Deduplicate: if a privy profile and an orcid-prefixed profile share the same
-    // orcidId, suppress the orcid-prefixed one — the user linked their accounts.
+    // orcidId, suppress the orcid-prefixed one - the user linked their accounts.
     const linkedOrcids = new Set(
       rows.filter(r => !r.id.startsWith("orcid:") && r.orcidId).map(r => r.orcidId)
     );
@@ -477,7 +477,7 @@ export class DbStorage implements IStorage {
       .orderBy(desc(profiles.points));
 
     // Deduplicate: suppress orcid-prefixed profiles when a linked privy profile
-    // exists with the same orcidId — the user connected their accounts.
+    // exists with the same orcidId - the user connected their accounts.
     const linkedOrcids = new Set(
       rows.filter(r => !r.id.startsWith("orcid:") && r.orcidId).map(r => r.orcidId)
     );

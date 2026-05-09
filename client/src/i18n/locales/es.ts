@@ -38,7 +38,7 @@ const es = {
   dashboard: {
     searchActivity: "Búsqueda y Actividad",
     searchGraph: "Buscar en el gráfico…",
-    searchUnavailable: "Búsqueda no disponible — intenta de nuevo.",
+    searchUnavailable: "Búsqueda no disponible - intenta de nuevo.",
     noResults: "No se encontraron resultados.",
     result_one: "{{count}} resultado",
     result_other: "{{count}} resultados",

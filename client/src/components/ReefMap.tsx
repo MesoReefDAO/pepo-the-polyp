@@ -201,7 +201,7 @@ function GcrmnSitePopup({ site }: { site: GcrmnSite }) {
           ["Sites",    site.sites.toLocaleString()],
           ["Surveys",  site.surveys.toLocaleString()],
           ["Datasets", site.datasets.toString()],
-          ["Period",   `${site.firstYear}–${site.lastYear}`],
+          ["Period",   `${site.firstYear}-${site.lastYear}`],
         ].map(([k, v]) => (
           <div key={k}>
             <div style={{ fontSize: 8, color: "#aaa", textTransform: "uppercase", letterSpacing: "0.05em" }}>{k}</div>
@@ -238,7 +238,7 @@ function makePin() {
   });
 }
 
-// ─── Reef image pin — amber square with camera icon ───────────────────────────
+// ─── Reef image pin - amber square with camera icon ───────────────────────────
 function makeImagePin() {
   return L.divIcon({
     className: "",
@@ -516,7 +516,7 @@ function WdparClickHandler({ active }: { active: boolean }) {
           .setContent(html)
           .openOn(map);
       } catch {
-        // CORS or network error — silent fail, WMS tiles continue to render
+        // CORS or network error - silent fail, WMS tiles continue to render
       }
     },
   });
@@ -542,7 +542,7 @@ const CMS_LAYERS = [
   { var: "GREEN",   label: "Green Algae",           unit: "mg m⁻³",      color: "#55efc4", cmap: "dense"   },
   { var: "HAPTO",   label: "Haptophytes",           unit: "mg m⁻³",      color: "#a29bfe", cmap: "ice"     },
   { var: "MICRO",   label: "Microphytoplankton",    unit: ">20 µm",      color: "#fdcb6e", cmap: "thermal" },
-  { var: "NANO",    label: "Nanophytoplankton",     unit: "2–20 µm",     color: "#fd79a8", cmap: "tempo"   },
+  { var: "NANO",    label: "Nanophytoplankton",     unit: "2-20 µm",     color: "#fd79a8", cmap: "tempo"   },
   { var: "PICO",    label: "Picophytoplankton",     unit: "<2 µm",       color: "#74b9ff", cmap: "solar"   },
   { var: "PROCHLO", label: "Prochlorococcus",       unit: "mg m⁻³",      color: "#26de81", cmap: "speed"   },
   { var: "PROKAR",  label: "Prokaryotes",           unit: "mg m⁻³",      color: "#6c5ce7", cmap: "deep"    },
@@ -638,130 +638,130 @@ const LIVE_LAYERS: LiveLayer[] = [
   { var: "analysed_sst",      label: "Sea Surface Temp.",   unit: "°C · NRT daily",           color: "#ff6b6b", cmap: "thermal",
     product: SST, dataset: "METOFFICE-GLO-SST-L4-NRT-OBS-SST-V2",
     elevation: null,   time: () => liveDate(2),              toolboxId: SST,                                   group: "SST NRT",
-    productTitle: "OSTIA Global SST (Met Office · CMEMS)", resolution: "0.05° · 6 km", cadence: "Daily · NRT observations", depthRange: "Surface", coverage: "Global · 1981–NRT" },
-  // ── Ocean Physics — Model (PHY_001_024) ───────────────────────────────────
+    productTitle: "OSTIA Global SST (Met Office · CMEMS)", resolution: "0.05° · 6 km", cadence: "Daily · NRT observations", depthRange: "Surface", coverage: "Global · 1981-NRT" },
+  // ── Ocean Physics - Model (PHY_001_024) ───────────────────────────────────
   { var: "thetao",            label: "Temperature",         unit: "°C · 6H · 0.5 m",          color: "#e17055", cmap: "thermal",
     product: PHY, dataset: "cmems_mod_glo_phy-thetao_anfc_0.083deg_PT6H-i_202406",
     elevation: -0.494, time: () => liveDate(1),              toolboxId: "cmems_mod_glo_phy-thetao_anfc_0.083deg_PT6H-i_202406", group: "Physics Forecast",
-    productTitle: "Global Ocean Physics Analysis and Forecast", resolution: "1/12° · ~9 km", cadence: "6-hourly forecast", depthRange: "0–5727 m · 50 levels", coverage: "Global · 2019–NRT" },
+    productTitle: "Global Ocean Physics Analysis and Forecast", resolution: "1/12° · ~9 km", cadence: "6-hourly forecast", depthRange: "0-5727 m · 50 levels", coverage: "Global · 2019-NRT" },
   { var: "so",                label: "Salinity",            unit: "PSU · 6H · 0.5 m",          color: "#a29bfe", cmap: "haline",
     product: PHY, dataset: "cmems_mod_glo_phy-so_anfc_0.083deg_PT6H-i_202406",
     elevation: -0.494, time: () => liveDate(1),              toolboxId: "cmems_mod_glo_phy-so_anfc_0.083deg_PT6H-i_202406",    group: "Physics Forecast",
-    productTitle: "Global Ocean Physics Analysis and Forecast", resolution: "1/12° · ~9 km", cadence: "6-hourly forecast", depthRange: "0–5727 m · 50 levels", coverage: "Global · 2019–NRT" },
+    productTitle: "Global Ocean Physics Analysis and Forecast", resolution: "1/12° · ~9 km", cadence: "6-hourly forecast", depthRange: "0-5727 m · 50 levels", coverage: "Global · 2019-NRT" },
   { var: "sea_water_velocity",label: "Currents",            unit: "m s⁻¹ · hourly · 0.5 m",   color: "#00cec9", cmap: "speed",
     product: PHY, dataset: "cmems_mod_glo_phy_anfc_0.083deg_PT1H-m_202406",
     elevation: -0.494, time: () => liveDate(1),              toolboxId: "cmems_mod_glo_phy_anfc_0.083deg_PT1H-m_202406",       group: "Physics Forecast",
-    productTitle: "Global Ocean Physics Analysis and Forecast", resolution: "1/12° · ~9 km", cadence: "Hourly forecast", depthRange: "0–5727 m · 50 levels", coverage: "Global · 2019–NRT" },
+    productTitle: "Global Ocean Physics Analysis and Forecast", resolution: "1/12° · ~9 km", cadence: "Hourly forecast", depthRange: "0-5727 m · 50 levels", coverage: "Global · 2019-NRT" },
   { var: "zos",               label: "SSH · Model",         unit: "m · hourly forecast",        color: "#74b9ff", cmap: "balance",
     product: PHY, dataset: "cmems_mod_glo_phy_anfc_0.083deg_PT1H-m_202406",
     elevation: null,   time: () => liveDate(1),              toolboxId: "cmems_mod_glo_phy_anfc_0.083deg_PT1H-m_202406",       group: "Physics Forecast",
-    productTitle: "Global Ocean Physics Analysis and Forecast", resolution: "1/12° · ~9 km", cadence: "Hourly forecast", depthRange: "Surface", coverage: "Global · 2019–NRT" },
+    productTitle: "Global Ocean Physics Analysis and Forecast", resolution: "1/12° · ~9 km", cadence: "Hourly forecast", depthRange: "Surface", coverage: "Global · 2019-NRT" },
   { var: "siconc",            label: "Sea Ice",             unit: "fraction · daily",            color: "#dfe6e9", cmap: "ice",
     product: PHY, dataset: "cmems_mod_glo_phy_anfc_0.083deg_P1D-m_202406",
     elevation: null,   time: () => liveDate(2),              toolboxId: "cmems_mod_glo_phy_anfc_0.083deg_P1D-m_202406",        group: "Physics Forecast",
-    productTitle: "Global Ocean Physics Analysis and Forecast", resolution: "1/12° · ~9 km", cadence: "Daily forecast", depthRange: "Surface", coverage: "Global · 2019–NRT" },
-  // ── Multi-observation Physics — ARMOR3D (MULTIOBS_015_012) ────────────────
+    productTitle: "Global Ocean Physics Analysis and Forecast", resolution: "1/12° · ~9 km", cadence: "Daily forecast", depthRange: "Surface", coverage: "Global · 2019-NRT" },
+  // ── Multi-observation Physics - ARMOR3D (MULTIOBS_015_012) ────────────────
   { var: "to_obs", wmtsVar: "to", label: "Temp. (Obs.)",   unit: "°C · weekly multi-obs",     color: "#fab1a0", cmap: "thermal",
     product: MULTIOBS, dataset: "dataset-armor-3d-nrt-weekly",
     elevation: -0.494, time: () => liveDate(7),              toolboxId: "dataset-armor-3d-nrt-weekly",                         group: "Observation · Multi-sensor",
-    productTitle: "ARMOR3D Multi-Observation Physics (NRT)", resolution: "1/4° · ~25 km", cadence: "Weekly · multi-obs fusion", depthRange: "0–5500 m · 33 levels", coverage: "Global · NRT" },
+    productTitle: "ARMOR3D Multi-Observation Physics (NRT)", resolution: "1/4° · ~25 km", cadence: "Weekly · multi-obs fusion", depthRange: "0-5500 m · 33 levels", coverage: "Global · NRT" },
   { var: "ugo",               label: "Geostr. Velocity",   unit: "m s⁻¹ · weekly obs",         color: "#55efc4", cmap: "speed",
     product: MULTIOBS, dataset: "dataset-armor-3d-nrt-weekly",
     elevation: -0.494, time: () => liveDate(7),              toolboxId: "dataset-armor-3d-nrt-weekly",                         group: "Observation · Multi-sensor",
-    productTitle: "ARMOR3D Multi-Observation Physics (NRT)", resolution: "1/4° · ~25 km", cadence: "Weekly · multi-obs fusion", depthRange: "0–5500 m · 33 levels", coverage: "Global · NRT" },
+    productTitle: "ARMOR3D Multi-Observation Physics (NRT)", resolution: "1/4° · ~25 km", cadence: "Weekly · multi-obs fusion", depthRange: "0-5500 m · 33 levels", coverage: "Global · NRT" },
   // ── Sea Level Altimetry (SEALEVEL_008_047) ────────────────────────────────
   { var: "adt",               label: "Abs. Sea Level",     unit: "m · L4 altimetry daily",     color: "#0984e3", cmap: "balance",
     product: SEALEVEL, dataset: "cmems_obs-sl_glo_phy-ssh_my_allsat-l4-duacs-0.125deg_P1D",
     elevation: null,   time: () => liveDate(3),              toolboxId: SEALEVEL,                                              group: "Sea Level Altimetry",
-    productTitle: "DUACS Altimetry Sea Level — Multimission L4", resolution: "1/8° · ~14 km", cadence: "Daily · multi-satellite", depthRange: "Surface", coverage: "Global · 1993–present" },
+    productTitle: "DUACS Altimetry Sea Level - Multimission L4", resolution: "1/8° · ~14 km", cadence: "Daily · multi-satellite", depthRange: "Surface", coverage: "Global · 1993-present" },
   { var: "sla",               label: "Sea Level Anomaly",  unit: "m · L4 altimetry daily",     color: "#6c5ce7", cmap: "diff",
     product: SEALEVEL, dataset: "cmems_obs-sl_glo_phy-ssh_my_allsat-l4-duacs-0.125deg_P1D",
     elevation: null,   time: () => liveDate(3),              toolboxId: SEALEVEL,                                              group: "Sea Level Altimetry",
-    productTitle: "DUACS Altimetry Sea Level — Multimission L4", resolution: "1/8° · ~14 km", cadence: "Daily · multi-satellite", depthRange: "Surface", coverage: "Global · 1993–present" },
+    productTitle: "DUACS Altimetry Sea Level - Multimission L4", resolution: "1/8° · ~14 km", cadence: "Daily · multi-satellite", depthRange: "Surface", coverage: "Global · 1993-present" },
   // ── Wave & Wind (WAV_001_027 + WIND_L4_NRT) ──────────────────────────────
   { var: "VHM0",              label: "Wave Height",        unit: "m · 3H forecast",             color: "#6c5ce7", cmap: "matter",
     product: WAV, dataset: "cmems_mod_glo_wav_anfc_0.083deg_PT3H-i_202411",
     elevation: null,   time: () => liveDate(1, "03:00:00"), toolboxId: "cmems_mod_glo_wav_anfc_0.083deg_PT3H-i_202411",       group: "Wave & Wind",
-    productTitle: "Global Ocean Waves Analysis and Forecast", resolution: "1/12° · ~9 km", cadence: "3-hourly forecast", depthRange: "Surface", coverage: "Global · 2019–NRT" },
+    productTitle: "Global Ocean Waves Analysis and Forecast", resolution: "1/12° · ~9 km", cadence: "3-hourly forecast", depthRange: "Surface", coverage: "Global · 2019-NRT" },
   { var: "VTPK",              label: "Peak Wave Period",   unit: "s · 3H forecast",             color: "#81ecec", cmap: "ice",
     product: WAV, dataset: "cmems_mod_glo_wav_anfc_0.083deg_PT3H-i_202411",
     elevation: null,   time: () => liveDate(1, "03:00:00"), toolboxId: "cmems_mod_glo_wav_anfc_0.083deg_PT3H-i_202411",       group: "Wave & Wind",
-    productTitle: "Global Ocean Waves Analysis and Forecast", resolution: "1/12° · ~9 km", cadence: "3-hourly forecast", depthRange: "Surface", coverage: "Global · 2019–NRT" },
+    productTitle: "Global Ocean Waves Analysis and Forecast", resolution: "1/12° · ~9 km", cadence: "3-hourly forecast", depthRange: "Surface", coverage: "Global · 2019-NRT" },
   { var: "VMDR",              label: "Wave Direction",     unit: "deg · 3H forecast",           color: "#b2bec3", cmap: "phase",
     product: WAV, dataset: "cmems_mod_glo_wav_anfc_0.083deg_PT3H-i_202411",
     elevation: null,   time: () => liveDate(1, "03:00:00"), toolboxId: "cmems_mod_glo_wav_anfc_0.083deg_PT3H-i_202411",       group: "Wave & Wind",
-    productTitle: "Global Ocean Waves Analysis and Forecast", resolution: "1/12° · ~9 km", cadence: "3-hourly forecast", depthRange: "Surface", coverage: "Global · 2019–NRT" },
+    productTitle: "Global Ocean Waves Analysis and Forecast", resolution: "1/12° · ~9 km", cadence: "3-hourly forecast", depthRange: "Surface", coverage: "Global · 2019-NRT" },
   { var: "wind",              label: "Wind Speed",         unit: "m s⁻¹ · hourly NRT",         color: "#fdcb6e", cmap: "speed",
     product: WND, dataset: "cmems_obs-wind_glo_phy_nrt_l4_0.125deg_PT1H_202207",
     elevation: null,   time: () => "2023-11-20T00:00:00Z",  toolboxId: "cmems_obs-wind_glo_phy_nrt_l4_0.125deg_PT1H_202207", group: "Wave & Wind",
-    productTitle: "Global Ocean Wind L4 NRT (Copernicus)", resolution: "1/8° · ~14 km", cadence: "Hourly · NRT obs", depthRange: "10 m above sea level", coverage: "Global · 2007–NRT" },
-  // ── Ocean BGC — Model (BGC_001_028) ───────────────────────────────────────
+    productTitle: "Global Ocean Wind L4 NRT (Copernicus)", resolution: "1/8° · ~14 km", cadence: "Hourly · NRT obs", depthRange: "10 m above sea level", coverage: "Global · 2007-NRT" },
+  // ── Ocean BGC - Model (BGC_001_028) ───────────────────────────────────────
   { var: "ph",                label: "Acidity (pH)",       unit: "pH · monthly",               color: "#fd79a8", cmap: "ice",
     product: BGC, dataset: "cmems_mod_glo_bgc-car_anfc_0.25deg_P1M-m_202311",
     elevation: -0.494, time: () => "2024-01-01T00:00:00Z",  toolboxId: "cmems_mod_glo_bgc-car_anfc_0.25deg_P1M-m_202311",    group: "BGC Forecast",
-    productTitle: "Global Ocean Biogeochemistry Analysis and Forecast", resolution: "1/4° · ~25 km", cadence: "Monthly forecast", depthRange: "0–5727 m · 50 levels", coverage: "Global · 2019–NRT" },
+    productTitle: "Global Ocean Biogeochemistry Analysis and Forecast", resolution: "1/4° · ~25 km", cadence: "Monthly forecast", depthRange: "0-5727 m · 50 levels", coverage: "Global · 2019-NRT" },
   { var: "o2",                label: "Oxygen",             unit: "mmol m⁻³ · monthly",         color: "#55efc4", cmap: "dense",
     product: BGC, dataset: "cmems_mod_glo_bgc-bio_anfc_0.25deg_P1M-m_202311",
     elevation: -0.494, time: () => "2024-01-01T00:00:00Z",  toolboxId: "cmems_mod_glo_bgc-bio_anfc_0.25deg_P1M-m_202311",    group: "BGC Forecast",
-    productTitle: "Global Ocean Biogeochemistry Analysis and Forecast", resolution: "1/4° · ~25 km", cadence: "Monthly forecast", depthRange: "0–5727 m · 50 levels", coverage: "Global · 2019–NRT" },
+    productTitle: "Global Ocean Biogeochemistry Analysis and Forecast", resolution: "1/4° · ~25 km", cadence: "Monthly forecast", depthRange: "0-5727 m · 50 levels", coverage: "Global · 2019-NRT" },
   { var: "phyc",              label: "Biomass",            unit: "mgC m⁻³ · monthly",          color: "#26de81", cmap: "amp",
     product: BGC, dataset: "cmems_mod_glo_bgc-pft_anfc_0.25deg_P1M-m_202311",
     elevation: null,   time: () => "2024-01-01T00:00:00Z",  toolboxId: "cmems_mod_glo_bgc-pft_anfc_0.25deg_P1M-m_202311",    group: "BGC Forecast",
-    productTitle: "Global Ocean Biogeochemistry Analysis and Forecast", resolution: "1/4° · ~25 km", cadence: "Monthly forecast", depthRange: "Surface", coverage: "Global · 2019–NRT" },
+    productTitle: "Global Ocean Biogeochemistry Analysis and Forecast", resolution: "1/4° · ~25 km", cadence: "Monthly forecast", depthRange: "Surface", coverage: "Global · 2019-NRT" },
   { var: "nppv",              label: "Primary Production", unit: "mgC m⁻³ d⁻¹ · monthly",     color: "#00b894", cmap: "algae",
     product: BGC, dataset: "cmems_mod_glo_bgc-bio_anfc_0.25deg_P1M-m_202311",
     elevation: null,   time: () => "2024-01-01T00:00:00Z",  toolboxId: "cmems_mod_glo_bgc-bio_anfc_0.25deg_P1M-m_202311",    group: "BGC Forecast",
-    productTitle: "Global Ocean Biogeochemistry Analysis and Forecast", resolution: "1/4° · ~25 km", cadence: "Monthly forecast", depthRange: "Surface", coverage: "Global · 2019–NRT" },
+    productTitle: "Global Ocean Biogeochemistry Analysis and Forecast", resolution: "1/4° · ~25 km", cadence: "Monthly forecast", depthRange: "Surface", coverage: "Global · 2019-NRT" },
   { var: "no3",               label: "Nitrate",            unit: "mmol m⁻³ · monthly",         color: "#fd9644", cmap: "matter",
     product: BGC, dataset: "cmems_mod_glo_bgc-nut_anfc_0.25deg_P1M-m_202311",
     elevation: -0.494, time: () => "2024-01-01T00:00:00Z",  toolboxId: "cmems_mod_glo_bgc-nut_anfc_0.25deg_P1M-m_202311",    group: "BGC Forecast",
-    productTitle: "Global Ocean Biogeochemistry Analysis and Forecast", resolution: "1/4° · ~25 km", cadence: "Monthly forecast", depthRange: "0–5727 m · 50 levels", coverage: "Global · 2019–NRT" },
+    productTitle: "Global Ocean Biogeochemistry Analysis and Forecast", resolution: "1/4° · ~25 km", cadence: "Monthly forecast", depthRange: "0-5727 m · 50 levels", coverage: "Global · 2019-NRT" },
   { var: "po4",               label: "Phosphate",          unit: "mmol m⁻³ · monthly",         color: "#a29bfe", cmap: "tempo",
     product: BGC, dataset: "cmems_mod_glo_bgc-nut_anfc_0.25deg_P1M-m_202311",
     elevation: -0.494, time: () => "2024-01-01T00:00:00Z",  toolboxId: "cmems_mod_glo_bgc-nut_anfc_0.25deg_P1M-m_202311",    group: "BGC Forecast",
-    productTitle: "Global Ocean Biogeochemistry Analysis and Forecast", resolution: "1/4° · ~25 km", cadence: "Monthly forecast", depthRange: "0–5727 m · 50 levels", coverage: "Global · 2019–NRT" },
+    productTitle: "Global Ocean Biogeochemistry Analysis and Forecast", resolution: "1/4° · ~25 km", cadence: "Monthly forecast", depthRange: "0-5727 m · 50 levels", coverage: "Global · 2019-NRT" },
   { var: "si",                label: "Silicate",              unit: "mmol m⁻³ · monthly",         color: "#74b9ff", cmap: "deep",
     product: BGC, dataset: "cmems_mod_glo_bgc-nut_anfc_0.25deg_P1M-m_202311",
     elevation: -0.494, time: () => "2024-01-01T00:00:00Z",  toolboxId: "cmems_mod_glo_bgc-nut_anfc_0.25deg_P1M-m_202311",    group: "BGC Forecast",
-    productTitle: "Global Ocean Biogeochemistry Analysis and Forecast", resolution: "1/4° · ~25 km", cadence: "Monthly forecast", depthRange: "0–5727 m · 50 levels", coverage: "Global · 2019–NRT" },
+    productTitle: "Global Ocean Biogeochemistry Analysis and Forecast", resolution: "1/4° · ~25 km", cadence: "Monthly forecast", depthRange: "0-5727 m · 50 levels", coverage: "Global · 2019-NRT" },
   { var: "fe",                label: "Dissolved Iron",        unit: "µmol m⁻³ · monthly",         color: "#e17055", cmap: "amp",
     product: BGC, dataset: "cmems_mod_glo_bgc-nut_anfc_0.25deg_P1M-m_202311",
     elevation: -0.494, time: () => "2024-01-01T00:00:00Z",  toolboxId: "cmems_mod_glo_bgc-nut_anfc_0.25deg_P1M-m_202311",    group: "BGC Forecast",
-    productTitle: "Global Ocean Biogeochemistry Analysis and Forecast", resolution: "1/4° · ~25 km", cadence: "Monthly forecast", depthRange: "0–5727 m · 50 levels", coverage: "Global · 2019–NRT" },
+    productTitle: "Global Ocean Biogeochemistry Analysis and Forecast", resolution: "1/4° · ~25 km", cadence: "Monthly forecast", depthRange: "0-5727 m · 50 levels", coverage: "Global · 2019-NRT" },
   { var: "zooc",              label: "Zooplankton Carbon",    unit: "mgC m⁻³ · monthly",           color: "#f9ca24", cmap: "solar",
     product: BGC, dataset: "cmems_mod_glo_bgc-pft_anfc_0.25deg_P1M-m_202311",
     elevation: null,   time: () => "2024-01-01T00:00:00Z",  toolboxId: "cmems_mod_glo_bgc-pft_anfc_0.25deg_P1M-m_202311",    group: "BGC Forecast",
-    productTitle: "Global Ocean Biogeochemistry Analysis and Forecast", resolution: "1/4° · ~25 km", cadence: "Monthly forecast", depthRange: "Surface", coverage: "Global · 2019–NRT" },
+    productTitle: "Global Ocean Biogeochemistry Analysis and Forecast", resolution: "1/4° · ~25 km", cadence: "Monthly forecast", depthRange: "Surface", coverage: "Global · 2019-NRT" },
   { var: "zeu",               label: "Euphotic Zone Depth",   unit: "m · monthly",                 color: "#00b4d8", cmap: "dense",
     product: BGC, dataset: "cmems_mod_glo_bgc-pft_anfc_0.25deg_P1M-m_202311",
     elevation: null,   time: () => "2024-01-01T00:00:00Z",  toolboxId: "cmems_mod_glo_bgc-pft_anfc_0.25deg_P1M-m_202311",    group: "BGC Forecast",
-    productTitle: "Global Ocean Biogeochemistry Analysis and Forecast", resolution: "1/4° · ~25 km", cadence: "Monthly forecast", depthRange: "Surface", coverage: "Global · 2019–NRT" },
-  // ── Blue Ocean — Mixed Layer & Ice extras (PHY_001_024) ──────────────────
+    productTitle: "Global Ocean Biogeochemistry Analysis and Forecast", resolution: "1/4° · ~25 km", cadence: "Monthly forecast", depthRange: "Surface", coverage: "Global · 2019-NRT" },
+  // ── Blue Ocean - Mixed Layer & Ice extras (PHY_001_024) ──────────────────
   { var: "mlotst",            label: "Mixed Layer Depth",     unit: "m · daily",                   color: "#0984e3", cmap: "matter",
     product: PHY, dataset: "cmems_mod_glo_phy_anfc_0.083deg_P1D-m_202406",
     elevation: null,   time: () => liveDate(2),              toolboxId: "cmems_mod_glo_phy_anfc_0.083deg_P1D-m_202406",       group: "Physics Forecast",
-    productTitle: "Global Ocean Physics Analysis and Forecast", resolution: "1/12° · ~9 km", cadence: "Daily forecast", depthRange: "Surface (derived)", coverage: "Global · 2019–NRT" },
+    productTitle: "Global Ocean Physics Analysis and Forecast", resolution: "1/12° · ~9 km", cadence: "Daily forecast", depthRange: "Surface (derived)", coverage: "Global · 2019-NRT" },
   { var: "bottomT",           label: "Sea Floor Temp.",       unit: "°C · 6H forecast",            color: "#e67e22", cmap: "thermal",
     product: PHY, dataset: "cmems_mod_glo_phy-thetao_anfc_0.083deg_PT6H-i_202406",
     elevation: null,   time: () => liveDate(1),              toolboxId: "cmems_mod_glo_phy-thetao_anfc_0.083deg_PT6H-i_202406", group: "Physics Forecast",
-    productTitle: "Global Ocean Physics Analysis and Forecast", resolution: "1/12° · ~9 km", cadence: "6-hourly forecast", depthRange: "Sea floor", coverage: "Global · 2019–NRT" },
+    productTitle: "Global Ocean Physics Analysis and Forecast", resolution: "1/12° · ~9 km", cadence: "6-hourly forecast", depthRange: "Sea floor", coverage: "Global · 2019-NRT" },
   { var: "sithick",           label: "Sea Ice Thickness",     unit: "m · daily",                   color: "#b2d8f7", cmap: "ice",
     product: PHY, dataset: "cmems_mod_glo_phy_anfc_0.083deg_P1D-m_202406",
     elevation: null,   time: () => liveDate(2),              toolboxId: "cmems_mod_glo_phy_anfc_0.083deg_P1D-m_202406",       group: "Physics Forecast",
-    productTitle: "Global Ocean Physics Analysis and Forecast", resolution: "1/12° · ~9 km", cadence: "Daily forecast", depthRange: "Surface", coverage: "Global · 2019–NRT" },
+    productTitle: "Global Ocean Physics Analysis and Forecast", resolution: "1/12° · ~9 km", cadence: "Daily forecast", depthRange: "Surface", coverage: "Global · 2019-NRT" },
   // ── Carbon System (BGC_001_028 · carbon dataset) ─────────────────────────
   { var: "spco2",             label: "Surface pCO₂",          unit: "µatm · monthly",              color: "#e84393", cmap: "matter",
     product: BGC, dataset: "cmems_mod_glo_bgc-car_anfc_0.25deg_P1M-m_202311",
     elevation: null,   time: () => "2024-01-01T00:00:00Z",  toolboxId: "cmems_mod_glo_bgc-car_anfc_0.25deg_P1M-m_202311",    group: "Carbon System",
-    productTitle: "Global Ocean Biogeochemistry Analysis and Forecast", resolution: "1/4° · ~25 km", cadence: "Monthly forecast", depthRange: "Surface", coverage: "Global · 2019–NRT" },
+    productTitle: "Global Ocean Biogeochemistry Analysis and Forecast", resolution: "1/4° · ~25 km", cadence: "Monthly forecast", depthRange: "Surface", coverage: "Global · 2019-NRT" },
   { var: "talk",              label: "Total Alkalinity",      unit: "mmol m⁻³ · monthly",          color: "#48cae4", cmap: "deep",
     product: BGC, dataset: "cmems_mod_glo_bgc-car_anfc_0.25deg_P1M-m_202311",
     elevation: -0.494, time: () => "2024-01-01T00:00:00Z",  toolboxId: "cmems_mod_glo_bgc-car_anfc_0.25deg_P1M-m_202311",    group: "Carbon System",
-    productTitle: "Global Ocean Biogeochemistry Analysis and Forecast", resolution: "1/4° · ~25 km", cadence: "Monthly forecast", depthRange: "0–5727 m · 50 levels", coverage: "Global · 2019–NRT" },
+    productTitle: "Global Ocean Biogeochemistry Analysis and Forecast", resolution: "1/4° · ~25 km", cadence: "Monthly forecast", depthRange: "0-5727 m · 50 levels", coverage: "Global · 2019-NRT" },
   { var: "dissic",            label: "Diss. Inorg. Carbon",   unit: "mmol m⁻³ · monthly",          color: "#90e0ef", cmap: "ice",
     product: BGC, dataset: "cmems_mod_glo_bgc-car_anfc_0.25deg_P1M-m_202311",
     elevation: -0.494, time: () => "2024-01-01T00:00:00Z",  toolboxId: "cmems_mod_glo_bgc-car_anfc_0.25deg_P1M-m_202311",    group: "Carbon System",
-    productTitle: "Global Ocean Biogeochemistry Analysis and Forecast", resolution: "1/4° · ~25 km", cadence: "Monthly forecast", depthRange: "0–5727 m · 50 levels", coverage: "Global · 2019–NRT" },
+    productTitle: "Global Ocean Biogeochemistry Analysis and Forecast", resolution: "1/4° · ~25 km", cadence: "Monthly forecast", depthRange: "0-5727 m · 50 levels", coverage: "Global · 2019-NRT" },
 ];
 
 const LIVE_GROUPS = [
@@ -772,7 +772,7 @@ const LIVE_GROUPS = [
 // Simplified 500 m-interval depth steps for the compact selector (positive metres)
 const COMPACT_DEPTH_STEPS = [0, 500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500] as const;
 
-// Standard CMEMS depth levels (metres, negative = below surface) — ARMOR3D / PHY 33-level grid
+// Standard CMEMS depth levels (metres, negative = below surface) - ARMOR3D / PHY 33-level grid
 const DEPTH_LEVELS = [
   -0.494, -1.541, -2.646, -3.819, -5.078, -6.440, -7.929,
   -9.573, -11.405, -13.467, -15.810, -18.495, -21.599, -25.211,
@@ -1007,7 +1007,7 @@ function ExpandedMapModal({
     e.target.value = '';
   }, []);
 
-  // ── GeoJSON data — each layer fetched lazily when its toggle is enabled ──────
+  // ── GeoJSON data - each layer fetched lazily when its toggle is enabled ──────
   const { data: gcrmnGeoJson } = useQuery<GeoJSON.FeatureCollection>({
     queryKey: ["/api/gcrmn/regions"],
     staleTime: 24 * 60 * 60 * 1000,
@@ -1093,7 +1093,7 @@ function ExpandedMapModal({
 
   const activeLayers = (showGcrmn ? 1 : 0) + (showCoralMapping ? 1 : 0) + (showMarineRegions ? 1 : 0) + (showImgs ? 1 : 0) + (showVideos ? 1 : 0) + (showGcrmnSites ? 1 : 0) + (showWcsReefCloud ? 1 : 0) + (showWcsCcSites ? 1 : 0) + (showReefCheck ? 1 : 0) + (showReefLife ? 1 : 0) + (showGcrmnMonSites ? 1 : 0) + (activeCmsVar ? 1 : 0) + (activeLiveVar ? 1 : 0) + 1;
 
-  // Country breakdown for GCRMN legend — derived from live GeoJSON
+  // Country breakdown for GCRMN legend - derived from live GeoJSON
   const gcrmnCountryStats = useMemo(() => {
     if (!gcrmnMonSitesGeoJson) return [];
     const counts: Record<string, number> = {};
@@ -1384,7 +1384,7 @@ function ExpandedMapModal({
                   const p = feature.properties ?? {};
                   const country  = (p.country  as string) || "";
                   const location = (p.location as string) || "";
-                  // Permanent label — visible via CSS when map zoom ≥ 5 (GcrmnZoomWatcher)
+                  // Permanent label - visible via CSS when map zoom ≥ 5 (GcrmnZoomWatcher)
                   if (country) {
                     const labelHtml = location
                       ? `${country}<br/><span style="font-weight:400;color:#d4e9f3aa;font-size:8px">${location}</span>`
@@ -1664,7 +1664,7 @@ function ExpandedMapModal({
                 >
                   {/* Progress fill (top = 0 m, increasing depth = more fill) */}
                   <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: `${depthPos * 100}%`, background: activeLiveLayer.color, borderRadius: 3, opacity: 0.75 }}/>
-                  {/* Depth tick marks — one per 500 m step */}
+                  {/* Depth tick marks - one per 500 m step */}
                   {(COMPACT_DEPTH_STEPS as readonly number[]).map(m => (
                     <div key={m} style={{ position: "absolute", top: `${(m / 5500) * 100}%`, left: -10, width: 8, height: 1, background: "rgba(255,255,255,0.2)", pointerEvents: "none" }}/>
                   ))}
@@ -1721,7 +1721,7 @@ function ExpandedMapModal({
           )}
 
           {/* ── Map Tools Floating Toolbar ── */}
-          {/* Result / settings panels — shown above (desktop) or below (mobile) buttons */}
+          {/* Result / settings panels - shown above (desktop) or below (mobile) buttons */}
           {isMobile ? (
             /* ── MOBILE: horizontal icon strip centred at top ── */
             <div style={{
@@ -1729,7 +1729,7 @@ function ExpandedMapModal({
               display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
               pointerEvents: "auto",
             }}>
-              {/* Tool readout panel — shown below buttons on mobile */}
+              {/* Tool readout panel - shown below buttons on mobile */}
               {activeTool === 'points' && toolPoints.length > 0 && (
                 <div style={{ background: "rgba(0,10,18,0.92)", border: "1px solid rgba(0,184,148,0.4)", borderRadius: 8, padding: "7px 11px", backdropFilter: "blur(8px)", fontFamily: "Inter,sans-serif", minWidth: 160 }}>
                   <div style={{ fontSize: 10, fontWeight: 700, color: "#00b894", marginBottom: 4 }}>📍 Points ({toolPoints.length})</div>
@@ -1754,7 +1754,7 @@ function ExpandedMapModal({
                   <div style={{ fontSize: 10, fontWeight: 700, color: "#83eef0", marginBottom: 8 }}>⚙ Layer Settings</div>
                   {(activeCmsVar || activeLiveVar) ? (
                     <>
-                      <div style={{ fontSize: 8, color: "#d4e9f355", marginBottom: 5 }}>Opacity — <span style={{ color: "#83eef0", fontWeight: 700 }}>{Math.round(layerOpacity * 100)}%</span></div>
+                      <div style={{ fontSize: 8, color: "#d4e9f355", marginBottom: 5 }}>Opacity - <span style={{ color: "#83eef0", fontWeight: 700 }}>{Math.round(layerOpacity * 100)}%</span></div>
                       <input type="range" min={0} max={100} value={Math.round(layerOpacity * 100)} onChange={e => setLayerOpacity(parseInt(e.target.value) / 100)} style={{ width: "100%", accentColor: "#83eef0" }} />
                     </>
                   ) : (
@@ -1880,7 +1880,7 @@ function ExpandedMapModal({
                 ))}
               </div>
 
-              {/* ── Result / settings readout — pops to the right ── */}
+              {/* ── Result / settings readout - pops to the right ── */}
               {activeTool === 'points' && toolPoints.length > 0 && (
                 <div style={{
                   background: "rgba(0,5,12,0.92)", border: "1px solid rgba(0,184,148,0.3)",
@@ -1952,7 +1952,7 @@ function ExpandedMapModal({
                   {(activeCmsVar || activeLiveVar) ? (
                     <>
                       <div style={{ fontSize: 8, color: "#d4e9f355", marginBottom: 6 }}>
-                        Opacity — <span style={{ color: "#83eef0", fontWeight: 700 }}>{Math.round(layerOpacity * 100)}%</span>
+                        Opacity - <span style={{ color: "#83eef0", fontWeight: 700 }}>{Math.round(layerOpacity * 100)}%</span>
                       </div>
                       <input
                         type="range" min={0} max={100} value={Math.round(layerOpacity * 100)}
@@ -2134,7 +2134,7 @@ function ExpandedMapModal({
                     <div style={{ fontSize: 9, color: "#d4e9f344", fontFamily: "monospace" }}>
                       {dsId}
                       <span style={{ color: "#83eef077" }}> · {varIds.join(", ")}</span>
-                      {mapBounds && <span style={{ color: "#d4e9f322" }}> · {south}°–{north}°N {west}°–{east}°E</span>}
+                      {mapBounds && <span style={{ color: "#d4e9f322" }}> · {south}°-{north}°N {west}°-{east}°E</span>}
                       {hasElev && <span style={{ color: "#d4e9f322" }}> · {liveDepthM === 0 ? "Surface" : `${liveDepthM} m`}</span>}
                       <span style={{ color: "#d4e9f322" }}> · {t0}</span>
                     </div>
@@ -2259,7 +2259,7 @@ function ExpandedMapModal({
                 )}
               </div>
 
-              {/* Layer select — grouped by ocean-colour category */}
+              {/* Layer select - grouped by ocean-colour category */}
               <select
                 data-testid="expanded-cms-layer-select"
                 value={activeCmsVar ?? ""}
@@ -2272,7 +2272,7 @@ function ExpandedMapModal({
                   cursor: "pointer", outline: "none", marginBottom: 8,
                 }}
               >
-                <option value="">— Off —</option>
+                <option value="">- Off -</option>
                 <optgroup label="Phytoplankton">
                   {CMS_LAYERS.filter(l => !(l as any).dataset).map(l => (
                     <option key={l.var} value={l.var}>{l.label} · {l.unit}</option>
@@ -2290,7 +2290,7 @@ function ExpandedMapModal({
                 </optgroup>
               </select>
 
-              {/* Dataset info card — shown when CMS layer active */}
+              {/* Dataset info card - shown when CMS layer active */}
               {activeCmsVar && activeCmsLayer && (
                 <div style={{
                   background: `${activeCmsLayer.color}0d`,
@@ -2312,11 +2312,11 @@ function ExpandedMapModal({
                     OCEANCOLOUR_GLO_BGC_L4_MY_009_104
                   </div>
                   {([
-                    ["Variable",   `${activeCmsVar} — ${activeCmsLayer.label} (${activeCmsLayer.unit})`],
+                    ["Variable",   `${activeCmsVar} - ${activeCmsLayer.label} (${activeCmsLayer.unit})`],
                     ["Resolution", "4 km · Level 4 gapfilled"],
                     ["Cadence",    `Monthly · ${cmsMonthLabel(cmsYYYYMM)}`],
                     ["Depth",      "Surface · Euphotic zone"],
-                    ["Coverage",   "Global · Sep 1997 – Mar 2026"],
+                    ["Coverage",   "Global · Sep 1997 - Mar 2026"],
                   ] as [string, string][]).map(([k, v]) => (
                     <div key={k} style={{ display: "flex", gap: 6, marginBottom: 2.5 }}>
                       <span style={{ fontSize: 7.5, color: "#d4e9f333", minWidth: 64, fontWeight: 600, flexShrink: 0 }}>{k}</span>
@@ -2326,7 +2326,7 @@ function ExpandedMapModal({
                 </div>
               )}
 
-              {/* Time navigator — only shown when a layer is active */}
+              {/* Time navigator - only shown when a layer is active */}
               {activeCmsVar && (
                 <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 8 }}>
                   <button
@@ -2381,7 +2381,7 @@ function ExpandedMapModal({
                 )}
               </div>
 
-              {/* Ocean State select — all 7 groups as optgroups */}
+              {/* Ocean State select - all 7 groups as optgroups */}
               <select
                 data-testid="expanded-live-layer-select"
                 value={activeLiveVar ?? ""}
@@ -2398,7 +2398,7 @@ function ExpandedMapModal({
                   cursor: "pointer", outline: "none", marginBottom: activeLiveVar ? 8 : 0,
                 }}
               >
-                <option value="">— Off —</option>
+                <option value="">- Off -</option>
                 {LIVE_GROUPS.map(grp => (
                   <optgroup key={grp} label={grp}>
                     {LIVE_LAYERS.filter(l => l.group === grp).map(l => (
@@ -2513,8 +2513,8 @@ function ExpandedMapModal({
               >{showCoralMapping && showMarineRegions && showGcrmn && showGcrmnSites ? "off" : "all"}</button>
             </div>
             <div style={{ fontSize: 7.5, color: "#d4e9f328", marginBottom: 5, lineHeight: 1.5 }}>Maritime zones, reef extents and global monitoring regions overlaid on the ocean.</div>
-            <LayerToggle label="Coral Reef Regions"  sublabel="Mapped reef extents from satellite imagery — Allen Coral Atlas / UQ"                    active={showCoralMapping}  color="#fd7272" onClick={() => setShowCoralMapping(v => !v)}  testId="expanded-toggle-coral-mapping" />
-            <LayerToggle label="EEZ Boundaries"      sublabel="Each country's exclusive maritime jurisdiction zone — MarineRegions.org / VLIZ"         active={showMarineRegions} color="#fdcb6e" onClick={() => setShowMarineRegions(v => !v)} testId="expanded-toggle-marine-regions" />
+            <LayerToggle label="Coral Reef Regions"  sublabel="Mapped reef extents from satellite imagery - Allen Coral Atlas / UQ"                    active={showCoralMapping}  color="#fd7272" onClick={() => setShowCoralMapping(v => !v)}  testId="expanded-toggle-coral-mapping" />
+            <LayerToggle label="EEZ Boundaries"      sublabel="Each country's exclusive maritime jurisdiction zone - MarineRegions.org / VLIZ"         active={showMarineRegions} color="#fdcb6e" onClick={() => setShowMarineRegions(v => !v)} testId="expanded-toggle-marine-regions" />
             <LayerToggle label="GCRMN Regions"       sublabel="10 coordinated zones for standardised global reef health monitoring"                    active={showGcrmn}         color="#1dd1a1" onClick={() => setShowGcrmn(v => !v)}         testId="expanded-toggle-gcrmn" />
             {showGcrmn && (
               <div style={{ display: "flex", flexWrap: "wrap", gap: "2px 10px", marginLeft: 10, marginBottom: 5, marginTop: 2 }}>
@@ -2526,7 +2526,7 @@ function ExpandedMapModal({
                 ))}
               </div>
             )}
-            <LayerToggle label="GCRMN Sites 2026"    sublabel={`${GCRMN_SITES_2026.length} territories covered — circle size proportional to survey count`} active={showGcrmnSites} color="#A6CE39" onClick={() => setShowGcrmnSites(v => !v)} testId="expanded-toggle-gcrmn-sites" />
+            <LayerToggle label="GCRMN Sites 2026"    sublabel={`${GCRMN_SITES_2026.length} territories covered - circle size proportional to survey count`} active={showGcrmnSites} color="#A6CE39" onClick={() => setShowGcrmnSites(v => !v)} testId="expanded-toggle-gcrmn-sites" />
 
             {/* ── Field Monitoring ── */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "10px 0 2px" }}>
@@ -2537,11 +2537,11 @@ function ExpandedMapModal({
               >{showGcrmnMonSites && showReefCheck && showReefLife && showWcsCcSites && showWcsReefCloud ? "off" : "all"}</button>
             </div>
             <div style={{ fontSize: 7.5, color: "#d4e9f328", marginBottom: 5, lineHeight: 1.5 }}>In-situ reef health survey stations from major international scientific monitoring programmes.</div>
-            <LayerToggle label="GCRMN Benthic Sites" sublabel="Fixed stations measuring coral cover and benthic organisms — gcrmndb_benthos"             active={showGcrmnMonSites} color="#26de81" onClick={() => setShowGcrmnMonSites(v => !v)} testId="expanded-toggle-gcrmn-mon-sites" />
+            <LayerToggle label="GCRMN Benthic Sites" sublabel="Fixed stations measuring coral cover and benthic organisms - gcrmndb_benthos"             active={showGcrmnMonSites} color="#26de81" onClick={() => setShowGcrmnMonSites(v => !v)} testId="expanded-toggle-gcrmn-mon-sites" />
             <LayerToggle label="Reef Check"          sublabel="~6,200 sites tracking bleaching events and coral cover changes since 1996"                active={showReefCheck}     color="#fd9644" onClick={() => setShowReefCheck(v => !v)}     testId="expanded-toggle-reef-check" />
             <LayerToggle label="Reef Life Survey"    sublabel="4,147 standardised fish and invertebrate survey sites worldwide"                          active={showReefLife}      color="#45aaf2" onClick={() => setShowReefLife(v => !v)}      testId="expanded-toggle-reef-life" />
             <LayerToggle label="WCS Coral Cover"     sublabel="4,766 coral cover transect sites from Wildlife Conservation Society"                     active={showWcsCcSites}    color="#ff6b9d" onClick={() => setShowWcsCcSites(v => !v)}    testId="expanded-toggle-wcs-cc-sites" />
-            <LayerToggle label="WCS ReefCloud"       sublabel="14,501 AI-powered underwater photo monitoring stations — WCS Marine global programme"    active={showWcsReefCloud}  color="#e056fd" onClick={() => setShowWcsReefCloud(v => !v)}  testId="expanded-toggle-wcs-reefcloud" />
+            <LayerToggle label="WCS ReefCloud"       sublabel="14,501 AI-powered underwater photo monitoring stations - WCS Marine global programme"    active={showWcsReefCloud}  color="#e056fd" onClick={() => setShowWcsReefCloud(v => !v)}  testId="expanded-toggle-wcs-reefcloud" />
 
             {/* ── Community ── */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "10px 0 2px" }}>
@@ -2706,7 +2706,7 @@ function ExpandedMapModal({
                 ["Territories", GCRMN_SITES_2026.length],
                 ["Total Sites", GCRMN_TOTALS.sites.toLocaleString()],
                 ["Total Surveys", GCRMN_TOTALS.surveys.toLocaleString()],
-                ["Time Span", "1973–2025"],
+                ["Time Span", "1973-2025"],
               ].map(([k, v]) => (
                 <div key={String(k)} style={{ background: "rgba(166,206,57,0.07)", border: "1px solid rgba(166,206,57,0.2)", borderRadius: 6, padding: "5px 7px" }}>
                   <div style={{ fontSize: 7.5, color: "#A6CE3988", textTransform: "uppercase", letterSpacing: "0.07em" }}>{k}</div>
@@ -3316,7 +3316,7 @@ export function ReefMap({
               {/* ── Layer groups ── */}
               <div style={{ padding: "6px 6px 8px", maxHeight: 360, overflowY: "auto" }}>
 
-                {/* ── Satellite group (custom — radio, not checkbox) ── */}
+                {/* ── Satellite group (custom - radio, not checkbox) ── */}
                 <div style={{ marginBottom: 6 }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "5px 10px 4px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
@@ -3343,7 +3343,7 @@ export function ReefMap({
                         cursor: "pointer", outline: "none",
                       }}
                     >
-                      <option value="">— Off —</option>
+                      <option value="">- Off -</option>
                       {CMS_LAYERS.map(l => (
                         <option key={l.var} value={l.var}>{l.label} ({l.var})</option>
                       ))}
@@ -3397,7 +3397,7 @@ export function ReefMap({
                         cursor: "pointer", outline: "none",
                       }}
                     >
-                      <option value="">— Off —</option>
+                      <option value="">- Off -</option>
                       {LIVE_GROUPS.map(grp => (
                         <optgroup key={grp} label={grp}>
                           {LIVE_LAYERS.filter(l => l.group === grp).map(l => (
@@ -3438,7 +3438,7 @@ export function ReefMap({
                       </div>
                     </>
                   )}
-                  {/* ── Depth selector — 500 m steps, only for depth-capable layers ── */}
+                  {/* ── Depth selector - 500 m steps, only for depth-capable layers ── */}
                   {activeLiveVar && activeLiveLayer && activeLiveLayer.elevation != null && (
                     <div style={{ padding: "4px 8px 6px" }}>
                       <div style={{ fontSize: 6.5, fontFamily: "Inter,sans-serif", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#d4e9f322", marginBottom: 4, paddingLeft: 2 }}>↕ Depth</div>
@@ -3465,10 +3465,10 @@ export function ReefMap({
 
                 {([
                   { group: "Boundaries & Regions", icon: "◈", note: "Maritime zones, reef extents and monitoring regions.", layers: [
-                    { testId: "toggle-coral-mapping-layer",   label: "Coral Reef Regions",  sublabel: "Mapped reef extents — Allen Coral Atlas",    color: "#fd7272", active: showCoralMapping,  toggle: () => setShowCoralMapping(v => !v)  },
-                    { testId: "toggle-marine-regions-layer",  label: "EEZ Boundaries",      sublabel: "Excl. Economic Zones — VLIZ",                 color: "#fdcb6e", active: showMarineRegions, toggle: () => setShowMarineRegions(v => !v) },
+                    { testId: "toggle-coral-mapping-layer",   label: "Coral Reef Regions",  sublabel: "Mapped reef extents - Allen Coral Atlas",    color: "#fd7272", active: showCoralMapping,  toggle: () => setShowCoralMapping(v => !v)  },
+                    { testId: "toggle-marine-regions-layer",  label: "EEZ Boundaries",      sublabel: "Excl. Economic Zones - VLIZ",                 color: "#fdcb6e", active: showMarineRegions, toggle: () => setShowMarineRegions(v => !v) },
                     { testId: "toggle-gcrmn-layer",           label: "GCRMN Regions",       sublabel: "10 global reef monitoring zones",             color: "#1dd1a1", active: showGcrmn,         toggle: () => setShowGcrmn(v => !v)         },
-                    { testId: "toggle-gcrmn-sites-layer",     label: "GCRMN Sites 2026",    sublabel: `${GCRMN_SITES_2026.length} territories — circle size ∝ surveys`, color: "#A6CE39", active: showGcrmnSites, toggle: () => setShowGcrmnSites(v => !v) },
+                    { testId: "toggle-gcrmn-sites-layer",     label: "GCRMN Sites 2026",    sublabel: `${GCRMN_SITES_2026.length} territories - circle size ∝ surveys`, color: "#A6CE39", active: showGcrmnSites, toggle: () => setShowGcrmnSites(v => !v) },
                   ]},
                   { group: "Community", icon: "●", note: "MesoReefDAO members and community reef data.", layers: [
                     { testId: "toggle-dao-members-layer",     label: "DAO Members",         sublabel: `${markers.length} members on the Regen Reef Network`, color: "#83eef0", active: showDaoMembers, toggle: () => setShowDaoMembers(v => !v) },
@@ -3476,8 +3476,8 @@ export function ReefMap({
                     { testId: "toggle-videos-layer",          label: "Video Surveys",       sublabel: "Community underwater video surveys",         color: "#a29bfe", active: showVideos,        toggle: () => setShowVideos(v => !v)        },
                   ]},
                   { group: "Field Monitoring", icon: "◎", note: "In-situ reef survey stations worldwide.", layers: [
-                    { testId: "compact-toggle-gcrmn-mon",     label: "GCRMN Benthic Sites", sublabel: "Fixed benthic stations — GCRMN global network",  color: "#26de81", active: showGcrmnMonC,     toggle: () => setShowGcrmnMonC(v => !v)     },
-                    { testId: "compact-toggle-reef-check",    label: "Reef Check",          sublabel: "Coral cover monitoring — global",              color: "#fd9644", active: showReefCheckC,    toggle: () => setShowReefCheckC(v => !v)    },
+                    { testId: "compact-toggle-gcrmn-mon",     label: "GCRMN Benthic Sites", sublabel: "Fixed benthic stations - GCRMN global network",  color: "#26de81", active: showGcrmnMonC,     toggle: () => setShowGcrmnMonC(v => !v)     },
+                    { testId: "compact-toggle-reef-check",    label: "Reef Check",          sublabel: "Coral cover monitoring - global",              color: "#fd9644", active: showReefCheckC,    toggle: () => setShowReefCheckC(v => !v)    },
                     { testId: "compact-toggle-reef-life",     label: "Reef Life Survey",    sublabel: "Fish & invertebrate survey sites",             color: "#45aaf2", active: showReefLifeC,     toggle: () => setShowReefLifeC(v => !v)     },
                     { testId: "compact-toggle-wcs-cc",        label: "WCS Coral Cover",     sublabel: "WCS transect survey sites",                   color: "#ff6b9d", active: showWcsCcSitesC,   toggle: () => setShowWcsCcSitesC(v => !v)   },
                     { testId: "compact-toggle-wcs-reefcloud", label: "WCS ReefCloud",       sublabel: "AI-powered underwater photo survey sites",     color: "#e056fd", active: showWcsReefCloudC, toggle: () => setShowWcsReefCloudC(v => !v) },
@@ -3623,7 +3623,7 @@ export function ReefMap({
                 }}>{yr}</span>
               );
             })}
-            {/* Quarterly ticks: Apr / Jul / Oct — no label, just a tick mark */}
+            {/* Quarterly ticks: Apr / Jul / Oct - no label, just a tick mark */}
             {Array.from({ length: 30 }, (_, i) => 1997 + i).flatMap(yr =>
               [4, 7, 10].map(mo => {
                 const ym = `${yr}-${String(mo).padStart(2, "0")}`;
@@ -3648,7 +3648,7 @@ export function ReefMap({
           className="absolute left-2 flex flex-col gap-1.5"
           style={{ zIndex: 500, bottom: 52 }}
         >
-          {/* Labelled legend — one row per active layer */}
+          {/* Labelled legend - one row per active layer */}
           <div
             className="pointer-events-none"
             style={{

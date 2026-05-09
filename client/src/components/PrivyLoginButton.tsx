@@ -124,11 +124,11 @@ function ProviderIcon({ user }: { user: any }) {
 
 interface PrivyLoginButtonProps {
   /**
-   * compact — 36×36 circle for tight mobile headers.
+   * compact - 36×36 circle for tight mobile headers.
    * When authenticated, tapping calls `onOpenMenu` (if provided) instead of logging out.
    */
   compact?: boolean;
-  /** Called when the compact authenticated avatar is tapped — use to open the mobile menu */
+  /** Called when the compact authenticated avatar is tapped - use to open the mobile menu */
   onOpenMenu?: () => void;
 }
 
@@ -171,7 +171,7 @@ export function PrivyLoginButton({ compact = false, onOpenMenu }: PrivyLoginButt
 
     const initial = displayName.replace("@", "").charAt(0).toUpperCase();
 
-    /* compact: 36px circle avatar — opens menu instead of logging out */
+    /* compact: 36px circle avatar - opens menu instead of logging out */
     if (compact) {
       return (
         <button
@@ -187,7 +187,7 @@ export function PrivyLoginButton({ compact = false, onOpenMenu }: PrivyLoginButt
       );
     }
 
-    /* desktop: account pill — provider icon + name + sign-out */
+    /* desktop: account pill - provider icon + name + sign-out */
     return (
       <div className="flex items-center gap-2">
         <button
@@ -226,7 +226,7 @@ export function PrivyLoginButton({ compact = false, onOpenMenu }: PrivyLoginButt
     );
   }
 
-  /* ── Not authenticated — compact ── */
+  /* ── Not authenticated - compact ── */
   if (compact) {
     return (
       <button
@@ -242,7 +242,7 @@ export function PrivyLoginButton({ compact = false, onOpenMenu }: PrivyLoginButt
     );
   }
 
-  /* ── Not authenticated — full desktop ── */
+  /* ── Not authenticated - full desktop ── */
   return (
     <button
       onClick={doLogin}

@@ -13,7 +13,7 @@ const TOOLS = [
     name: "dDocs",
     tagline: "Decentralized Document Editor",
     description:
-      "Create, collaborate and share research documents. End-to-end encrypted, stored on IPFS — like Google Docs but fully self-sovereign. Ideal for field reports, species assessments, and DAO proposals.",
+      "Create, collaborate and share research documents. End-to-end encrypted, stored on IPFS - like Google Docs but fully self-sovereign. Ideal for field reports, species assessments, and DAO proposals.",
     href: "https://ddocs.new",
     color: "#48dbfb",
     icon: <FileText size={26} strokeWidth={1.5} />,
@@ -233,7 +233,7 @@ export function WorkspacePage() {
                 </span>
               </div>
               <p style={{ fontSize: 11.5, color: "#9aaeb8", margin: "2px 0 0" }}>
-                Pin field photos and reef imagery to IPFS — permanently addressable and censorship-resistant.
+                Pin field photos and reef imagery to IPFS - permanently addressable and censorship-resistant.
               </p>
             </div>
           </div>
@@ -251,7 +251,7 @@ export function WorkspacePage() {
                 fontSize: 9, fontWeight: 700, color: "#ffbe6955", letterSpacing: "0.1em",
                 textTransform: "uppercase", marginBottom: 10,
               }}>
-                Session archive — {archivedImages.length} image{archivedImages.length !== 1 ? "s" : ""}
+                Session archive - {archivedImages.length} image{archivedImages.length !== 1 ? "s" : ""}
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(110px, 1fr))", gap: 8 }}>
                 {archivedImages.map((img) => (

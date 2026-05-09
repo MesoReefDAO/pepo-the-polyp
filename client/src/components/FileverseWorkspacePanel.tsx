@@ -148,7 +148,7 @@ export function FileverseWorkspacePanel({
       );
     }
 
-    /* Authenticated sidebar — connected panel */
+    /* Authenticated sidebar - connected panel */
     return (
       <div
         className="flex flex-col gap-2 p-2.5 rounded-[14px]"
@@ -348,7 +348,7 @@ export function FileverseWorkspacePanel({
 
   /* ────────────────── PAGE VARIANT (WorkspacePage) ───────────────────── */
 
-  /* Not connected — offer both login options */
+  /* Not connected - offer both login options */
   if (!isConnected) {
     return (
       <div
@@ -360,7 +360,7 @@ export function FileverseWorkspacePanel({
             Sign in to access your Fileverse workspace
           </p>
           <p className="[font-family:'Inter',Helvetica] text-[#9aaeb8] text-xs leading-5">
-            Use your ORCID identity or connect a wallet — no separate Fileverse account needed.
+            Use your ORCID identity or connect a wallet - no separate Fileverse account needed.
           </p>
         </div>
 

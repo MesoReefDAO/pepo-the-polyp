@@ -660,7 +660,7 @@ function VoteModal({
           if (!active) return;
           if (voteId) { setPhase("already-voted"); return; }
         } catch {
-          // Not voted yet or anonymous election — continue
+          // Not voted yet or anonymous election - continue
         }
 
         // isInCensus: returns boolean
@@ -670,7 +670,7 @@ function VoteModal({
 
         if (active) setPhase("form");
       } catch {
-        // On network error fall through to form — handleVote will surface real error
+        // On network error fall through to form - handleVote will surface real error
         if (active) setPhase("form");
       }
     })();
@@ -731,7 +731,7 @@ function VoteModal({
         }
       }
 
-      // Award governance vote points (fire-and-forget — don't block the success UX)
+      // Award governance vote points (fire-and-forget - don't block the success UX)
       if (privyAuthenticated || orcidAuthenticated) {
         (async () => {
           try {
@@ -1496,7 +1496,7 @@ export function Governance() {
   const filtered = useMemo(() => {
     return elections.filter(e => {
       const st = e.status?.toUpperCase();
-      // RESULTS is Vocdoni's "ended with final results" state — treat as ended
+      // RESULTS is Vocdoni's "ended with final results" state - treat as ended
       const isEnded   = st === "ENDED" || st === "RESULTS";
       const isActive  = st === "ONGOING";
       const isUpcoming = st === "UPCOMING";

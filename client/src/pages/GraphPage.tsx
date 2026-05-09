@@ -81,7 +81,7 @@ export function GraphPage(): JSX.Element {
               src="https://pepo.app.bonfires.ai/graph"
               className="w-full h-full border-0"
               style={{ minHeight: "calc(100vh - 160px)" }}
-              title="Reef Knowledge Graph — Bonfires.ai"
+              title="Reef Knowledge Graph - Bonfires.ai"
               data-testid="iframe-knowledge-graph-page"
               onLoad={() => setLoading(false)}
               allow="clipboard-write; clipboard-read; pointer-lock; fullscreen"

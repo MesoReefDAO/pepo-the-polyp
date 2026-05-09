@@ -642,7 +642,7 @@ export function UserProfileDashboard() {
   const [ipfsCid, setIpfsCid] = useState<string | null>(null);
   const [ipfsSynced, setIpfsSynced] = useState(false);
 
-  // The active profile ID — Privy user ID, or ORCID-prefixed ID for ORCID-only logins
+  // The active profile ID - Privy user ID, or ORCID-prefixed ID for ORCID-only logins
   const activeProfileId = orcidAuthenticated && !privyAuthenticated
     ? orcidProfileId
     : user?.id;
@@ -653,12 +653,12 @@ export function UserProfileDashboard() {
     enabled: !!activeProfileId,
   });
 
-  // Hydrate ALL profile fields from DB — DB is the source of truth once a profile exists
+  // Hydrate ALL profile fields from DB - DB is the source of truth once a profile exists
   useEffect(() => {
     if (!savedProfile?.profile) return;
     const p = savedProfile.profile;
 
-    // Core fields — DB always wins when profile exists
+    // Core fields - DB always wins when profile exists
     setDisplayName(p.displayName || "");
     setBio(p.bio || DEFAULT_BIO);
     setLocation(p.location || "");
@@ -680,7 +680,7 @@ export function UserProfileDashboard() {
     }
     if (p.ipfsImages?.length) setIpfsImages(p.ipfsImages);
 
-    // ORCID — only set if not already populated from session
+    // ORCID - only set if not already populated from session
     if (p.orcidId && !orcidId) {
       setOrcidId(p.orcidId);
       setOrcidName(p.orcidName || null);
@@ -693,7 +693,7 @@ export function UserProfileDashboard() {
     if (sessionOrcidId && !orcidId) {
       setOrcidId(sessionOrcidId);
       setOrcidName(sessionOrcidName || null);
-      // Privy user connected ORCID via the full auth flow — save it to their Privy profile too
+      // Privy user connected ORCID via the full auth flow - save it to their Privy profile too
       if (privyAuthenticated) {
         (async () => {
           try {
@@ -735,14 +735,14 @@ export function UserProfileDashboard() {
     const id = params.get("orcid_id"), name = params.get("orcid_name"), err = params.get("orcid_error");
     const authSuccess = params.get("orcid_auth");
 
-    // orcid_auth=success — returned from standalone ORCID login flow, refresh session
+    // orcid_auth=success - returned from standalone ORCID login flow, refresh session
     if (authSuccess === "success") {
       window.history.replaceState({}, "", "/profile");
       queryClient.invalidateQueries({ queryKey: ["/api/auth/orcid/session"] });
       queryClient.invalidateQueries({ queryKey: ["/api/leaderboard"] });
     }
 
-    // orcid_id param — returned from ORCID link-only flow (Privy user linking ORCID)
+    // orcid_id param - returned from ORCID link-only flow (Privy user linking ORCID)
     if (id) {
       const decoded = name ? decodeURIComponent(name) : null;
       setOrcidId(id);
@@ -763,7 +763,7 @@ export function UserProfileDashboard() {
           queryClient.invalidateQueries({ queryKey: ["/api/profiles"] });
           queryClient.invalidateQueries({ queryKey: ["/api/profiles/me"] });
         } catch {
-          // non-blocking — local state is already set
+          // non-blocking - local state is already set
         }
       })();
     }
@@ -869,7 +869,7 @@ export function UserProfileDashboard() {
         queryClient.invalidateQueries({ queryKey: ["/api/profiles/me"] });
         queryClient.invalidateQueries({ queryKey: ["/api/leaderboard"] });
       } catch {
-        // non-blocking — local save succeeded
+        // non-blocking - local save succeeded
       }
     } else if (privyAuthenticated) {
       try {
@@ -900,7 +900,7 @@ export function UserProfileDashboard() {
           queryClient.invalidateQueries({ queryKey: ["/api/leaderboard"] });
         }
       } catch {
-        // non-blocking — local save succeeded
+        // non-blocking - local save succeeded
       }
       // Background: pin updated profile to IPFS (Pinata) so it's live on the web too
       void handleSyncToIpfs();
@@ -1007,7 +1007,7 @@ export function UserProfileDashboard() {
               {/* Two-column layout */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-                {/* LEFT — Preview card */}
+                {/* LEFT - Preview card */}
                 <div className="flex flex-col gap-5">
                   {/* Profile card preview */}
                   <div className="flex flex-col items-center gap-4 p-6 rounded-3xl bg-[#ffffff08] border border-[#83eef01a] backdrop-blur-sm text-center">
@@ -1048,7 +1048,7 @@ export function UserProfileDashboard() {
                       )}
                     </div>
 
-                    {/* Status badges — real data only */}
+                    {/* Status badges - real data only */}
                     {(wallets.length > 0 || orcidId) && (
                       <div className="flex flex-wrap gap-1.5 justify-center w-full pt-2 border-t border-[#ffffff08]">
                         {wallets.length > 0 && (
@@ -1104,13 +1104,13 @@ export function UserProfileDashboard() {
 
                 </div>
 
-                {/* RIGHT — Edit form */}
+                {/* RIGHT - Edit form */}
                 <div className="lg:col-span-2 flex flex-col gap-5">
 
                   {/* Photo + Name section */}
                   <div className="flex flex-col gap-5 p-5 md:p-6 rounded-3xl bg-[#ffffff08] border border-[#83eef01a] backdrop-blur-sm">
                     <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center">
-                      {/* Avatar — unified IPFS upload */}
+                      {/* Avatar - unified IPFS upload */}
                       <AvatarIPFSUpload
                         profileImage={profileImage}
                         avatarCid={avatarCid}

@@ -57,7 +57,7 @@ const PIPELINE_STEPS = [
     num: "01",
     icon: <Play size={18} />,
     title: "Input Video",
-    desc: "Underwater footage from GoPro Hero or calibrated camera — ideally 10–60s clips in linear (non-fisheye) mode.",
+    desc: "Underwater footage from GoPro Hero or calibrated camera - ideally 10-60s clips in linear (non-fisheye) mode.",
     color: "#83eef0",
   },
   {
@@ -110,7 +110,7 @@ const OUTPUT_CARDS = [
     ),
     title: "Ortho-Mosaic Image",
     ext: "ortho.png",
-    desc: "Top-down composite image of the entire surveyed reef patch — geo-referenced for GIS integration.",
+    desc: "Top-down composite image of the entire surveyed reef patch - geo-referenced for GIS integration.",
     color: "#a78bfa",
   },
   {
@@ -259,7 +259,7 @@ export function VideosMonitoringPage() {
 
               <p className="[font-family:'Inter',Helvetica] text-sm leading-relaxed max-w-xl"
                 style={{ color: "rgba(212,233,243,0.65)" }}>
-                {repo?.description ?? "Rapid 3D semantic mapping of coral reefs from underwater videos — by EPFL ECEO."}
+                {repo?.description ?? "Rapid 3D semantic mapping of coral reefs from underwater videos - by EPFL ECEO."}
               </p>
 
               {/* Repo meta pills */}
@@ -270,11 +270,11 @@ export function VideosMonitoringPage() {
                   <>
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] [font-family:'Inter',Helvetica]"
                       style={{ background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.2)", color: "#fbbf24" }}>
-                      <Star size={10} /> {repo?.stargazers_count ?? "—"} stars
+                      <Star size={10} /> {repo?.stargazers_count ?? "-"} stars
                     </span>
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] [font-family:'Inter',Helvetica]"
                       style={{ background: "rgba(131,238,240,0.08)", border: "1px solid rgba(131,238,240,0.2)", color: "#83eef0cc" }}>
-                      <GitFork size={10} /> {repo?.forks_count ?? "—"} forks
+                      <GitFork size={10} /> {repo?.forks_count ?? "-"} forks
                     </span>
                     {release && (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] [font-family:'Inter',Helvetica]"
@@ -344,7 +344,7 @@ export function VideosMonitoringPage() {
               </div>
               <div className="px-5 py-4">
                 <p className="text-xs [font-family:'Inter',Helvetica]" style={{ color: "rgba(212,233,243,0.55)" }}>
-                  DeepReefMap renders a navigable 3D point cloud where every point carries a benthic class label —
+                  DeepReefMap renders a navigable 3D point cloud where every point carries a benthic class label -
                   enabling rapid, reproducible reef health assessments from a single video transect.
                 </p>
               </div>
@@ -355,7 +355,7 @@ export function VideosMonitoringPage() {
               <div className="relative aspect-video bg-[#0a1a1f] flex items-center justify-center">
                 <img
                   src="https://raw.githubusercontent.com/ECEO-EPFL/deepreefmap/main/assets/demo_input.gif"
-                  alt="Example input clip — 10s GoPro Hero 10"
+                  alt="Example input clip - 10s GoPro Hero 10"
                   className="w-full h-full object-cover"
                   loading="lazy"
                 />
@@ -363,7 +363,7 @@ export function VideosMonitoringPage() {
                   style={{ background: "linear-gradient(to top, rgba(0,8,12,0.6) 0%, transparent 40%)" }} />
                 <div className="absolute bottom-3 left-4 right-4 flex items-end justify-between">
                   <span className="text-xs [font-family:'Inter',Helvetica] font-semibold text-[#d4e9f3cc]">
-                    Example input — 10s GoPro Hero 10
+                    Example input - 10s GoPro Hero 10
                   </span>
                   <span className="text-[10px] px-2 py-0.5 rounded-full [font-family:'Inter',Helvetica]"
                     style={{ background: "rgba(0,8,12,0.8)", border: "1px solid rgba(249,115,22,0.3)", color: "#f97316" }}>

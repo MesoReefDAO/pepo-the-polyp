@@ -634,7 +634,7 @@ export function IPFSImageUpload({ onUpload, currentCid, label, compact, showMapP
         </div>
       )}
 
-      {/* Map pin prompt — shown after successful upload */}
+      {/* Map pin prompt - shown after successful upload */}
       {showMapPin && activeCid && <MapPinSection cid={activeCid} />}
 
       <input

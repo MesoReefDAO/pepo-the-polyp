@@ -14,7 +14,7 @@ const HINT_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 // Internal y-coordinate where the Bonfires.ai EXPLORER panel header begins
 // (nav bar ≈48 px + dark gap ≈80 px below nav = 128 px from page top).
 // Setting this as the top-crop means the EXPLORER header sits right at the
-// top of our container — matches the reference screenshot.
+// top of our container - matches the reference screenshot.
 const NAV_CROP_PX = 128;
 
 // Internal x-coordinate of the EXPLORER panel's right edge (measured from
@@ -26,7 +26,7 @@ const LEFT_CROP_PX = 560;
 // Dynamic scale targets: the ResizeObserver below keeps the iframe's
 // internal viewport at TARGET_INTERNAL_PX regardless of container size,
 // capped between MIN_SCALE and MAX_SCALE (0.65 = "65% of fit to the screen"
-// as requested — all three panels visible at a comfortably smaller size).
+// as requested - all three panels visible at a comfortably smaller size).
 // At TARGET_INTERNAL_PX = 1250, Bonfires.ai shows a clean flush 3-panel
 // layout: EXPLORER (left) · graph canvas (center) · PepoThePolypBot (right).
 const TARGET_INTERNAL_PX = 1250;
@@ -272,7 +272,7 @@ function CleanCoralPanel({ onClose }: { onClose?: () => void }) {
   );
 }
 
-// ── Graph hint overlay — shown on first visit, dismisses after interaction ────
+// ── Graph hint overlay - shown on first visit, dismisses after interaction ────
 function GraphHintOverlay({ onDismiss }: { onDismiss: () => void }) {
   const [fading, setFading] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -330,7 +330,7 @@ function GraphHintOverlay({ onDismiss }: { onDismiss: () => void }) {
             Reef Knowledge Graph
           </span>
           <span className="[font-family:'Inter',Helvetica] text-[#d4e9f380] text-xs leading-relaxed">
-            Ask PepoThePolypBot about the MesoReef ecosystem — nodes and connections build as you explore.
+            Ask PepoThePolypBot about the MesoReef ecosystem - nodes and connections build as you explore.
           </span>
         </div>
 
@@ -462,7 +462,7 @@ export const ReefInsightDashboardSection = (): JSX.Element => {
     <div className="flex flex-row flex-1 self-stretch min-h-0 overflow-hidden px-2 md:px-4 pt-2 md:pt-3 pb-20 md:pb-3 gap-2">
 
       {/* ════════════════════════════════════════════════════════════════
-          KNOWLEDGE GRAPH — branded header + cropped iframe
+          KNOWLEDGE GRAPH - branded header + cropped iframe
       ════════════════════════════════════════════════════════════════ */}
       <div
         className="flex flex-col flex-1 min-h-0 rounded-[16px] md:rounded-[24px] overflow-hidden"
@@ -554,8 +554,8 @@ export const ReefInsightDashboardSection = (): JSX.Element => {
         {/* ── iframe wrapper ─────────────────────────────────────── */}
         {/* ResizeObserver (attached via iframeWrapperRef) watches this    */}
         {/* div's width and recalculates `scale` so the iframe always      */}
-        {/* renders at TARGET_INTERNAL_PX (1250 px) internally — wide      */}
-        {/* enough for all three Bonfires.ai panels — while the visual     */}
+        {/* renders at TARGET_INTERNAL_PX (1250 px) internally - wide      */}
+        {/* enough for all three Bonfires.ai panels - while the visual     */}
         {/* output is scaled down to fill this container exactly.          */}
         <div ref={iframeWrapperRef} className="relative flex-1 min-h-0 overflow-hidden">
           {/* Subtle teal edge glows */}
@@ -608,7 +608,7 @@ export const ReefInsightDashboardSection = (): JSX.Element => {
       </div>
 
       {/* ════════════════════════════════════════════════════════════════
-          DAILY REEF ACTION — collapsible right panel
+          DAILY REEF ACTION - collapsible right panel
       ════════════════════════════════════════════════════════════════ */}
       <div
         className="hidden md:flex flex-col shrink-0 min-h-0 transition-all duration-300"
@@ -636,7 +636,7 @@ export const ReefInsightDashboardSection = (): JSX.Element => {
           </svg>
         </button>
 
-        {/* Panel content — only rendered when open */}
+        {/* Panel content - only rendered when open */}
         {coralOpen && (
           <div className="flex-1 min-h-0 overflow-hidden rounded-[20px]">
             <CleanCoralPanel />

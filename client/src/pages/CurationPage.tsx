@@ -602,7 +602,7 @@ function ImageCard({
           </p>
         )}
 
-        {/* Submitter profile — linked to /members/:profileId */}
+        {/* Submitter profile - linked to /members/:profileId */}
         <div className="mt-1">
           <span className="[font-family:'Inter',Helvetica] text-[9px] uppercase tracking-widest text-[#d4e9f344] mb-1 block">
             Submitted by
@@ -640,7 +640,7 @@ function ImageCard({
         )}
       </div>
 
-      {/* Approve / Reject — two distinct panels */}
+      {/* Approve / Reject - two distinct panels */}
       <div className="flex border-t border-[#ffffff0d]">
         {/* Approve */}
         <button
@@ -937,7 +937,7 @@ function VideoSubmitPanel({
           <div className="w-8 h-8 rounded-xl bg-[#a29bfe15] border border-[#a29bfe30] flex items-center justify-center text-base">🎥</div>
           <div className="text-left">
             <div className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-semibold text-[#d4e9f3] text-sm">Submit a Video Survey</div>
-            <div className="[font-family:'Inter',Helvetica] text-[#d4e9f355] text-[10px] mt-0.5">Upload a reef video or paste an IPFS CID — earns 25 pts</div>
+            <div className="[font-family:'Inter',Helvetica] text-[#d4e9f355] text-[10px] mt-0.5">Upload a reef video or paste an IPFS CID - earns 25 pts</div>
           </div>
         </div>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className={`text-[#d4e9f344] transition-transform duration-200 flex-shrink-0 ${open ? "rotate-180" : ""}`}>
@@ -985,7 +985,7 @@ function VideoSubmitPanel({
               <div className="flex flex-col gap-2">
                 <input data-testid="input-video-title" type="text" placeholder="Survey title (optional)" maxLength={120} value={title} onChange={e => setTitle(e.target.value)} className={inputCls} />
                 <input data-testid="input-video-author" type="text" placeholder="Your name / organisation" maxLength={120} value={author} onChange={e => setAuthor(e.target.value)} className={inputCls} />
-                <textarea data-testid="input-video-description" placeholder="Description — reef conditions, dive site, methodology…" maxLength={500} rows={2} value={description} onChange={e => setDescription(e.target.value)}
+                <textarea data-testid="input-video-description" placeholder="Description - reef conditions, dive site, methodology…" maxLength={500} rows={2} value={description} onChange={e => setDescription(e.target.value)}
                   className={`${inputCls} resize-none`} />
                 <div className="flex gap-2">
                   <input data-testid="input-video-duration" type="number" placeholder="Duration (secs)" min={0} value={durationSecs} onChange={e => setDurationSecs(e.target.value)} className={`${inputCls} flex-1`} />
@@ -1191,7 +1191,7 @@ export function CurationPage() {
 
   const isAuthenticated = privyAuthenticated || orcidAuthenticated;
 
-  // Active profile ID — same pattern as dashboard
+  // Active profile ID - same pattern as dashboard
   const activeProfileId = orcidAuthenticated && !privyAuthenticated
     ? orcidProfileId
     : user?.id;
@@ -1205,7 +1205,7 @@ export function CurationPage() {
     return h;
   }
 
-  // Load user's own profile from DB — source of truth for orcidId
+  // Load user's own profile from DB - source of truth for orcidId
   const { data: savedProfile } = useQuery<any>({
     queryKey: ["/api/profiles", activeProfileId],
     enabled: isAuthenticated && !!activeProfileId,
@@ -1213,7 +1213,7 @@ export function CurationPage() {
   });
   const dbProfile = savedProfile?.profile;
 
-  // Resolve ORCID iD — DB profile.orcidId is the source of truth for Privy users
+  // Resolve ORCID iD - DB profile.orcidId is the source of truth for Privy users
   // who linked ORCID via the app's own linking flow (not via Privy's native OAuth)
   const privyOrcidAccount = (user as any)?.linkedAccounts?.find?.((a: any) => a.type === "orcid");
   const resolvedOrcidId: string | null =
@@ -1405,7 +1405,7 @@ export function CurationPage() {
                 : "Review underwater video surveys submitted by community members. Approved videos appear on the map as 🎥 pins. You earn 5 points per decision."}
             </p>
 
-            {/* Curator identity badge — only shown when ORCID-verified */}
+            {/* Curator identity badge - only shown when ORCID-verified */}
             {isAuthenticated && hasOrcid && resolvedOrcidId && (
               <div
                 data-testid="badge-curator-orcid"
@@ -1450,7 +1450,7 @@ export function CurationPage() {
             </div>
           </div>
 
-          {/* Submit panel — any authenticated user can submit */}
+          {/* Submit panel - any authenticated user can submit */}
           {isAuthenticated && activeTab === "images" && (
             <SubmitPanel
               authHeaders={authHeaders}
@@ -1464,7 +1464,7 @@ export function CurationPage() {
             />
           )}
 
-          {/* My Submissions — shows status of the user's own submitted images */}
+          {/* My Submissions - shows status of the user's own submitted images */}
           {isAuthenticated && activeTab === "images" && (
             <MySubmissionsPanel
               submissions={mySubmissions}
@@ -1478,7 +1478,7 @@ export function CurationPage() {
             />
           )}
 
-          {/* Access gate — not logged in */}
+          {/* Access gate - not logged in */}
           {!isAuthenticated && (
             <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
               <div className="w-14 h-14 rounded-2xl bg-[#83eef010] border border-[#83eef020] flex items-center justify-center">
@@ -1493,7 +1493,7 @@ export function CurationPage() {
             </div>
           )}
 
-          {/* Access gate — no ORCID */}
+          {/* Access gate - no ORCID */}
           {isAuthenticated && !hasOrcid && (
             <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
               <div className="w-14 h-14 rounded-2xl bg-[#a6ce3910] border border-[#a6ce3920] flex items-center justify-center">

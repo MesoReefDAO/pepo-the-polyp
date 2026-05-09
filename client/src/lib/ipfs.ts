@@ -15,7 +15,7 @@ export function ipfsImageUrl(cid: string): string {
   return `/api/ipfs/cat/${cid}`;
 }
 
-/** Direct Pinata dedicated gateway URL — bypasses local server */
+/** Direct Pinata dedicated gateway URL - bypasses local server */
 export function ipfsPublicUrl(cid: string): string {
   if (!cid) return "";
   return `https://${PINATA_GATEWAY}/ipfs/${cid}`;

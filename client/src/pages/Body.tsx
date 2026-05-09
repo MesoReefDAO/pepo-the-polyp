@@ -24,7 +24,7 @@ export const Body = (): JSX.Element => {
 
         {/* Main content column */}
         <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
-          {/* Profile journey progress — only shown when profile is incomplete */}
+          {/* Profile journey progress - only shown when profile is incomplete */}
           <JourneySection />
           <ReefInsightDashboardSection />
         </div>

@@ -465,7 +465,7 @@ export function PublicProfile() {
                   stroke="#83eef0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
               <span className="[font-family:'Inter',Helvetica] text-[11px] text-[#d4e9f333]">
-                IPFS record syncing — will appear after next sign-in
+                IPFS record syncing - will appear after next sign-in
               </span>
             </div>
           )}

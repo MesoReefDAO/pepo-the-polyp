@@ -38,7 +38,7 @@ const it = {
   dashboard: {
     searchActivity: "Ricerca e Attività",
     searchGraph: "Cerca nel grafo…",
-    searchUnavailable: "Ricerca non disponibile — riprova tra poco.",
+    searchUnavailable: "Ricerca non disponibile - riprova tra poco.",
     noResults: "Nessun risultato trovato.",
     result_one: "{{count}} risultato",
     result_other: "{{count}} risultati",

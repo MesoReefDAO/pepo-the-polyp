@@ -38,7 +38,7 @@ const zh = {
   dashboard: {
     searchActivity: "搜索与活动",
     searchGraph: "搜索图谱…",
-    searchUnavailable: "搜索暂不可用 — 请稍后再试。",
+    searchUnavailable: "搜索暂不可用 - 请稍后再试。",
     noResults: "未找到结果。",
     result_one: "{{count}} 个结果",
     result_other: "{{count}} 个结果",

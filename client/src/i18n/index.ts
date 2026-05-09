@@ -8,6 +8,11 @@ import ar from "./locales/ar";
 import fr from "./locales/fr";
 import it from "./locales/it";
 import zh from "./locales/zh";
+import id from "./locales/id";
+import tl from "./locales/tl";
+import ms from "./locales/ms";
+import th from "./locales/th";
+import tpi from "./locales/tpi";
 
 export const LANGUAGES = [
   { code: "en", label: "English",    flag: "🇬🇧", dir: "ltr" as const },
@@ -17,6 +22,11 @@ export const LANGUAGES = [
   { code: "fr", label: "Français",   flag: "🇫🇷", dir: "ltr" as const },
   { code: "it", label: "Italiano",   flag: "🇮🇹", dir: "ltr" as const },
   { code: "zh", label: "中文",        flag: "🇨🇳", dir: "ltr" as const },
+  { code: "id", label: "Bahasa Indonesia", flag: "🇮🇩", dir: "ltr" as const },
+  { code: "tl", label: "Tagalog",    flag: "🇵🇭", dir: "ltr" as const },
+  { code: "ms", label: "Bahasa Melayu", flag: "🇲🇾", dir: "ltr" as const },
+  { code: "th",  label: "ภาษาไทย",        flag: "🇹🇭", dir: "ltr" as const },
+  { code: "tpi", label: "Tok Pisin",      flag: "🇵🇬", dir: "ltr" as const },
 ] as const;
 
 export type LangCode = typeof LANGUAGES[number]["code"];
@@ -33,6 +43,11 @@ i18n
       fr: { translation: fr },
       it: { translation: it },
       zh: { translation: zh },
+      id: { translation: id },
+      tl: { translation: tl },
+      ms: { translation: ms },
+      th:  { translation: th },
+      tpi: { translation: tpi },
     },
     fallbackLng: "en",
     detection: {

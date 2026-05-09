@@ -38,7 +38,7 @@ const ar = {
   dashboard: {
     searchActivity: "البحث والنشاط",
     searchGraph: "ابحث في الشبكة…",
-    searchUnavailable: "البحث غير متاح — حاول مجدداً.",
+    searchUnavailable: "البحث غير متاح - حاول مجدداً.",
     noResults: "لم يتم العثور على نتائج.",
     result_one: "{{count}} نتيجة",
     result_other: "{{count}} نتائج",

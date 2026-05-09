@@ -47,7 +47,7 @@ export function useGeolocation(
         }
       },
       () => {
-        // user denied — silently skip
+        // user denied - silently skip
       },
       { timeout: 8000, maximumAge: 5 * 60 * 1000 }
     );

@@ -186,7 +186,7 @@ async function fetchGcrmnRegions(): Promise<object> {
   return geojson;
 }
 
-// ─── WCS Marine — ReefCloud monitoring sites (global-monitoring-maps) ─────────
+// ─── WCS Marine - ReefCloud monitoring sites (global-monitoring-maps) ─────────
 async function fetchWcsReefCloudSites(): Promise<object> {
   const now = Date.now();
   if (_wcsReefCloudCache && now < _wcsReefCloudCache.expiresAt) return _wcsReefCloudCache.geojson;
@@ -213,7 +213,7 @@ function parseCSVLine(line: string): string[] {
   return res;
 }
 
-// ─── WCS Marine — coral cover survey sites (global-monitoring-maps cc_sites.csv)
+// ─── WCS Marine - coral cover survey sites (global-monitoring-maps cc_sites.csv)
 async function fetchWcsCcSites(): Promise<object> {
   const now = Date.now();
   if (_wcsCcSitesCache && now < _wcsCcSitesCache.expiresAt) return _wcsCcSitesCache.geojson;
@@ -246,9 +246,9 @@ async function fetchWcsCcSites(): Promise<object> {
   return geojson;
 }
 
-// ─── EEZ overrides — sourced once from Marine Regions REST API, baked in ──────
+// ─── EEZ overrides - sourced once from Marine Regions REST API, baked in ──────
 // Covers the 47 1-degree cells that sit in open ocean beyond Natural Earth land
-// polygons.  Key format: "Math.round(lat),Math.round(lon)" — same as cellCache.
+// polygons.  Key format: "Math.round(lat),Math.round(lon)" - same as cellCache.
 const EEZ_CELL_OVERRIDES: Record<string, { country: string; location: string }> = {
   "-1,73":   { country: "Maldives",                 location: "" },
   "-1,74":   { country: "Maldives",                 location: "" },
@@ -299,7 +299,7 @@ const EEZ_CELL_OVERRIDES: Record<string, { country: string; location: string }> 
   "6,-87":   { country: "Costa Rica",               location: "Cocos Island" },
 };
 
-// ─── GCRMN monitoring sites — all-lat-long-no-mermaid.csv (db == 'gcrmn') ─────
+// ─── GCRMN monitoring sites - all-lat-long-no-mermaid.csv (db == 'gcrmn') ─────
 // Country + location are "NA" in the source CSV; we reverse-geocode each unique
 // 1-degree cell: EEZ overrides first, then NE polygon test, then nearest-vertex.
 // On the first cold start the geocoded result is written to gcrmn_sites in the DB;
@@ -352,7 +352,7 @@ async function fetchGcrmnMonitoringSites(): Promise<object> {
     const clon = Math.round(lon);
     let country  = countries.find(f => _pointInFeature(clon, clat, f))?.name ?? "";
     let location = admin1.find(f => _pointInFeature(clon, clat, f))?.name ?? "";
-    // 3. Nearest polygon vertex fallback — 2.5° country, 1.0° location
+    // 3. Nearest polygon vertex fallback - 2.5° country, 1.0° location
     if (!country)  country  = _nearestByVertex(clon, clat, countries, 2.5);
     if (!location) location = _nearestByVertex(clon, clat, admin1,    1.0);
     const result = { country, location };
@@ -401,7 +401,7 @@ async function fetchGcrmnMonitoringSites(): Promise<object> {
   return geojson;
 }
 
-// ─── Reef Check sites — global-monitoring-maps/reef_check_all.csv ─────────────
+// ─── Reef Check sites - global-monitoring-maps/reef_check_all.csv ─────────────
 // Deduplicates by Reef_Check_ID; keeps most recent year + avg coral/bleaching
 async function fetchReefCheckSites(): Promise<object> {
   const now = Date.now();
@@ -450,7 +450,7 @@ async function fetchReefCheckSites(): Promise<object> {
   return geojson;
 }
 
-// ─── Reef Life Survey sites — global-monitoring-maps/reef_life_site_info.csv ──
+// ─── Reef Life Survey sites - global-monitoring-maps/reef_life_site_info.csv ──
 async function fetchReefLifeSites(): Promise<object> {
   const now = Date.now();
   if (_reefLifeCache && now < _reefLifeCache.expiresAt) return _reefLifeCache.geojson;
@@ -513,7 +513,7 @@ const ORCID_BASE = "https://orcid.org";
 // build works on every domain (thepolyp.xyz, pepothepolyp.replit.app, localhost, …).
 // Replit's reverse proxy sets X-Forwarded-Proto; fall back to host-based detection.
 function getOrcidRedirectUri(req: Request): string {
-  // Allow a fixed override via env — set this in the Replit secrets to match
+  // Allow a fixed override via env - set this in the Replit secrets to match
   // whatever redirect URI is registered in your ORCID developer portal.
   if (process.env.ORCID_REDIRECT_URI) return process.env.ORCID_REDIRECT_URI;
   const host = req.headers.host || "";
@@ -634,7 +634,7 @@ export async function registerRoutes(
   // Apply general rate limiting to all /api routes
   app.use("/api", generalLimiter);
 
-  // ─── IPFS routes (Pinata — https://github.com/PinataCloud) ───────────────
+  // ─── IPFS routes (Pinata - https://github.com/PinataCloud) ───────────────
   const ipfsUpload = multer({
     storage: multer.memoryStorage(),
     limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB max
@@ -644,7 +644,7 @@ export async function registerRoutes(
     },
   });
 
-  // POST /api/ipfs/upload — pin an image to Pinata; returns CID + gateway URLs
+  // POST /api/ipfs/upload - pin an image to Pinata; returns CID + gateway URLs
   app.post(
     "/api/ipfs/upload",
     ipfsUpload.single("file"),
@@ -671,7 +671,7 @@ export async function registerRoutes(
     }
   );
 
-  // GET /api/ipfs/cat/:cid — serve a file (local DB cache → Pinata gateway redirect)
+  // GET /api/ipfs/cat/:cid - serve a file (local DB cache → Pinata gateway redirect)
   app.get("/api/ipfs/cat/:cid", async (req: Request, res: Response) => {
     const cidStr = String(req.params.cid);
     try {
@@ -683,7 +683,7 @@ export async function registerRoutes(
         res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
         return res.send(buf);
       }
-      // 2. Not cached — redirect to dedicated Pinata gateway (file lives on IPFS)
+      // 2. Not cached - redirect to dedicated Pinata gateway (file lives on IPFS)
       return res.redirect(302, primaryGatewayUrl(cidStr));
     } catch (err: any) {
       console.error("[IPFS] cat error:", err);
@@ -691,7 +691,7 @@ export async function registerRoutes(
     }
   });
 
-  // GET /api/ipfs/info — service status
+  // GET /api/ipfs/info - service status
   app.get("/api/ipfs/info", (_req: Request, res: Response) => {
     return res.json({
       status: "ok",
@@ -701,7 +701,7 @@ export async function registerRoutes(
     });
   });
 
-  // POST /api/ipfs/profile — pin a profile JSON blob to Pinata; requires Privy auth
+  // POST /api/ipfs/profile - pin a profile JSON blob to Pinata; requires Privy auth
   app.post("/api/ipfs/profile", async (req: Request, res: Response) => {
     const token = (req.headers["x-privy-token"] as string) || "";
     if (!token) return res.status(401).json({ error: "Authentication required" });
@@ -749,7 +749,7 @@ export async function registerRoutes(
     }
   });
 
-  // Proxy: fetch knowledge graph data (legacy — kept for compatibility)
+  // Proxy: fetch knowledge graph data (legacy - kept for compatibility)
   app.get("/api/graph", async (_req: Request, res: Response) => {
     return res.json({ message: "Use /api/graph/data for graph nodes and edges" });
   });
@@ -825,7 +825,7 @@ export async function registerRoutes(
         // Express body-parser may have already consumed the stream; fall back to req.body
         const rawBody = await new Promise<Buffer>((resolve) => {
           if ((req as any).readable === false || (req as any)._readableState?.ended) {
-            // Already consumed — use the parsed body
+            // Already consumed - use the parsed body
             const parsed = (req as any).body;
             if (parsed && Object.keys(parsed).length) {
               resolve(Buffer.from(JSON.stringify(parsed)));
@@ -847,7 +847,7 @@ export async function registerRoutes(
       // Strip upstream headers that would conflict; forward content-type
       const ct = upstream.headers.get("content-type");
       if (ct) res.setHeader("Content-Type", ct);
-      // Override any restrictive CSP our middleware injected — proxy responses
+      // Override any restrictive CSP our middleware injected - proxy responses
       // are consumed as API data, not rendered documents, but clear it anyway
       res.removeHeader("Content-Security-Policy");
       res.removeHeader("X-Frame-Options");
@@ -887,7 +887,7 @@ export async function registerRoutes(
 <base href="https://pepo.app.bonfires.ai/">
 <style>
 /* ══════════════════════════════════════════════════
-   MesoReefDAO theme — injected into Bonfires iframe
+   MesoReefDAO theme - injected into Bonfires iframe
    ══════════════════════════════════════════════════ */
 
 /* 0. Hide the Bonfires top navbar */
@@ -902,13 +902,13 @@ html, body {
   -webkit-font-smoothing: antialiased !important;
 }
 
-/* 2. Scrollbars — slim teal */
+/* 2. Scrollbars - slim teal */
 ::-webkit-scrollbar              { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track        { background: rgba(0,8,12,0.9); }
 ::-webkit-scrollbar-thumb        { background: rgba(131,238,240,0.20); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover  { background: rgba(131,238,240,0.40); }
 
-/* 3. Panel / card surfaces — any div with a visible background */
+/* 3. Panel / card surfaces - any div with a visible background */
 [class*="panel"],
 [class*="sidebar"],
 [class*="explorer"],
@@ -938,7 +938,7 @@ input:focus, textarea:focus {
   box-shadow: 0 0 0 3px rgba(131,238,240,0.08) !important;
 }
 
-/* 5. Buttons — ghost to teal style */
+/* 5. Buttons - ghost to teal style */
 button {
   font-family: inherit !important;
   transition: opacity .15s, box-shadow .15s !important;
@@ -966,7 +966,7 @@ a:hover { color: #b6f7f8 !important; }
   background-color: #001018 !important;
 }
 
-/* 9. Borders — soften white borders */
+/* 9. Borders - soften white borders */
 [class*="border-white"],
 [class*="border-gray-200"],
 [class*="border-slate-200"],
@@ -1004,7 +1004,7 @@ h1,h2,h3,h4,h5,h6 {
   border-color: rgba(131,238,240,0.25) !important;
 }
 
-/* 13. Graph canvas area — ensure deep background */
+/* 13. Graph canvas area - ensure deep background */
 canvas { background: #00080c !important; }
 
 /* 14. Suggestion chips / quick-action buttons */
@@ -1051,9 +1051,9 @@ hr, [class*="divider"], [class*="separator"] {
 
   function rewriteUrl(url) {
     if (typeof url !== "string") return url;
-    /* Already routed through our proxy — leave alone */
+    /* Already routed through our proxy - leave alone */
     if (url.indexOf("/bonfires-proxy") !== -1) return url;
-    /* /_next/static/ chunks load as <script> tags via <base href> — no fetch  */
+    /* /_next/static/ chunks load as <script> tags via <base href> - no fetch  */
     if (url.indexOf("/_next/static/") !== -1) return url;
     /* Absolute Bonfires URL → strip origin, prefix with proxy path */
     if (url.indexOf("pepo.app.bonfires.ai") !== -1) {
@@ -1102,7 +1102,7 @@ hr, [class*="divider"], [class*="separator"] {
     return _xhrOpen.apply(this, args);
   };
 
-  /* ── WebSocket — keep going directly to Bonfires.ai (no CORS for WS) ── */
+  /* ── WebSocket - keep going directly to Bonfires.ai (no CORS for WS) ── */
   var _WS = window.WebSocket;
   window.WebSocket = function (url, protocols) {
     if (typeof url === "string" && url.charAt(0) === "/" && url.charAt(1) !== "/") {
@@ -1247,7 +1247,7 @@ hr, [class*="divider"], [class*="separator"] {
             var clicked = false;
             for (var b = 0; b < btns.length; b++) {
               var txt = (btns[b].textContent || "").trim();
-              if (txt === "−" || txt === "-" || txt === "–" || txt.length === 1) {
+              if (txt === "−" || txt === "-" || txt === "-" || txt.length === 1) {
                 btns[b].click(); clicked = true; break;
               }
             }
@@ -1311,7 +1311,7 @@ hr, [class*="divider"], [class*="separator"] {
   });
 
 
-  // Recent episodes — sorted newest-first for the Explorer panel
+  // Recent episodes - sorted newest-first for the Explorer panel
   app.get("/api/graph/recent", async (_req: Request, res: Response) => {
     const queries = ["coral reef", "MesoReefDAO", "DeSci", "marine conservation"];
     const allEpisodes = new Map<string, any>();
@@ -1376,7 +1376,7 @@ hr, [class*="divider"], [class*="separator"] {
     const message = sanitizeString(req.body?.message, 2000);
     if (!message) return res.status(400).json({ error: "message must be a non-empty string under 2000 characters" });
 
-    // Identify authenticated user — Privy token takes precedence, then ORCID session
+    // Identify authenticated user - Privy token takes precedence, then ORCID session
     let chatProfileId: string | null = null;
     const privyToken = (req.headers["x-privy-token"] as string) || "";
     if (privyToken) {
@@ -1429,7 +1429,7 @@ hr, [class*="divider"], [class*="separator"] {
         return res.json({ response: reply, source: "bonfires", pointsAwarded });
       }
 
-      // No Bonfires episodes — still enrich with all knowledge sources
+      // No Bonfires episodes - still enrich with all knowledge sources
       const [wikiCtx, mesoCtx, journalCtx, botCtx] = await Promise.all([
         fetchWikipediaContext(message),
         fetchMesoReefContext(message),
@@ -1467,7 +1467,7 @@ hr, [class*="divider"], [class*="separator"] {
 
   // ── Profiles & Leaderboard ────────────────────────────────────────────────
 
-  // GET /api/leaderboard — public ranked list
+  // GET /api/leaderboard - public ranked list
   app.get("/api/leaderboard", async (_req: Request, res: Response) => {
     try {
       const board = await storage.getLeaderboard();
@@ -1478,7 +1478,7 @@ hr, [class*="divider"], [class*="separator"] {
     }
   });
 
-  // GET /api/profiles — all public profiles
+  // GET /api/profiles - all public profiles
   app.get("/api/profiles", async (_req: Request, res: Response) => {
     try {
       const all = await storage.getAllProfiles();
@@ -1489,7 +1489,7 @@ hr, [class*="divider"], [class*="separator"] {
     }
   });
 
-  // GET /api/profiles/me — current authenticated user's own profile
+  // GET /api/profiles/me - current authenticated user's own profile
   // Must be registered BEFORE /:id to avoid being swallowed by the wildcard.
   app.get("/api/profiles/me", async (req: Request, res: Response) => {
     try {
@@ -1519,7 +1519,7 @@ hr, [class*="divider"], [class*="separator"] {
     }
   });
 
-  // GET /api/profiles/:id — single profile with contributions
+  // GET /api/profiles/:id - single profile with contributions
   app.get("/api/profiles/:id", async (req: Request, res: Response) => {
     try {
       const pid = String(req.params.id);
@@ -1533,7 +1533,7 @@ hr, [class*="divider"], [class*="separator"] {
     }
   });
 
-  // POST /api/profiles — upsert own profile (requires Privy auth)
+  // POST /api/profiles - upsert own profile (requires Privy auth)
   app.post("/api/profiles", async (req: Request, res: Response) => {
     const token = (req.headers["x-privy-token"] as string) || "";
     const verify = await verifyPrivyToken(token);
@@ -1593,7 +1593,7 @@ hr, [class*="divider"], [class*="separator"] {
     }
   });
 
-  // POST /api/profiles/sync — auto-sync from Privy after login (lightweight)
+  // POST /api/profiles/sync - auto-sync from Privy after login (lightweight)
   app.post("/api/profiles/sync", async (req: Request, res: Response) => {
     const token = (req.headers["x-privy-token"] as string) || "";
     const verify = await verifyPrivyToken(token);
@@ -1602,7 +1602,7 @@ hr, [class*="divider"], [class*="separator"] {
     try {
       const existing = await storage.getProfile(verify.userId!);
       if (!existing) {
-        // First login — create profile + award bonus points
+        // First login - create profile + award bonus points
         const profile = await storage.upsertProfile({
           id: verify.userId!,
           displayName: req.body?.displayName || "Explorer",
@@ -1625,7 +1625,7 @@ hr, [class*="divider"], [class*="separator"] {
         void pinProfileAsync(profile as Record<string, unknown>, verify.userId!);
         return res.json({ profile, newUser: true });
       }
-      // Returning user — pin updated profile to IPFS in background on every login
+      // Returning user - pin updated profile to IPFS in background on every login
       void pinProfileAsync(existing as Record<string, unknown>, verify.userId!);
       return res.json({ profile: existing, newUser: false });
     } catch (err) {
@@ -1634,7 +1634,7 @@ hr, [class*="divider"], [class*="separator"] {
     }
   });
 
-  // POST /api/profiles/pin-all — batch-pin all profiles without an IPFS CID
+  // POST /api/profiles/pin-all - batch-pin all profiles without an IPFS CID
   // Protected by PEPO_API_KEY header
   app.post("/api/profiles/pin-all", async (req: Request, res: Response) => {
     const apiKey = req.headers["x-api-key"] as string;
@@ -1656,7 +1656,7 @@ hr, [class*="divider"], [class*="separator"] {
     }
   });
 
-  // POST /api/profiles/orcid — save ORCID iD to authenticated user's profile
+  // POST /api/profiles/orcid - save ORCID iD to authenticated user's profile
   app.post("/api/profiles/orcid", async (req: Request, res: Response) => {
     const token = (req.headers["x-privy-token"] as string) || "";
     const verify = await verifyPrivyToken(token);
@@ -1671,7 +1671,7 @@ hr, [class*="divider"], [class*="separator"] {
     try {
       // Ensure profile exists first
       const existing = await storage.getProfile(verify.userId!);
-      if (!existing) return res.status(404).json({ error: "Profile not found — log in first" });
+      if (!existing) return res.status(404).json({ error: "Profile not found - log in first" });
 
       const profile = await storage.saveOrcid(verify.userId!, orcidId, orcidName);
 
@@ -1691,7 +1691,7 @@ hr, [class*="divider"], [class*="separator"] {
     }
   });
 
-  // DELETE /api/profiles/orcid — unlink ORCID iD from authenticated user's profile
+  // DELETE /api/profiles/orcid - unlink ORCID iD from authenticated user's profile
   app.delete("/api/profiles/orcid", async (req: Request, res: Response) => {
     const token = (req.headers["x-privy-token"] as string) || "";
     const verify = await verifyPrivyToken(token);
@@ -1705,7 +1705,7 @@ hr, [class*="divider"], [class*="separator"] {
     }
   });
 
-  // POST /api/profiles/ipfs — save Pinata IPFS CID to profile
+  // POST /api/profiles/ipfs - save Pinata IPFS CID to profile
   app.post("/api/profiles/ipfs", async (req: Request, res: Response) => {
     const token = (req.headers["x-privy-token"] as string) || "";
     const verify = await verifyPrivyToken(token);
@@ -1734,7 +1734,7 @@ hr, [class*="divider"], [class*="separator"] {
     }
   });
 
-  // POST /api/profiles/location — save geolocation for authenticated user
+  // POST /api/profiles/location - save geolocation for authenticated user
   app.post("/api/profiles/location", async (req: Request, res: Response) => {
     // Accept both Privy token and ORCID session
     let profileId: string | null = null;
@@ -1760,7 +1760,7 @@ hr, [class*="divider"], [class*="separator"] {
     }
   });
 
-  // GET /api/map/markers — public user location pins for the reef map
+  // GET /api/map/markers - public user location pins for the reef map
   app.get("/api/map/markers", async (_req: Request, res: Response) => {
     try {
       const markers = await storage.getMapMarkers();
@@ -1771,7 +1771,7 @@ hr, [class*="divider"], [class*="separator"] {
     }
   });
 
-  // GET /api/reef-images/mine — returns all reef images submitted by the authenticated user
+  // GET /api/reef-images/mine - returns all reef images submitted by the authenticated user
   // Must be registered BEFORE /api/reef-images to avoid any future /:id wildcard conflicts.
   app.get("/api/reef-images/mine", async (req: Request, res: Response) => {
     let profileId: string | null = null;
@@ -1793,7 +1793,7 @@ hr, [class*="divider"], [class*="separator"] {
     }
   });
 
-  // GET /api/reef-images — public; returns approved geo-tagged IPFS images for the map
+  // GET /api/reef-images - public; returns approved geo-tagged IPFS images for the map
   app.get("/api/reef-images", async (_req: Request, res: Response) => {
     try {
       const images = await storage.getReefImages("approved");
@@ -1804,7 +1804,7 @@ hr, [class*="divider"], [class*="separator"] {
     }
   });
 
-  // POST /api/reef-images — submit an IPFS image with coordinates (goes into pending queue)
+  // POST /api/reef-images - submit an IPFS image with coordinates (goes into pending queue)
   app.post("/api/reef-images", generalLimiter, async (req: Request, res: Response) => {
     const { cid, latitude, longitude, title = "", author = "", description = "" } = req.body;
     if (!cid || typeof cid !== "string" || cid.trim().length === 0) {
@@ -1819,7 +1819,7 @@ hr, [class*="divider"], [class*="separator"] {
       return res.status(400).json({ error: "Invalid longitude" });
     }
 
-    // Optional auth — attach profileId if a valid token is present
+    // Optional auth - attach profileId if a valid token is present
     let profileId: string | null = null;
     const token = (req.headers["x-privy-token"] as string) || "";
     if (token) {
@@ -1857,7 +1857,7 @@ hr, [class*="divider"], [class*="separator"] {
     }
   });
 
-  // GET /api/curation/queue — returns pending reef images for ORCID-verified curators
+  // GET /api/curation/queue - returns pending reef images for ORCID-verified curators
   app.get("/api/curation/queue", async (req: Request, res: Response) => {
     // Accept either Privy token or ORCID session
     let profileId: string | null = null;
@@ -1885,7 +1885,7 @@ hr, [class*="divider"], [class*="separator"] {
     }
   });
 
-  // POST /api/curation/:id — approve or reject a pending reef image
+  // POST /api/curation/:id - approve or reject a pending reef image
   app.post("/api/curation/:id", async (req: Request, res: Response) => {
     const id = String(req.params.id);
     const { decision, curatorNote } = req.body; // 'approved' | 'rejected', optional note
@@ -1938,7 +1938,7 @@ hr, [class*="divider"], [class*="separator"] {
   });
 
   // ─── Reef Videos ──────────────────────────────────────────────────────────────
-  // GET /api/reef-videos/mine — user's own video submissions (auth required)
+  // GET /api/reef-videos/mine - user's own video submissions (auth required)
   app.get("/api/reef-videos/mine", async (req: Request, res: Response) => {
     let profileId: string | null = null;
     const token = (req.headers["x-privy-token"] as string) || "";
@@ -1953,7 +1953,7 @@ hr, [class*="divider"], [class*="separator"] {
     }
   });
 
-  // GET /api/reef-videos — public; approved geo-tagged video surveys for the map
+  // GET /api/reef-videos - public; approved geo-tagged video surveys for the map
   app.get("/api/reef-videos", async (_req: Request, res: Response) => {
     try {
       return res.json(await storage.getReefVideos("approved"));
@@ -1963,7 +1963,7 @@ hr, [class*="divider"], [class*="separator"] {
     }
   });
 
-  // POST /api/reef-videos — submit a video survey (IPFS CID + coords; auth optional)
+  // POST /api/reef-videos - submit a video survey (IPFS CID + coords; auth optional)
   app.post("/api/reef-videos", generalLimiter, async (req: Request, res: Response) => {
     const { cid, latitude, longitude, title = "", author = "", description = "", durationSecs = 0, depthM = 0 } = req.body;
     if (!cid || typeof cid !== "string" || cid.trim().length === 0)
@@ -2003,7 +2003,7 @@ hr, [class*="divider"], [class*="separator"] {
     }
   });
 
-  // GET /api/curation/video-queue — pending videos for ORCID-verified curators
+  // GET /api/curation/video-queue - pending videos for ORCID-verified curators
   app.get("/api/curation/video-queue", async (req: Request, res: Response) => {
     let profileId: string | null = null;
     const token = (req.headers["x-privy-token"] as string) || "";
@@ -2020,7 +2020,7 @@ hr, [class*="divider"], [class*="separator"] {
     }
   });
 
-  // POST /api/curation/video/:id — approve or reject a pending reef video
+  // POST /api/curation/video/:id - approve or reject a pending reef video
   app.post("/api/curation/video/:id", async (req: Request, res: Response) => {
     const id = String(req.params.id);
     const { decision, curatorNote } = req.body;
@@ -2054,7 +2054,7 @@ hr, [class*="divider"], [class*="separator"] {
     }
   });
 
-  // GET /api/gcrmn/regions — GCRMN region polygons as GeoJSON (shapefile from GitHub)
+  // GET /api/gcrmn/regions - GCRMN region polygons as GeoJSON (shapefile from GitHub)
   app.get("/api/gcrmn/regions", async (_req: Request, res: Response) => {
     try {
       const geojson = await fetchGcrmnRegions();
@@ -2066,7 +2066,7 @@ hr, [class*="divider"], [class*="separator"] {
     }
   });
 
-  // GET /api/coral-mapping/regions — CoralMapping GlobalMappingRegions GeoJSON
+  // GET /api/coral-mapping/regions - CoralMapping GlobalMappingRegions GeoJSON
   app.get("/api/coral-mapping/regions", async (_req: Request, res: Response) => {
     try {
       const geojson = await fetchCoralMappingRegions();
@@ -2078,7 +2078,7 @@ hr, [class*="divider"], [class*="separator"] {
     }
   });
 
-  // GET /api/wcs/reefcloud-sites — WCS-Marine/global-monitoring-maps ReefCloud monitoring sites
+  // GET /api/wcs/reefcloud-sites - WCS-Marine/global-monitoring-maps ReefCloud monitoring sites
   app.get("/api/wcs/reefcloud-sites", async (_req: Request, res: Response) => {
     try {
       const geojson = await fetchWcsReefCloudSites();
@@ -2090,7 +2090,7 @@ hr, [class*="divider"], [class*="separator"] {
     }
   });
 
-  // GET /api/wcs/cc-sites — WCS-Marine/global-monitoring-maps coral cover sites (CSV→GeoJSON)
+  // GET /api/wcs/cc-sites - WCS-Marine/global-monitoring-maps coral cover sites (CSV→GeoJSON)
   app.get("/api/wcs/cc-sites", async (_req: Request, res: Response) => {
     try {
       const geojson = await fetchWcsCcSites();
@@ -2102,7 +2102,7 @@ hr, [class*="divider"], [class*="separator"] {
     }
   });
 
-  // GET /api/wcs/gcrmn-mon-sites — GCRMN monitoring sites (all-lat-long-no-mermaid.csv, db=gcrmn)
+  // GET /api/wcs/gcrmn-mon-sites - GCRMN monitoring sites (all-lat-long-no-mermaid.csv, db=gcrmn)
   app.get("/api/wcs/gcrmn-mon-sites", async (_req: Request, res: Response) => {
     try {
       const geojson = await fetchGcrmnMonitoringSites();
@@ -2114,7 +2114,7 @@ hr, [class*="divider"], [class*="separator"] {
     }
   });
 
-  // GET /api/wcs/reef-check — Reef Check survey sites (global-monitoring-maps/reef_check_all.csv)
+  // GET /api/wcs/reef-check - Reef Check survey sites (global-monitoring-maps/reef_check_all.csv)
   app.get("/api/wcs/reef-check", async (_req: Request, res: Response) => {
     try {
       const geojson = await fetchReefCheckSites();
@@ -2126,7 +2126,7 @@ hr, [class*="divider"], [class*="separator"] {
     }
   });
 
-  // GET /api/wcs/reef-life — Reef Life Survey sites (global-monitoring-maps/reef_life_site_info.csv)
+  // GET /api/wcs/reef-life - Reef Life Survey sites (global-monitoring-maps/reef_life_site_info.csv)
   app.get("/api/wcs/reef-life", async (_req: Request, res: Response) => {
     try {
       const geojson = await fetchReefLifeSites();
@@ -2149,7 +2149,7 @@ hr, [class*="divider"], [class*="separator"] {
     }
   });
 
-  // POST /api/contributions — award points (Privy token or ORCID session)
+  // POST /api/contributions - award points (Privy token or ORCID session)
   app.post("/api/contributions", async (req: Request, res: Response) => {
     let profileId: string | null = null;
     const token = (req.headers["x-privy-token"] as string) || "";
@@ -2187,7 +2187,7 @@ hr, [class*="divider"], [class*="separator"] {
     }
   });
 
-  // Daily clean-a-coral action — awards 10 pts once per day
+  // Daily clean-a-coral action - awards 10 pts once per day
   app.post("/api/daily-clean", async (req: Request, res: Response) => {
     let profileId: string | null = null;
     const token = (req.headers["x-privy-token"] as string) || "";
@@ -2313,7 +2313,7 @@ hr, [class*="divider"], [class*="separator"] {
     }
   });
 
-  // POST /api/governance/vote-recorded — awards points after a successful on-chain vote
+  // POST /api/governance/vote-recorded - awards points after a successful on-chain vote
   // Votes are verified on Vocdoni chain; this just records the points event (one-time per election)
   app.post("/api/governance/vote-recorded", generalLimiter, async (req: Request, res: Response) => {
     let profileId: string | null = null;
@@ -2355,7 +2355,7 @@ hr, [class*="divider"], [class*="separator"] {
     : _VOCDONI_ENV === "dev" ? "https://api-dev.vocdoni.net/v2"
     : "https://api-stg.vocdoni.net/v2";
 
-  // POST /api/admin/sync-points — backfill + recalculate points for all users
+  // POST /api/admin/sync-points - backfill + recalculate points for all users
   app.post("/api/admin/sync-points", generalLimiter, async (_req: Request, res: Response) => {
     try {
       const result = await storage.syncAllUserPoints();
@@ -2481,7 +2481,7 @@ hr, [class*="divider"], [class*="separator"] {
       const profileId = `orcid:${orcid}`;
       const existing = await storage.getProfile(profileId);
 
-      // Preserve existing custom display name — only use ORCID name for brand-new accounts
+      // Preserve existing custom display name - only use ORCID name for brand-new accounts
       // or if the stored name is still the generic default
       const resolvedDisplayName =
         existing?.displayName && existing.displayName !== "ORCID Researcher"
@@ -2518,7 +2518,7 @@ hr, [class*="divider"], [class*="separator"] {
       // Pin profile to IPFS in background on every ORCID sign-in (30 pts one-time)
       void pinProfileAsync(upserted as Record<string, unknown>, profileId);
 
-      // Establish session — store access token securely server-side (never sent to client)
+      // Establish session - store access token securely server-side (never sent to client)
       req.session.orcid = { orcidId: orcid, orcidName: name, profileId, accessToken, tokenExpiresAt };
       await new Promise<void>((resolve, reject) => req.session.save((err) => err ? reject(err) : resolve()));
 
@@ -2529,24 +2529,24 @@ hr, [class*="divider"], [class*="separator"] {
     }
   });
 
-  // GET /api/auth/orcid/session — return current ORCID session user
+  // GET /api/auth/orcid/session - return current ORCID session user
   app.get("/api/auth/orcid/session", (req: Request, res: Response) => {
     if (!req.session?.orcid) {
       return res.json({ authenticated: false });
     }
     const { orcidId, orcidName, profileId, tokenExpiresAt } = req.session.orcid;
-    // Never expose the access token to the client — only share non-sensitive metadata
+    // Never expose the access token to the client - only share non-sensitive metadata
     const tokenValid = tokenExpiresAt ? Date.now() < tokenExpiresAt : true;
     return res.json({ authenticated: true, orcidId, orcidName, profileId, tokenValid });
   });
 
-  // POST /api/auth/orcid/logout — destroy ORCID session
+  // POST /api/auth/orcid/logout - destroy ORCID session
   app.post("/api/auth/orcid/logout", (req: Request, res: Response) => {
     req.session.destroy(() => {});
     res.json({ ok: true });
   });
 
-  // POST /api/profiles/session — update profile for ORCID-session-authenticated users
+  // POST /api/profiles/session - update profile for ORCID-session-authenticated users
   app.post("/api/profiles/session", async (req: Request, res: Response) => {
     if (!req.session?.orcid) {
       return res.status(401).json({ error: "No active ORCID session" });
@@ -2583,7 +2583,7 @@ hr, [class*="divider"], [class*="separator"] {
     }
   });
 
-  // Privy token verification endpoint — verifies JWT via JWKS (no API round-trip)
+  // Privy token verification endpoint - verifies JWT via JWKS (no API round-trip)
   app.post("/api/auth/verify", authLimiter, async (req: Request, res: Response) => {
     try {
       const token = req.headers.authorization?.replace("Bearer ", "") || sanitizeString(req.body?.token, 4096);
@@ -2710,7 +2710,7 @@ async function fetchWikipediaContext(query: string): Promise<string> {
 
 // ─── MesoReefDAO knowledge ────────────────────────────────────────────────────
 const MESOREEFDAO_KNOWLEDGE = `
-MesoReefDAO is a decentralized science (DeSci) initiative dedicated to the conservation and regeneration of the Mesoamerican Barrier Reef — the world's second-largest coral reef system, stretching 1,000 km along the coasts of Mexico, Belize, Guatemala, and Honduras.
+MesoReefDAO is a decentralized science (DeSci) initiative dedicated to the conservation and regeneration of the Mesoamerican Barrier Reef - the world's second-largest coral reef system, stretching 1,000 km along the coasts of Mexico, Belize, Guatemala, and Honduras.
 
 **Mission**: Scale global coral reef restoration by combining decentralized science, marine biotechnology, community innovation, and blockchain-based governance.
 
@@ -2720,7 +2720,7 @@ MesoReefDAO is a decentralized science (DeSci) initiative dedicated to the conse
 - **IoT & AI Monitoring**: Real-time ecological sensors (DHW trackers, bleaching alerts) integrated with AI to detect thermal anomalies and trigger restoration protocols.
 - **DAO Governance**: On-chain proposals and voting for reef conservation funding, with transparency over how regenerative finance flows into blue economy development.
 - **IP-NFTs & DeSci**: Decentralized frameworks for managing biodiversity patents and open-access research protocols.
-- **Mesophotic Reefs**: Focus on reefs below 40m as thermal refugia — less studied but critically important for coral survival under climate change.
+- **Mesophotic Reefs**: Focus on reefs below 40m as thermal refugia - less studied but critically important for coral survival under climate change.
 
 **Technology Stack**: IoT sensors, Marine Degree Heating Weeks (DHW) monitoring, CRISPR-assisted coral evolution, multi-omics research, blockchain governance (on-chain proposals), and AI-powered species distribution modeling.
 
@@ -2742,21 +2742,21 @@ async function fetchMesoReefContext(query: string): Promise<string> {
 const MEMENTO_MORI_KNOWLEDGE = `
 **Memento Mori** is a permadeath MUD (multi-user dungeon) and DeSci gaming experiment by the MesoReefDAO / robioreefeco team. It is a dark fantasy world where death is permanent, the world lives in a knowledge graph, and AI agents collaboratively narrate every action.
 
-**Core Concept**: Players enter a living world powered by the Bonfires Knowledge Graph. Every character, item, location, NPC, and quest exists as a node in the graph with temporal edges. When a character dies — it dies permanently. Dead characters become lore. The world remembers.
+**Core Concept**: Players enter a living world powered by the Bonfires Knowledge Graph. Every character, item, location, NPC, and quest exists as a node in the graph with temporal edges. When a character dies - it dies permanently. Dead characters become lore. The world remembers.
 
 **Architecture**:
 - **Client** (TypeScript / Bun): Rich terminal-style MUD interface with virtualized scrolling (Pretext), wallet gate (EIP-1193 / MetaMask), codex entity browser, optimistic inventory updates.
 - **Gateway** (FastAPI / Python): WebSocket hub, Matrix transport bridge (one Matrix room per game location), 30 MCP tool endpoints for NPC agents, REST routes for session, inventory, codex, and onchain state.
-- **Engine** (CrewAI / Python): 31 AI crews across 10 subsystems — context gathering, event detection, combat, world generation, NPC generation, item generation, quest design, narrative, faction, and enrichment. 12 orchestration flows.
+- **Engine** (CrewAI / Python): 31 AI crews across 10 subsystems - context gathering, event detection, combat, world generation, NPC generation, item generation, quest design, narrative, faction, and enrichment. 12 orchestration flows.
 - **Data** (Bonfires KG / Neo4j + LadybugDB, Matrix / Synapse): World graph with bi-temporal edges (valid_at, expired_at), episodic memory via Graphiti.
 - **Chain** (MUD framework, Solidity, Redstone L2): Onchain canonical state for characters, deaths, items, and epochs. Dual-write to KG + blockchain on every world mutation.
 - **LLM** (OpenRouter / Gemini Flash): All AI reasoning for narration, NPC design, world generation, and enrichment.
 
 **Game Loop**: Player types action → Gateway posts to Matrix room → Engine's RoundController runs context crew, plausibility check, event detection, NPC response window (15s), narration crew, memory consolidation → Narrative posted back → Client renders with rich text.
 
-**Permadeath System**: On death — character node stays in KG forever (append-only), HAS_STATUS:DEAD and DIED_AT edges are created, death recorded onchain (immutable), NPCs remember the fallen, items drop at death location, death feed announces to all players.
+**Permadeath System**: On death - character node stays in KG forever (append-only), HAS_STATUS:DEAD and DIED_AT edges are created, death recorded onchain (immutable), NPCs remember the fallen, items drop at death location, death feed announces to all players.
 
-**Onchain Integration (Redstone L2)**: MUD tables store Characters (name, wallet, level, alive/dead), Deaths (cause, location, level), Items (rarity, slot, quantity, owner), Epochs (state root, IPFS CID). Chain is the canonicality gate — entities only appear in-client if they exist onchain.
+**Onchain Integration (Redstone L2)**: MUD tables store Characters (name, wallet, level, alive/dead), Deaths (cause, location, level), Items (rarity, slot, quantity, owner), Epochs (state root, IPFS CID). Chain is the canonicality gate - entities only appear in-client if they exist onchain.
 
 **Knowledge Graph Schema**:
 Player --[CARRIES {valid_at, expired_at}]--> Item
@@ -2770,9 +2770,9 @@ Player --[HAS_QUEST]--> Quest, Player --[DIED_AT]--> Location
 
 **AI Crews** (31 total): Context assembly, action classification, combat (5 crews), world generation (4 crews), NPC generation (4 crews), item generation (3 crews), quest design (3 crews), narration + memory (2 crews), faction (2 crews), enrichment.
 
-**Development Status**: Phases 0–10 complete (full game loop, UI, inventory, codex, onchain). Next phases: Matrix end-to-end deployment, world seeding via WorldGenFlow, rich state updates (damage numbers, visual effects), faction integration, narrative art generation.
+**Development Status**: Phases 0-10 complete (full game loop, UI, inventory, codex, onchain). Next phases: Matrix end-to-end deployment, world seeding via WorldGenFlow, rich state updates (damage numbers, visual effects), faction integration, narrative art generation.
 
-**Connection to MesoReefDAO**: Memento Mori is an experimental DeSci gaming project by the robioreefeco collective — the same team behind Pepo the Polyp and MesoReefDAO. It explores how Bonfires Knowledge Graphs, onchain canonical state, and AI agent orchestration can power persistent decentralized worlds, a pattern directly applicable to on-chain reef monitoring, conservation incentives, and DAO-governed science.
+**Connection to MesoReefDAO**: Memento Mori is an experimental DeSci gaming project by the robioreefeco collective - the same team behind Pepo the Polyp and MesoReefDAO. It explores how Bonfires Knowledge Graphs, onchain canonical state, and AI agent orchestration can power persistent decentralized worlds, a pattern directly applicable to on-chain reef monitoring, conservation incentives, and DAO-governed science.
 
 **Repository**: https://github.com/robioreefeco/memento-mori
 `.trim();
@@ -2919,7 +2919,7 @@ function matchTaxonomies(query: string, taxonomies: BonfireTaxonomy[], maxMatche
 async function fetchBotKnowledge(query: string): Promise<BonfireTaxonomy[]> {
   // Use seed immediately for fast response; refresh live cache in background
   const seedMatches = matchTaxonomies(query, TELEGRAM_TAXONOMY_SEED);
-  // Kick off a background live refresh (non-blocking — updates cache for next call)
+  // Kick off a background live refresh (non-blocking - updates cache for next call)
   fetchLiveTaxonomies().then(live => {
     if (live !== TELEGRAM_TAXONOMY_SEED) {
       liveTaxonomyCache = { taxonomies: live, fetchedAt: Date.now() };
@@ -2954,7 +2954,7 @@ function reconstructAbstract(invertedIndex: Record<string, number[]>): string {
   return words.filter(Boolean).join(" ");
 }
 
-// Coral-reef relevance guard — paper must mention reef/coral science topics
+// Coral-reef relevance guard - paper must mention reef/coral science topics
 const REEF_RELEVANCE_TERMS = [
   "coral", "reef", "bleach", "symbiodinium", "zooxanthellae", "scleractinian",
   "cnidarian", "calcification", "polyp", "acropora", "porites", "symbiotic algae",
@@ -3173,10 +3173,10 @@ const REPO_FOOTER = `\n\n🛠️ [github.com/robioreefeco/memento-mori](https://
 function generatePepoResponse(userMessage: string): string {
   const lc = userMessage.toLowerCase();
   if (lc.includes("coral") || lc.includes("bleach")) {
-    return "I'm analyzing the reef knowledge network for coral bleaching data. The MesoAmerican Reef has experienced severe thermal stress events — DHW levels above 8 trigger widespread coral mortality. I track thermally resilient genotypes and mesophotic refugia as key adaptation strategies. Ask me anything specific about bleaching events, DHW metrics, or reef restoration!" + REPO_FOOTER;
+    return "I'm analyzing the reef knowledge network for coral bleaching data. The MesoAmerican Reef has experienced severe thermal stress events - DHW levels above 8 trigger widespread coral mortality. I track thermally resilient genotypes and mesophotic refugia as key adaptation strategies. Ask me anything specific about bleaching events, DHW metrics, or reef restoration!" + REPO_FOOTER;
   }
   if (lc.includes("dao") || lc.includes("governance") || lc.includes("proposal")) {
-    return "MesoReefDAO governs reef conservation through on-chain proposals — transparent funding of Regen Reef projects, wetlab research, IoT monitoring, and biodiversity offsetting. Which governance area would you like to explore?" + REPO_FOOTER;
+    return "MesoReefDAO governs reef conservation through on-chain proposals - transparent funding of Regen Reef projects, wetlab research, IoT monitoring, and biodiversity offsetting. Which governance area would you like to explore?" + REPO_FOOTER;
   }
   if (lc.includes("graph") || lc.includes("node") || lc.includes("knowledge")) {
     return "The Pepo Knowledge Graph holds hundreds of community episodes covering coral ecology, DeSci governance, marine biotechnology, IoT monitoring, and conservation economics. Which quadrant shall we explore?" + REPO_FOOTER;
@@ -3185,10 +3185,10 @@ function generatePepoResponse(userMessage: string): string {
     return "Sea surface temperatures across the MesoAmerican Reef corridor are monitored in real-time using Marine Degree Heating Weeks (DHW). At 4 DHW bleaching begins; at 8+ DHW widespread mortality occurs. MesoReefDAO integrates IoT sensors and AI to track these thresholds and activate restoration protocols." + REPO_FOOTER;
   }
   if (lc.includes("mesophotic") || lc.includes("deep") || lc.includes("refugia")) {
-    return "Mesophotic reefs (40–150m depth) are among MesoReefDAO's key research priorities. These deep reefs remain cooler and may act as thermal refugia — seed banks for thermally resilient coral genotypes. Less studied but critically important for climate adaptation strategies." + REPO_FOOTER;
+    return "Mesophotic reefs (40-150m depth) are among MesoReefDAO's key research priorities. These deep reefs remain cooler and may act as thermal refugia - seed banks for thermally resilient coral genotypes. Less studied but critically important for climate adaptation strategies." + REPO_FOOTER;
   }
   if (lc.includes("telegram")) {
     return "You can reach me on Telegram at @PepothePolyp_bot! Click the Telegram Bot link in the sidebar to open our chat directly. I'll send you real-time reef alerts and knowledge graph insights there too." + REPO_FOOTER;
   }
-  return "Greetings, Explorer. I am Pepo, your guide to the MesoAmerican Reef knowledge network — powered by the Pepo Knowledge Graph, Wikipedia science, and MesoReefDAO documentation. I can help you explore coral bleaching data, DAO governance, thermal stress events, mesophotic reefs, marine biotechnology, and species distribution. What would you like to explore?" + REPO_FOOTER;
+  return "Greetings, Explorer. I am Pepo, your guide to the MesoAmerican Reef knowledge network - powered by the Pepo Knowledge Graph, Wikipedia science, and MesoReefDAO documentation. I can help you explore coral bleaching data, DAO governance, thermal stress events, mesophotic reefs, marine biotechnology, and species distribution. What would you like to explore?" + REPO_FOOTER;
 }
