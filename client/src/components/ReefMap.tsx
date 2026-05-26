@@ -2583,7 +2583,7 @@ function ExpandedMapModal({
               <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#d4e9f340" }}>Species Traits</span>
             </div>
             <div style={{ fontSize: 7.5, color: "#d4e9f328", marginBottom: 5, lineHeight: 1.5 }}>Geolocated coral species trait observations from the CoralTraits.org database - the world's largest open repository of coral biological characteristics.</div>
-            <LayerToggle label="Coral Traits"         sublabel="Coral species trait observations - coraltraits.org / GBIF Scleractinia fallback"         active={showCoralTraits}   color="#f9ca24" onClick={() => setShowCoralTraits(v => !v)}   testId="expanded-toggle-coral-traits" />
+            <LayerToggle label="Coral Traits"         sublabel="166k+ observations across 5,112 species and 172 traits - coraltraits2 / coraltraits.org"  active={showCoralTraits}   color="#f9ca24" onClick={() => setShowCoralTraits(v => !v)}   testId="expanded-toggle-coral-traits" />
 
             {/* ── Community ── */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "10px 0 2px" }}>
@@ -2851,37 +2851,57 @@ function ExpandedMapModal({
 
           <SideSection title="CoralTraits">
             <div style={{ fontSize: 9.5, color: "#d4e9f3aa", lineHeight: 1.5, marginBottom: 8 }}>
-              CoralTraits.org is the world's largest open-access database of coral species biological traits. It aggregates thousands of peer-reviewed trait measurements for scleractinian corals - growth rates, skeletal density, bleaching thresholds, symbiodinium diversity, and more - with geolocated occurrence records linked to scientific literature.
+              The Coral Trait Database is a growing compilation of coral life history trait, phylogenetic, and biogeographic data. Built on the open-source <span style={{ color: "#f9ca24", fontWeight: 600 }}>coraltraits2</span> platform (Ruby on Rails), it brings together physiological, morphological, ecological, phylogenetic, and biogeographic measurements into a single curated repository linked to peer-reviewed literature.
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 8px", marginBottom: 8 }}>
+
+            {/* Stats grid */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "5px 7px", marginBottom: 10 }}>
               {[
-                ["Coverage",   "Global"],
-                ["Colour",     "#f9ca24"],
-                ["Source",     "CoralTraits / GBIF"],
-                ["Fallback",   "GBIF Scleractinia"],
+                ["Observations", "166,245"],
+                ["Trait entries", "244,324"],
+                ["Traits tracked", "172"],
+                ["Species", "5,112"],
               ].map(([k, v]) => (
-                <div key={String(k)} style={{ background: "rgba(249,202,36,0.07)", border: "1px solid rgba(249,202,36,0.22)", borderRadius: 6, padding: "5px 7px" }}>
+                <div key={String(k)} style={{ background: "rgba(249,202,36,0.07)", border: "1px solid rgba(249,202,36,0.2)", borderRadius: 6, padding: "5px 7px" }}>
                   <div style={{ fontSize: 7.5, color: "#f9ca2488", textTransform: "uppercase", letterSpacing: "0.07em" }}>{k}</div>
-                  <div style={{ fontSize: k === "Colour" ? 10 : 11, fontWeight: 800, color: "#f9ca24" }}>{v}</div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: "#f9ca24" }}>{v}</div>
                 </div>
               ))}
             </div>
-            <div style={{ fontSize: 8.5, color: "#d4e9f344", lineHeight: 1.4, marginBottom: 6 }}>
-              Each marker represents one geolocated trait observation. Popup shows: species name, trait, measured value, country, and a direct link to coraltraits.org. Data is fetched server-side with a 24 h cache; if the CoralTraits CSV endpoint is unavailable the layer falls back to GBIF order Scleractinia occurrences.
+
+            {/* Trait categories */}
+            <div style={{ marginBottom: 8 }}>
+              <div style={{ fontSize: 8, fontWeight: 700, color: "#f9ca2488", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>Trait categories</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "3px 5px" }}>
+                {["Growth rate", "Skeletal density", "Bleaching response", "Symbiodinium", "Morphology", "Colony shape", "Spawning date", "Geographic range", "Corallite width", "Calcification"].map(t => (
+                  <span key={t} style={{ fontSize: 8, background: "rgba(249,202,36,0.08)", border: "1px solid rgba(249,202,36,0.2)", borderRadius: 10, padding: "1px 6px", color: "#f9ca24bb" }}>{t}</span>
+                ))}
+              </div>
             </div>
-            {[
-              { label: "CoralTraits.org",                href: "https://coraltraits.org",                                   color: "#f9ca24" },
-              { label: "CoralTraits GitHub",             href: "https://github.com/coraltraits/coraltraits",                color: "#ffd32a" },
-              { label: "GBIF - Scleractinia occurrences", href: "https://www.gbif.org/occurrence/search?order=SCLERACTINIA", color: "#ffd32a" },
-            ].map(({ label, href, color }) => (
-              <a key={label} href={href} target="_blank" rel="noopener noreferrer"
-                style={{ display: "block", fontSize: 9, color, textDecoration: "none", padding: "2px 0", marginBottom: 2 }}
+
+            {/* Data model note */}
+            <div style={{ fontSize: 8, color: "#d4e9f333", lineHeight: 1.45, marginBottom: 8, borderTop: "1px solid rgba(249,202,36,0.1)", paddingTop: 7 }}>
+              Each observation links to: species, location (lat/lon), resource (publication), and contributor. Measurements add: trait, value, standard unit, and methodology. Map markers show geolocated observations - popup displays species, trait, value, country, and a link to coraltraits.org.
+            </div>
+
+            {/* Links */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+              <a href="https://coraltraits.org" target="_blank" rel="noopener noreferrer"
+                style={{ fontSize: 9, color: "#f9ca24", textDecoration: "none", fontWeight: 600 }}
                 onMouseEnter={e => (e.currentTarget.style.color = "#83eef0")}
-                onMouseLeave={e => (e.currentTarget.style.color = color)}
-              >
-                ↗ {label}
-              </a>
-            ))}
+                onMouseLeave={e => (e.currentTarget.style.color = "#f9ca24")}
+              >↗ CoralTraits.org</a>
+              <a href="https://github.com/jmadinlab/coraltraits2" target="_blank" rel="noopener noreferrer"
+                style={{ fontSize: 9, color: "#ffd32a88", textDecoration: "none" }}
+                onMouseEnter={e => (e.currentTarget.style.color = "#83eef0")}
+                onMouseLeave={e => (e.currentTarget.style.color = "#ffd32a88")}
+              >↗ jmadinlab/coraltraits2 (platform source)</a>
+              <a href="https://www.nature.com/articles/sdata201617" target="_blank" rel="noopener noreferrer"
+                style={{ fontSize: 9, color: "#ffd32a66", textDecoration: "none" }}
+                onMouseEnter={e => (e.currentTarget.style.color = "#83eef0")}
+                onMouseLeave={e => (e.currentTarget.style.color = "#ffd32a66")}
+              >↗ Published paper - Nature Scientific Data</a>
+            </div>
           </SideSection>
 
           <SideSection title="Data Sources">
@@ -2897,6 +2917,8 @@ function ExpandedMapModal({
               { label: "GCRMN Regions",                                href: "https://gcrmn.net",                                       color: "#83eef099" },
               { label: "NOAA Coral Reef Watch",                        href: "https://coralreefwatch.noaa.gov",                         color: "#83eef099" },
               { label: "CoralTraits.org",                              href: "https://coraltraits.org",                                 color: "#f9ca24aa" },
+              { label: "jmadinlab/coraltraits2 (platform source)",    href: "https://github.com/jmadinlab/coraltraits2",                color: "#f9ca2466" },
+              { label: "Coral Traits - Nature Scientific Data",        href: "https://www.nature.com/articles/sdata201617",              color: "#f9ca2444" },
             ].map(({ label, href, color }) => (
               <a key={label} href={href} target="_blank" rel="noopener noreferrer"
                 style={{ display: "block", fontSize: 10, color, textDecoration: "none", padding: "2px 0" }}
@@ -3590,7 +3612,7 @@ export function ReefMap({
                     { testId: "compact-toggle-wcs-reefcloud", label: "WCS ReefCloud",       sublabel: "AI-powered underwater photo survey sites",     color: "#e056fd", active: showWcsReefCloudC, toggle: () => setShowWcsReefCloudC(v => !v) },
                   ]},
                   { group: "Species Traits", icon: "◉", note: "Geolocated coral species trait observations.", layers: [
-                    { testId: "compact-toggle-coral-traits",  label: "Coral Traits",        sublabel: "CoralTraits.org / GBIF Scleractinia fallback", color: "#f9ca24", active: showCoralTraitsC,  toggle: () => setShowCoralTraitsC(v => !v)  },
+                    { testId: "compact-toggle-coral-traits",  label: "Coral Traits",        sublabel: "166k+ obs, 172 traits, 5,112 species - coraltraits2", color: "#f9ca24", active: showCoralTraitsC,  toggle: () => setShowCoralTraitsC(v => !v)  },
                   ]},
                 ]).map(({ group, icon, note, layers }) => {
                   const ls = layers as unknown as any[];
