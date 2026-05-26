@@ -913,6 +913,7 @@ function ExpandedMapModal({
   const [showReefCheck,      setShowReefCheck]      = useState(false);
   const [showReefLife,       setShowReefLife]        = useState(false);
   const [showGcrmnMonSites,  setShowGcrmnMonSites]  = useState(false);
+  const [showCoralTraits,    setShowCoralTraits]    = useState(false);
   const [activeCmsVar,       setActiveCmsVar]       = useState<CmsVar | null>(null);
   const [cmsYYYYMM,          setCmsYYYYMM]          = useState(CMS_MAX_YM);
   const [showToolbox,        setShowToolbox]        = useState<'cms'|'live'|null>(null);
@@ -1043,6 +1044,11 @@ function ExpandedMapModal({
     staleTime: 24 * 60 * 60 * 1000,
     enabled: showGcrmnMonSites,
   });
+  const { data: coralTraitsGeoJson } = useQuery<GeoJSON.FeatureCollection>({
+    queryKey: ["/api/coral-traits"],
+    staleTime: 24 * 60 * 60 * 1000,
+    enabled: showCoralTraits,
+  });
 
   const activeCmsLayer = activeCmsVar
     ? CMS_LAYERS.find(l => l.var === activeCmsVar) ?? null
@@ -1091,7 +1097,7 @@ function ExpandedMapModal({
     setLiveDepthIdx(Math.round(nearest / 5500 * (DEPTH_LEVELS.length - 1)));
   };
 
-  const activeLayers = (showGcrmn ? 1 : 0) + (showCoralMapping ? 1 : 0) + (showMarineRegions ? 1 : 0) + (showImgs ? 1 : 0) + (showVideos ? 1 : 0) + (showGcrmnSites ? 1 : 0) + (showWcsReefCloud ? 1 : 0) + (showWcsCcSites ? 1 : 0) + (showReefCheck ? 1 : 0) + (showReefLife ? 1 : 0) + (showGcrmnMonSites ? 1 : 0) + (activeCmsVar ? 1 : 0) + (activeLiveVar ? 1 : 0) + 1;
+  const activeLayers = (showGcrmn ? 1 : 0) + (showCoralMapping ? 1 : 0) + (showMarineRegions ? 1 : 0) + (showImgs ? 1 : 0) + (showVideos ? 1 : 0) + (showGcrmnSites ? 1 : 0) + (showWcsReefCloud ? 1 : 0) + (showWcsCcSites ? 1 : 0) + (showReefCheck ? 1 : 0) + (showReefLife ? 1 : 0) + (showGcrmnMonSites ? 1 : 0) + (showCoralTraits ? 1 : 0) + (activeCmsVar ? 1 : 0) + (activeLiveVar ? 1 : 0) + 1;
 
   // Country breakdown for GCRMN legend - derived from live GeoJSON
   const gcrmnCountryStats = useMemo(() => {
@@ -1384,7 +1390,7 @@ function ExpandedMapModal({
                   const p = feature.properties ?? {};
                   const country  = (p.country  as string) || "";
                   const location = (p.location as string) || "";
-                  // Permanent label - visible via CSS when map zoom ≥ 5 (GcrmnZoomWatcher)
+                  // Permanent label - visible via CSS when map zoom >= 5 (GcrmnZoomWatcher)
                   if (country) {
                     const labelHtml = location
                       ? `${country}<br/><span style="font-weight:400;color:#d4e9f3aa;font-size:8px">${location}</span>`
@@ -1405,6 +1411,35 @@ function ExpandedMapModal({
                         ${location ? `<tr><td style="color:#888;padding:1px 6px 1px 0">Location</td><td>${location}</td></tr>` : ""}
                       </table>
                       <div style="font-size:8px;color:#555;border-top:1px solid rgba(131,238,240,0.12);padding-top:4px;margin-top:4px">GCRMN Benthic Sites · WCS-Marine / global-monitoring-maps</div>
+                    </div>`,
+                    { maxWidth: 240 }
+                  );
+                  return m;
+                }}
+              />
+            )}
+            {showCoralTraits && coralTraitsGeoJson && (
+              <GeoJSON
+                key="coral-traits-expanded"
+                data={coralTraitsGeoJson}
+                pointToLayer={(feature, latlng) => {
+                  const m = L.circleMarker(latlng, {
+                    radius: 4, color: "#f9ca24", weight: 1.2,
+                    fillColor: "#f9ca24", fillOpacity: 0.72, opacity: 0.92,
+                  });
+                  const p = feature.properties ?? {};
+                  const isFromCt = p.source === "coraltraits";
+                  m.bindPopup(
+                    `<div style="font-family:Inter,sans-serif;font-size:11px;min-width:175px;color:#d4e9f3">
+                      <div style="font-weight:700;color:#f9ca24;font-size:12px;margin-bottom:4px">🪸 ${p.species || "Coral species"}</div>
+                      ${p.trait  ? `<div style="margin-bottom:2px"><span style="color:#d4e9f355;font-size:9px">Trait:</span> <span style="font-weight:600">${p.trait}</span></div>` : ""}
+                      ${p.value  ? `<div style="margin-bottom:2px"><span style="color:#d4e9f355;font-size:9px">Value:</span> ${p.value}</div>` : ""}
+                      ${p.country ? `<div style="margin-bottom:2px"><span style="color:#d4e9f355;font-size:9px">Country:</span> ${p.country}</div>` : ""}
+                      ${p.resource && p.resource !== "GBIF" ? `<div style="font-size:9px;color:#d4e9f355;margin-bottom:4px">${p.resource}</div>` : ""}
+                      <div style="border-top:1px solid rgba(249,202,36,0.15);padding-top:5px;margin-top:3px;display:flex;align-items:center;gap:6px">
+                        <a href="https://coraltraits.org" target="_blank" rel="noopener noreferrer" style="color:#f9ca24;font-size:9px;font-weight:600;text-decoration:none">↗ CoralTraits.org</a>
+                        <span style="font-size:8px;color:#d4e9f333">${isFromCt ? "coraltraits.org" : "GBIF · Scleractinia"}</span>
+                      </div>
                     </div>`,
                     { maxWidth: 240 }
                   );
@@ -2227,12 +2262,12 @@ function ExpandedMapModal({
             <div style={{ display: "flex", gap: 5, marginBottom: 10, paddingBottom: 10, borderBottom: "1px solid rgba(131,238,240,0.08)" }}>
               <button
                 data-testid="expanded-toggle-all-layers"
-                onClick={() => { setShowMarineRegions(true); setShowCoralMapping(true); setShowGcrmn(true); setShowGcrmnSites(true); setShowGcrmnMonSites(true); setShowWcsReefCloud(true); setShowWcsCcSites(true); setShowReefCheck(true); setShowReefLife(true); setShowImgs(true); setShowDaoMembers(true); setActiveCmsVar("CHL"); setActiveLiveVar(null); }}
+                onClick={() => { setShowMarineRegions(true); setShowCoralMapping(true); setShowGcrmn(true); setShowGcrmnSites(true); setShowGcrmnMonSites(true); setShowWcsReefCloud(true); setShowWcsCcSites(true); setShowReefCheck(true); setShowReefLife(true); setShowImgs(true); setShowDaoMembers(true); setShowCoralTraits(true); setActiveCmsVar("CHL"); setActiveLiveVar(null); }}
                 style={{ flex: 1, fontSize: 9, fontFamily: "Inter,sans-serif", fontWeight: 700, background: "rgba(131,238,240,0.12)", border: "1px solid rgba(131,238,240,0.3)", borderRadius: 6, padding: "4px 0", color: "#83eef0", cursor: "pointer" }}
               >All On</button>
               <button
                 data-testid="expanded-toggle-no-layers"
-                onClick={() => { setShowMarineRegions(false); setShowCoralMapping(false); setShowGcrmn(false); setShowGcrmnSites(false); setShowGcrmnMonSites(false); setShowWcsReefCloud(false); setShowWcsCcSites(false); setShowReefCheck(false); setShowReefLife(false); setShowImgs(false); setShowDaoMembers(false); setActiveCmsVar(null); setActiveLiveVar(null); setShowToolbox(null); }}
+                onClick={() => { setShowMarineRegions(false); setShowCoralMapping(false); setShowGcrmn(false); setShowGcrmnSites(false); setShowGcrmnMonSites(false); setShowWcsReefCloud(false); setShowWcsCcSites(false); setShowReefCheck(false); setShowReefLife(false); setShowImgs(false); setShowDaoMembers(false); setShowCoralTraits(false); setActiveCmsVar(null); setActiveLiveVar(null); setShowToolbox(null); }}
                 style={{ flex: 1, fontSize: 9, fontFamily: "Inter,sans-serif", fontWeight: 700, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 6, padding: "4px 0", color: "#d4e9f355", cursor: "pointer" }}
               >All Off</button>
             </div>
@@ -2543,6 +2578,13 @@ function ExpandedMapModal({
             <LayerToggle label="WCS Coral Cover"     sublabel="4,766 coral cover transect sites from Wildlife Conservation Society"                     active={showWcsCcSites}    color="#ff6b9d" onClick={() => setShowWcsCcSites(v => !v)}    testId="expanded-toggle-wcs-cc-sites" />
             <LayerToggle label="WCS ReefCloud"       sublabel="14,501 AI-powered underwater photo monitoring stations - WCS Marine global programme"    active={showWcsReefCloud}  color="#e056fd" onClick={() => setShowWcsReefCloud(v => !v)}  testId="expanded-toggle-wcs-reefcloud" />
 
+            {/* ── Species Traits ── */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "10px 0 2px" }}>
+              <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#d4e9f340" }}>Species Traits</span>
+            </div>
+            <div style={{ fontSize: 7.5, color: "#d4e9f328", marginBottom: 5, lineHeight: 1.5 }}>Geolocated coral species trait observations from the CoralTraits.org database - the world's largest open repository of coral biological characteristics.</div>
+            <LayerToggle label="Coral Traits"         sublabel="Coral species trait observations - coraltraits.org / GBIF Scleractinia fallback"         active={showCoralTraits}   color="#f9ca24" onClick={() => setShowCoralTraits(v => !v)}   testId="expanded-toggle-coral-traits" />
+
             {/* ── Community ── */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "10px 0 2px" }}>
               <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#d4e9f340" }}>Community</span>
@@ -2633,7 +2675,13 @@ function ExpandedMapModal({
                 <span style={{ fontSize: 10.5, color: "#d4e9f3bb" }}>WCS ReefCloud monitoring site</span>
               </div>
             )}
-            {!showMarineRegions && !showCoralMapping && !showGcrmn && !showGcrmnSites && !showDaoMembers && !showImgs && !showGcrmnMonSites && !showReefCheck && !showReefLife && !showWcsCcSites && !showWcsReefCloud && (
+            {showCoralTraits && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "3px 0" }}>
+                <span style={{ width:9,height:9,borderRadius:"50%",background:"rgba(249,202,36,0.45)",border:"1.5px solid #f9ca24",display:"inline-block",flexShrink:0 }}/>
+                <span style={{ fontSize: 10.5, color: "#d4e9f3bb" }}>CoralTraits observation</span>
+              </div>
+            )}
+            {!showMarineRegions && !showCoralMapping && !showGcrmn && !showGcrmnSites && !showDaoMembers && !showImgs && !showGcrmnMonSites && !showReefCheck && !showReefLife && !showWcsCcSites && !showWcsReefCloud && !showCoralTraits && (
               <div style={{ fontSize: 9, color: "#d4e9f333", fontStyle: "italic" }}>No point or boundary layers active</div>
             )}
           </SideSection>
@@ -2801,6 +2849,41 @@ function ExpandedMapModal({
             ))}
           </SideSection>
 
+          <SideSection title="CoralTraits">
+            <div style={{ fontSize: 9.5, color: "#d4e9f3aa", lineHeight: 1.5, marginBottom: 8 }}>
+              CoralTraits.org is the world's largest open-access database of coral species biological traits. It aggregates thousands of peer-reviewed trait measurements for scleractinian corals - growth rates, skeletal density, bleaching thresholds, symbiodinium diversity, and more - with geolocated occurrence records linked to scientific literature.
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 8px", marginBottom: 8 }}>
+              {[
+                ["Coverage",   "Global"],
+                ["Colour",     "#f9ca24"],
+                ["Source",     "CoralTraits / GBIF"],
+                ["Fallback",   "GBIF Scleractinia"],
+              ].map(([k, v]) => (
+                <div key={String(k)} style={{ background: "rgba(249,202,36,0.07)", border: "1px solid rgba(249,202,36,0.22)", borderRadius: 6, padding: "5px 7px" }}>
+                  <div style={{ fontSize: 7.5, color: "#f9ca2488", textTransform: "uppercase", letterSpacing: "0.07em" }}>{k}</div>
+                  <div style={{ fontSize: k === "Colour" ? 10 : 11, fontWeight: 800, color: "#f9ca24" }}>{v}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ fontSize: 8.5, color: "#d4e9f344", lineHeight: 1.4, marginBottom: 6 }}>
+              Each marker represents one geolocated trait observation. Popup shows: species name, trait, measured value, country, and a direct link to coraltraits.org. Data is fetched server-side with a 24 h cache; if the CoralTraits CSV endpoint is unavailable the layer falls back to GBIF order Scleractinia occurrences.
+            </div>
+            {[
+              { label: "CoralTraits.org",                href: "https://coraltraits.org",                                   color: "#f9ca24" },
+              { label: "CoralTraits GitHub",             href: "https://github.com/coraltraits/coraltraits",                color: "#ffd32a" },
+              { label: "GBIF - Scleractinia occurrences", href: "https://www.gbif.org/occurrence/search?order=SCLERACTINIA", color: "#ffd32a" },
+            ].map(({ label, href, color }) => (
+              <a key={label} href={href} target="_blank" rel="noopener noreferrer"
+                style={{ display: "block", fontSize: 9, color, textDecoration: "none", padding: "2px 0", marginBottom: 2 }}
+                onMouseEnter={e => (e.currentTarget.style.color = "#83eef0")}
+                onMouseLeave={e => (e.currentTarget.style.color = color)}
+              >
+                ↗ {label}
+              </a>
+            ))}
+          </SideSection>
+
           <SideSection title="Data Sources">
             {[
               { label: "Marine Regions · EEZ (VLIZ / mregions2)",     href: "https://www.marineregions.org",                           color: "#fdcb6e" },
@@ -2813,6 +2896,7 @@ function ExpandedMapModal({
               { label: "Esri Ocean Basemap",                           href: "https://www.arcgis.com",                                  color: "#83eef099" },
               { label: "GCRMN Regions",                                href: "https://gcrmn.net",                                       color: "#83eef099" },
               { label: "NOAA Coral Reef Watch",                        href: "https://coralreefwatch.noaa.gov",                         color: "#83eef099" },
+              { label: "CoralTraits.org",                              href: "https://coraltraits.org",                                 color: "#f9ca24aa" },
             ].map(({ label, href, color }) => (
               <a key={label} href={href} target="_blank" rel="noopener noreferrer"
                 style={{ display: "block", fontSize: 10, color, textDecoration: "none", padding: "2px 0" }}
@@ -3009,6 +3093,7 @@ export function ReefMap({
   const [showReefCheckC,    setShowReefCheckC]    = useState(false);
   const [showReefLifeC,     setShowReefLifeC]     = useState(false);
   const [showGcrmnMonC,     setShowGcrmnMonC]     = useState(false);
+  const [showCoralTraitsC,  setShowCoralTraitsC]  = useState(false);
 
   const activeCmsLayer = activeCmsVar
     ? CMS_LAYERS.find(l => l.var === activeCmsVar) ?? null
@@ -3083,6 +3168,11 @@ export function ReefMap({
     queryKey: ["/api/wcs/gcrmn-mon-sites"],
     staleTime: 24 * 60 * 60 * 1000,
     enabled: showGcrmnMonC,
+  });
+  const { data: compactCoralTraitsGeoJson } = useQuery<GeoJSON.FeatureCollection>({
+    queryKey: ["/api/coral-traits"],
+    staleTime: 24 * 60 * 60 * 1000,
+    enabled: showCoralTraitsC,
   });
 
   return (
@@ -3226,6 +3316,23 @@ export function ReefMap({
           {showGcrmnMonC && compactGcrmnMonGeoJson && (
             <GeoJSON key="gcrmn-mon-c" data={compactGcrmnMonGeoJson}
               pointToLayer={(_f, ll) => L.circleMarker(ll, { radius: 2.5, color: "#26de81", weight: 0.7, fillColor: "#26de81", fillOpacity: 0.6, opacity: 0.85 })} />
+          )}
+          {showCoralTraitsC && compactCoralTraitsGeoJson && (
+            <GeoJSON key="coral-traits-c" data={compactCoralTraitsGeoJson}
+              pointToLayer={(feature, ll) => {
+                const m = L.circleMarker(ll, { radius: 3.5, color: "#f9ca24", weight: 1, fillColor: "#f9ca24", fillOpacity: 0.65, opacity: 0.9 });
+                const p = feature.properties ?? {};
+                m.bindPopup(
+                  `<div style="font-family:Inter,sans-serif;font-size:11px;min-width:160px;color:#d4e9f3">
+                    <div style="font-weight:700;color:#f9ca24;font-size:12px;margin-bottom:4px">🪸 ${p.species || "Coral species"}</div>
+                    ${p.trait ? `<div style="font-size:9px;margin-bottom:2px"><span style="color:#d4e9f355">Trait:</span> <b>${p.trait}</b></div>` : ""}
+                    ${p.value ? `<div style="font-size:9px;margin-bottom:3px"><span style="color:#d4e9f355">Value:</span> ${p.value}</div>` : ""}
+                    <a href="https://coraltraits.org" target="_blank" rel="noopener noreferrer" style="color:#f9ca24;font-size:8px;font-weight:600;text-decoration:none">↗ CoralTraits.org</a>
+                  </div>`,
+                  { maxWidth: 220 }
+                );
+                return m;
+              }} />
           )}
           {showImgs && reefImgs.map((img) => (
             <Marker key={img.id} position={[img.latitude, img.longitude]} icon={makeImagePin()}>
@@ -3481,6 +3588,9 @@ export function ReefMap({
                     { testId: "compact-toggle-reef-life",     label: "Reef Life Survey",    sublabel: "Fish & invertebrate survey sites",             color: "#45aaf2", active: showReefLifeC,     toggle: () => setShowReefLifeC(v => !v)     },
                     { testId: "compact-toggle-wcs-cc",        label: "WCS Coral Cover",     sublabel: "WCS transect survey sites",                   color: "#ff6b9d", active: showWcsCcSitesC,   toggle: () => setShowWcsCcSitesC(v => !v)   },
                     { testId: "compact-toggle-wcs-reefcloud", label: "WCS ReefCloud",       sublabel: "AI-powered underwater photo survey sites",     color: "#e056fd", active: showWcsReefCloudC, toggle: () => setShowWcsReefCloudC(v => !v) },
+                  ]},
+                  { group: "Species Traits", icon: "◉", note: "Geolocated coral species trait observations.", layers: [
+                    { testId: "compact-toggle-coral-traits",  label: "Coral Traits",        sublabel: "CoralTraits.org / GBIF Scleractinia fallback", color: "#f9ca24", active: showCoralTraitsC,  toggle: () => setShowCoralTraitsC(v => !v)  },
                   ]},
                 ]).map(({ group, icon, note, layers }) => {
                   const ls = layers as unknown as any[];

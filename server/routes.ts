@@ -20,6 +20,98 @@ let _reefCheckCache:    { geojson: object; expiresAt: number } | null = null;
 let _reefLifeCache:     { geojson: object; expiresAt: number } | null = null;
 let _gcrmnMonSitesCache: { geojson: object; expiresAt: number } | null = null;
 
+// ─── CoralTraits / coral species observation cache ────────────────────────────
+let _coralTraitsCache: { geojson: object; expiresAt: number } | null = null;
+
+async function fetchCoralTraitsData(): Promise<object> {
+  const now = Date.now();
+  if (_coralTraitsCache && now < _coralTraitsCache.expiresAt) return _coralTraitsCache.geojson;
+
+  // Try CoralTraits CSV directly (server-side, bypasses CORS)
+  try {
+    const resp = await fetch("https://coraltraits.org/observations.csv?per_page=800&page=1", {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+        "Accept": "text/csv,text/plain,*/*",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Referer": "https://coraltraits.org/observations",
+      },
+      signal: AbortSignal.timeout(12000),
+    });
+    if (resp.ok) {
+      const csv = await resp.text();
+      const lines = csv.split("\n").filter(l => l.trim());
+      if (lines.length > 2) {
+        const headers = lines[0].split(",").map(h => h.trim().replace(/"/g, ""));
+        const latIdx = headers.findIndex(h => h === "lat");
+        const lonIdx = headers.findIndex(h => h === "lon");
+        const speciesIdx = headers.findIndex(h => h === "specie_name" || h === "coral_name");
+        const traitIdx = headers.findIndex(h => h === "trait_name");
+        const valueIdx = headers.findIndex(h => h === "value");
+        const resourceIdx = headers.findIndex(h => h === "resource_name");
+        const doiIdx = headers.findIndex(h => h === "doi");
+        if (latIdx >= 0 && lonIdx >= 0) {
+          const features: object[] = [];
+          const seen = new Set<string>();
+          for (let i = 1; i < lines.length; i++) {
+            const cols = lines[i].split(",").map(c => c.trim().replace(/"/g, ""));
+            const lat = parseFloat(cols[latIdx]);
+            const lon = parseFloat(cols[lonIdx]);
+            if (isNaN(lat) || isNaN(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) continue;
+            const key = `${lat.toFixed(3)},${lon.toFixed(3)},${cols[speciesIdx] || ""}`;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            features.push({
+              type: "Feature",
+              geometry: { type: "Point", coordinates: [lon, lat] },
+              properties: {
+                species: cols[speciesIdx] || "",
+                trait: cols[traitIdx] || "",
+                value: cols[valueIdx] || "",
+                resource: cols[resourceIdx] || "",
+                doi: cols[doiIdx] || "",
+                source: "coraltraits",
+              },
+            });
+          }
+          if (features.length > 5) {
+            const geojson = { type: "FeatureCollection", features };
+            _coralTraitsCache = { geojson, expiresAt: now + 24 * 60 * 60 * 1000 };
+            return geojson;
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.warn("[coralTraits] Direct fetch failed, falling back to GBIF:", (e as Error).message);
+  }
+
+  // Fallback: GBIF occurrence search for Scleractinia (order key 1416 - stony corals)
+  const gbifUrl = "https://api.gbif.org/v1/occurrence/search?orderKey=1416&hasCoordinate=true&limit=300&basisOfRecord=HUMAN_OBSERVATION";
+  const gbifResp = await fetch(gbifUrl, { signal: AbortSignal.timeout(15000) });
+  if (!gbifResp.ok) throw new Error(`GBIF fetch failed: ${gbifResp.status}`);
+  const data = await gbifResp.json();
+  const features = ((data.results || []) as any[])
+    .filter((r: any) => r.decimalLatitude && r.decimalLongitude)
+    .map((r: any) => ({
+      type: "Feature",
+      geometry: { type: "Point", coordinates: [r.decimalLongitude, r.decimalLatitude] },
+      properties: {
+        species: r.species || r.scientificName || "",
+        trait: "",
+        value: "",
+        resource: r.datasetName || "GBIF",
+        doi: "",
+        country: r.country || "",
+        eventDate: r.eventDate || "",
+        source: "gbif-scleractinia",
+      },
+    }));
+  const geojson = { type: "FeatureCollection", features };
+  _coralTraitsCache = { geojson, expiresAt: now + 24 * 60 * 60 * 1000 };
+  return geojson;
+}
+
 // ─── Natural Earth geography caches (for GCRMN reverse geocoding) ────────────
 type NeFeature = { name: string; polygons: number[][][][] };
 let _neCountries: NeFeature[] | null = null;
@@ -2135,6 +2227,19 @@ hr, [class*="divider"], [class*="separator"] {
     } catch (err) {
       console.error("[reefLife]", err);
       return res.status(500).json({ error: "Failed to fetch Reef Life Survey sites" });
+    }
+  });
+
+  // GET /api/coral-traits - CoralTraits.org species trait observations (with lat/lon)
+  // Tries coraltraits.org CSV directly; falls back to GBIF Scleractinia occurrences.
+  app.get("/api/coral-traits", async (_req: Request, res: Response) => {
+    try {
+      const geojson = await fetchCoralTraitsData();
+      res.set("Cache-Control", "public, max-age=86400");
+      return res.json(geojson);
+    } catch (err) {
+      console.error("[coralTraits]", err);
+      return res.status(500).json({ error: "Failed to fetch CoralTraits data" });
     }
   });
 
