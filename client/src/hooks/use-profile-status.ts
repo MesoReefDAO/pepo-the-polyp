@@ -20,7 +20,7 @@ export function useProfileStatus() {
   const profile = data?.profile;
 
   const hasName = !!(profile?.displayName && !["Explorer", "Researcher"].includes(profile.displayName));
-  const hasBio = !!(profile?.bio && profile.bio.length > 10);
+  const hasBio = !!(profile?.bio && profile.bio.length >= 10);
   const hasOrcid = !!profile?.orcidId;
   const hasAvatar = !!(profile?.avatarCid || profile?.avatarUrl);
 

@@ -105,10 +105,18 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
     }
   };
 
-  const finish = () => {
+  const finish = useCallback(() => {
     try { localStorage.setItem(STORAGE_KEY, "1"); } catch {}
     onComplete();
-  };
+  }, [onComplete]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") finish();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [finish]);
 
   const saveName = async () => {
     if (!displayName.trim() || savingName) return;
@@ -151,6 +159,9 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Pepo onboarding"
       className="fixed inset-0 z-[100] flex items-center justify-center p-4"
       style={{ background: "rgba(0,4,8,0.88)", backdropFilter: "blur(12px)" }}
     >

@@ -53,6 +53,8 @@ const CRW_DATASET  = "dhw_5km";
 interface CrwLayer {
   id: string; label: string; short: string;
   unit: string; color: string; desc: string;
+  colorscalerange?: string;
+  externalUrl?: string;
   unavailable?: boolean;
 }
 // Colors aligned with NOAA CRW v3.1 standard palette - see:
@@ -63,37 +65,43 @@ const CRW_LAYERS: CrwLayer[] = [
   {
     id: "CRW_BAA_7D_MAX", label: "Bleaching Alerts (7-day max)", short: "Alerts",
     unit: "Level 0-5", color: "#FF0000",
+    colorscalerange: "0,5",
     desc: "Rolling 7-day maximum Bleaching Alert Area. Levels 1-5 indicate escalating coral thermal stress (Dec 2023+: new Levels 3-5 for extreme events). Level 1 = Bleaching Watch; 2 = Warning; 3 = Alert 1; 4 = Alert 2; 5 = Alert 3+.",
   },
   {
     id: "CRW_DHW", label: "Degree Heating Weeks", short: "DHW",
     unit: "deg C-weeks", color: "#FF6600",
+    colorscalerange: "0,16",
     desc: "Accumulated thermal stress above bleaching threshold over a 12-week rolling window. DHW > 4 deg C-weeks = significant bleaching risk; DHW > 8 deg C-weeks = widespread bleaching and mortality risk.",
   },
   {
     id: "CRW_HOTSPOT", label: "HotSpot", short: "HotSpot",
     unit: "deg C above MMM", color: "#FFAA00",
+    colorscalerange: "0,5",
     desc: "SST minus the Maximum Monthly Mean (MMM) climatology. HotSpot >= 1 deg C triggers coral bleaching thermal stress. Used to compute DHW accumulation.",
   },
   {
     id: "CRW_SST", label: "Sea Surface Temperature", short: "SST",
     unit: "deg C", color: "#FF4500",
+    colorscalerange: "15,32",
     desc: "CoralTemp nighttime SST - daily 5 km blended multi-sensor satellite product (1985-present). Foundation variable for all CRW bleaching stress products. NOAA thermal palette: cool blue to hot red.",
   },
   {
     id: "CRW_SSTANOMALY", label: "SST Anomaly", short: "Anomaly",
     unit: "deg C", color: "#D62728",
+    colorscalerange: "-3,3",
     desc: "SST departure from the long-term climatological mean. Diverging palette: blue = cooler than climatology, red = warmer. Based on CRW daily 5-km satellite SST climatology.",
   },
   {
     id: "SST_TREND_7D", label: "SST Trend (7-day)", short: "SST Trend",
     unit: "deg C / week", color: "#16A085",
-    desc: "Rate of SST change over the past 7 days (warming vs cooling). Diverging palette: red = warming, blue = cooling. Not exposed via the current PacIOOS ERDDAP feed - data pending integration with NOAA NCEI direct service.",
-    unavailable: true,
+    externalUrl: "https://coralreefwatch.noaa.gov/product/5km/index_5km_sst-trend.php",
+    desc: "Rate of SST change over the past 7 days (warming vs cooling). Diverging palette: red = warming, blue = cooling. NOAA publishes this only as a static product image - click to open NOAA's daily global map in a new tab.",
   },
   {
     id: "CRW_BAA", label: "Outlook (single-day)", short: "Outlook",
     unit: "Level 0-5", color: "#990099",
+    colorscalerange: "0,5",
     desc: "Single-day Bleaching Alert Area - immediate pixel-level thermal stress condition. Complements the 7-day max layer to show the current day's alert status without temporal smoothing. Same categorical palette as Alerts.",
   },
 ];
@@ -979,6 +987,7 @@ function ExpandedMapModal({
   const [showGcrmnMonSites,  setShowGcrmnMonSites]  = useState(false);
   const [showCoralTraits,    setShowCoralTraits]    = useState(false);
   const [activeCrwLayer,     setActiveCrwLayer]     = useState<string | null>(null);
+  const [crwLoading,         setCrwLoading]         = useState(false);
   const [activeCmsVar,       setActiveCmsVar]       = useState<CmsVar | null>(null);
   const [cmsYYYYMM,          setCmsYYYYMM]          = useState(CMS_MAX_YM);
   const [showToolbox,        setShowToolbox]        = useState<'cms'|'live'|null>(null);
@@ -1282,19 +1291,29 @@ function ExpandedMapModal({
                 attribution='© <a href="https://www.marineregions.org">MarineRegions.org · VLIZ</a>'
               />
             )}
-            {activeCrwLayer && (
-              <WMSTileLayer
-                key={`crw-expanded-${activeCrwLayer}`}
-                url={CRW_WMS_BASE}
-                layers={`${CRW_DATASET}:${activeCrwLayer}`}
-                format="image/png"
-                transparent={true}
-                opacity={0.85}
-                version="1.3.0"
-                time={getCrwTime()}
-                attribution='<a href="https://coralreefwatch.noaa.gov" target="_blank" rel="noopener noreferrer">NOAA Coral Reef Watch v3.1</a> - PacIOOS ERDDAP'
-              />
-            )}
+            {activeCrwLayer && (() => {
+              const cfg = CRW_LAYERS.find(l => l.id === activeCrwLayer);
+              return cfg && !cfg.externalUrl ? (
+                <WMSTileLayer
+                  key={`crw-expanded-${activeCrwLayer}-${cfg.colorscalerange ?? ""}`}
+                  url={CRW_WMS_BASE}
+                  layers={`${CRW_DATASET}:${activeCrwLayer}`}
+                  format="image/png"
+                  transparent={true}
+                  opacity={0.85}
+                  version="1.3.0"
+                  styles=""
+                  time={getCrwTime()}
+                  {...(cfg.colorscalerange ? { colorscalerange: cfg.colorscalerange } : {})}
+                  eventHandlers={{
+                    loading: () => setCrwLoading(true),
+                    load:    () => setCrwLoading(false),
+                    tileerror: () => setCrwLoading(false),
+                  }}
+                  attribution='<a href="https://coralreefwatch.noaa.gov" target="_blank" rel="noopener noreferrer">NOAA Coral Reef Watch v3.1</a> - PacIOOS ERDDAP'
+                />
+              ) : null;
+            })()}
             {showCoralMapping && coralMappingGeoJson && (
               <GeoJSON
                 key="coral-mapping"
@@ -2686,12 +2705,18 @@ function ExpandedMapModal({
               <div
                 key={layer.id}
                 data-testid={`expanded-toggle-crw-${layer.id.toLowerCase()}`}
-                onClick={() => { if (!layer.unavailable) setActiveCrwLayer(activeCrwLayer === layer.id ? null : layer.id); }}
-                title={layer.unavailable ? "Data feed pending" : undefined}
+                onClick={() => {
+                  if (layer.externalUrl) { window.open(layer.externalUrl, "_blank", "noopener,noreferrer"); return; }
+                  if (!layer.unavailable) {
+                    setCrwLoading(false);
+                    setActiveCrwLayer(activeCrwLayer === layer.id ? null : layer.id);
+                  }
+                }}
+                title={layer.externalUrl ? "Open NOAA product page" : layer.unavailable ? "Data feed pending" : undefined}
                 style={{
                   display: "flex", alignItems: "center", gap: 8, padding: "5px 6px", marginBottom: 2,
-                  borderRadius: 6, cursor: layer.unavailable ? "not-allowed" : "pointer",
-                  opacity: layer.unavailable ? 0.45 : 1,
+                  borderRadius: 6, cursor: layer.unavailable && !layer.externalUrl ? "not-allowed" : "pointer",
+                  opacity: layer.unavailable && !layer.externalUrl ? 0.45 : 1,
                   background: activeCrwLayer === layer.id ? `${layer.color}16` : "rgba(255,255,255,0.02)",
                   border: `1px solid ${activeCrwLayer === layer.id ? `${layer.color}55` : "rgba(255,255,255,0.05)"}`,
                   transition: "all 0.15s",
@@ -2708,7 +2733,12 @@ function ExpandedMapModal({
                 }}/>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 10, fontWeight: activeCrwLayer === layer.id ? 700 : 500, color: activeCrwLayer === layer.id ? layer.color : "#d4e9f3bb", fontFamily: "Inter,sans-serif", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                    {layer.label}{layer.unavailable && <span style={{ marginLeft: 6, fontSize: 7.5, color: "#d4e9f344", fontWeight: 500, letterSpacing: "0.05em" }}>SOON</span>}
+                    {layer.label}
+                    {layer.externalUrl && <span style={{ marginLeft: 6, fontSize: 7.5, color: layer.color, fontWeight: 600, letterSpacing: "0.05em" }}>↗ NOAA</span>}
+                    {layer.unavailable && !layer.externalUrl && <span style={{ marginLeft: 6, fontSize: 7.5, color: "#d4e9f344", fontWeight: 500, letterSpacing: "0.05em" }}>SOON</span>}
+                    {activeCrwLayer === layer.id && crwLoading && (
+                      <span style={{ marginLeft: 6, display: "inline-block", width: 8, height: 8, borderRadius: "50%", border: `1.5px solid ${layer.color}`, borderTopColor: "transparent", animation: "spin 0.8s linear infinite", verticalAlign: "middle" }} />
+                    )}
                   </div>
                   <div style={{ fontSize: 8, color: "#d4e9f333", fontFamily: "Inter,sans-serif" }}>{layer.unit}</div>
                 </div>
@@ -3442,6 +3472,7 @@ export function ReefMap({
   const [showGcrmnMonC,     setShowGcrmnMonC]     = useState(false);
   const [showCoralTraitsC,  setShowCoralTraitsC]  = useState(false);
   const [activeCrwLayerC,   setActiveCrwLayerC]   = useState<string | null>(null);
+  const [crwLoadingC,       setCrwLoadingC]       = useState(false);
 
   const activeCmsLayer = activeCmsVar
     ? CMS_LAYERS.find(l => l.var === activeCmsVar) ?? null
@@ -3598,19 +3629,29 @@ export function ReefMap({
               attribution='© MarineRegions.org · VLIZ'
             />
           )}
-          {activeCrwLayerC && (
-            <WMSTileLayer
-              key={`crw-compact-${activeCrwLayerC}`}
-              url={CRW_WMS_BASE}
-              layers={`${CRW_DATASET}:${activeCrwLayerC}`}
-              format="image/png"
-              transparent={true}
-              opacity={0.82}
-              version="1.3.0"
-              time={getCrwTime()}
-              attribution='NOAA Coral Reef Watch v3.1 - PacIOOS ERDDAP'
-            />
-          )}
+          {activeCrwLayerC && (() => {
+            const cfg = CRW_LAYERS.find(l => l.id === activeCrwLayerC);
+            return cfg && !cfg.externalUrl ? (
+              <WMSTileLayer
+                key={`crw-compact-${activeCrwLayerC}-${cfg.colorscalerange ?? ""}`}
+                url={CRW_WMS_BASE}
+                layers={`${CRW_DATASET}:${activeCrwLayerC}`}
+                format="image/png"
+                transparent={true}
+                opacity={0.82}
+                version="1.3.0"
+                styles=""
+                time={getCrwTime()}
+                {...(cfg.colorscalerange ? { colorscalerange: cfg.colorscalerange } : {})}
+                eventHandlers={{
+                  loading: () => setCrwLoadingC(true),
+                  load:    () => setCrwLoadingC(false),
+                  tileerror: () => setCrwLoadingC(false),
+                }}
+                attribution='NOAA Coral Reef Watch v3.1 - PacIOOS ERDDAP'
+              />
+            ) : null;
+          })()}
           {showCoralMapping && coralMappingGeoJson && (
             <GeoJSON
               key="coral-mapping-compact"
@@ -4021,12 +4062,18 @@ export function ReefMap({
                     <div
                       key={layer.id}
                       data-testid={`compact-toggle-crw-${layer.id.toLowerCase()}`}
-                      onClick={() => { if (!layer.unavailable) setActiveCrwLayerC(activeCrwLayerC === layer.id ? null : layer.id); }}
-                      title={layer.unavailable ? "Data feed pending" : undefined}
+                      onClick={() => {
+                        if (layer.externalUrl) { window.open(layer.externalUrl, "_blank", "noopener,noreferrer"); return; }
+                        if (!layer.unavailable) {
+                          setCrwLoadingC(false);
+                          setActiveCrwLayerC(activeCrwLayerC === layer.id ? null : layer.id);
+                        }
+                      }}
+                      title={layer.externalUrl ? "Open NOAA product page" : layer.unavailable ? "Data feed pending" : undefined}
                       style={{
                         display: "flex", alignItems: "center", gap: 8, padding: "4px 10px",
-                        cursor: layer.unavailable ? "not-allowed" : "pointer",
-                        opacity: layer.unavailable ? 0.45 : 1,
+                        cursor: layer.unavailable && !layer.externalUrl ? "not-allowed" : "pointer",
+                        opacity: layer.unavailable && !layer.externalUrl ? 0.45 : 1,
                         background: activeCrwLayerC === layer.id ? `${layer.color}14` : "transparent",
                         transition: "background 0.12s",
                       }}
@@ -4039,7 +4086,12 @@ export function ReefMap({
                       }}/>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 9.5, fontWeight: activeCrwLayerC === layer.id ? 700 : 400, color: activeCrwLayerC === layer.id ? layer.color : "#d4e9f388", fontFamily: "Inter,sans-serif" }}>
-                          {layer.short}{layer.unavailable && <span style={{ marginLeft: 5, fontSize: 7, color: "#d4e9f344", fontWeight: 500 }}>SOON</span>}
+                          {layer.short}
+                          {layer.externalUrl && <span style={{ marginLeft: 5, fontSize: 7, color: layer.color, fontWeight: 600 }}>↗</span>}
+                          {layer.unavailable && !layer.externalUrl && <span style={{ marginLeft: 5, fontSize: 7, color: "#d4e9f344", fontWeight: 500 }}>SOON</span>}
+                          {activeCrwLayerC === layer.id && crwLoadingC && (
+                            <span style={{ marginLeft: 5, display: "inline-block", width: 7, height: 7, borderRadius: "50%", border: `1.4px solid ${layer.color}`, borderTopColor: "transparent", animation: "spin 0.8s linear infinite", verticalAlign: "middle" }} />
+                          )}
                         </div>
                         <div style={{ fontSize: 7.5, color: "#d4e9f328", fontFamily: "Inter,sans-serif" }}>{layer.unit}</div>
                       </div>
