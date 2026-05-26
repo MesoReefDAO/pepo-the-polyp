@@ -2667,7 +2667,7 @@ function ExpandedMapModal({
               <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#d4e9f340" }}>Species Traits</span>
             </div>
             <div style={{ fontSize: 7.5, color: "#d4e9f328", marginBottom: 5, lineHeight: 1.5 }}>Geolocated coral species trait observations from the CoralTraits.org database - the world's largest open repository of coral biological characteristics.</div>
-            <LayerToggle label="Coral Traits"         sublabel="166k+ observations across 5,112 species and 172 traits - coraltraits2 / coraltraits.org"  active={showCoralTraits}   color="#f9ca24" onClick={() => setShowCoralTraits(v => !v)}   testId="expanded-toggle-coral-traits" />
+            <LayerToggle label="Coral Traits"         sublabel={`166k+ observations across 5,112 species and ${CORAL_TRAITS_TOTAL} traits - coraltraits2 / coraltraits.org`}  active={showCoralTraits}   color="#f9ca24" onClick={() => setShowCoralTraits(v => !v)}   testId="expanded-toggle-coral-traits" />
 
             {/* ── NOAA Coral Reef Watch ── */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "10px 0 2px" }}>
@@ -3218,6 +3218,7 @@ function CoralTraitsBrowser() {
         value={filter}
         onChange={e => setFilter(e.target.value)}
         placeholder="Filter traits..."
+        aria-label="Filter coral traits by name"
         data-testid="input-coraltraits-filter"
         style={{
           width: "100%", boxSizing: "border-box",
@@ -3241,6 +3242,10 @@ function CoralTraitsBrowser() {
               <button
                 data-testid={`button-coraltraits-cat-${cat.name.toLowerCase()}`}
                 onClick={() => !q && setOpenCat(isOpen ? null : cat.name)}
+                aria-expanded={isOpen}
+                aria-controls={`coraltraits-cat-${cat.name.toLowerCase()}-panel`}
+                aria-label={`${cat.name} - ${cat.traits.length} traits${isOpen ? ", expanded" : ", collapsed"}`}
+                disabled={!!q}
                 style={{
                   display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%",
                   padding: "4px 7px", background: isOpen ? "rgba(249,202,36,0.1)" : "rgba(249,202,36,0.03)",
@@ -3256,7 +3261,7 @@ function CoralTraitsBrowser() {
                 <span style={{ fontSize: 8, color: "#f9ca2477", fontWeight: 700 }}>{cat.traits.length}</span>
               </button>
               {isOpen && (
-                <div style={{ padding: "3px 7px 5px 18px", background: "rgba(0,0,0,0.15)", display: "flex", flexDirection: "column", gap: 1 }}>
+                <div id={`coraltraits-cat-${cat.name.toLowerCase()}-panel`} style={{ padding: "3px 7px 5px 18px", background: "rgba(0,0,0,0.15)", display: "flex", flexDirection: "column", gap: 1 }}>
                   {cat.traits.map(t => (
                     <a key={t.id} href={`${CORAL_TRAITS_URL}/${t.id}`} target="_blank" rel="noopener noreferrer"
                       data-testid={`link-coraltrait-${t.id}`}

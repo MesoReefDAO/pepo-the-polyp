@@ -3,7 +3,6 @@
 export interface CoralTrait { id: number; name: string; }
 export interface CoralTraitCategory { name: string; traits: CoralTrait[]; }
 
-export const CORAL_TRAITS_TOTAL = 138;
 export const CORAL_TRAITS_URL = "https://www.coraltraits.org/traits";
 
 export const CORAL_TRAIT_CATEGORIES: CoralTraitCategory[] = [
@@ -166,3 +165,6 @@ export const CORAL_TRAIT_CATEGORIES: CoralTraitCategory[] = [
     { id: 150, name: "Total biomass" },
   ] },
 ];
+
+// Derived at module load to stay in sync with the dataset.
+export const CORAL_TRAITS_TOTAL = CORAL_TRAIT_CATEGORIES.reduce((n, c) => n + c.traits.length, 0);
