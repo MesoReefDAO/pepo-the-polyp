@@ -2,7 +2,7 @@
 
 **AI guide to the MesoAmerican Reef knowledge network, built for MesoReef DAO.** 🧬
 
-Pepo is a full-stack DeSci and marine conservation web app that fuses six parallel knowledge sources into a conversational interface. Researchers, conservationists, and community members can ask questions about coral reef ecology, bleaching events, DeSci governance, and the MesoAmerican Reef ecosystem - then vote on proposals that shape the DAO's direction.
+Pepo is a full-stack DeSci and marine conservation web app that fuses six parallel knowledge sources into a conversational interface. Researchers, conservationists, and community members can ask questions about coral reef ecology, bleaching events, and DeSci governance, as well as the Coral Reef Knowledge Network initiative. Users can then vote on proposals that shape the DAO's direction.
 
 🌊 **Production:** [thepolyp.xyz](https://thepolyp.xyz)  
 🐠 **Telegram:** [@PepothePolyp_bot](https://t.me/PepothePolyp_bot)  
