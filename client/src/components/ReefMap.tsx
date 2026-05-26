@@ -54,6 +54,11 @@ interface CrwLayer {
   id: string; label: string; short: string;
   unit: string; color: string; desc: string;
   colorscalerange?: string;
+  min?: number; max?: number;
+  // NOAA-aligned gradient stops left-to-right for the color-scale bar.
+  // Categorical layers (BAA) get discrete stops; continuous layers get smooth ramps.
+  palette?: string[];
+  ticks?: string[];
   externalUrl?: string;
   unavailable?: boolean;
 }
@@ -61,35 +66,44 @@ interface CrwLayer {
 //   https://coralreefwatch.noaa.gov/product/5km/methodology.php
 //   https://coastwatch.noaa.gov/cw_html/cwViewer.html
 //   https://www.nnvl.noaa.gov/view/globaldata.html
+// NOAA-aligned palettes (left = min, right = max). Matched to the CoastWatch
+// Data Viewer (cwViewer.html) and CRW methodology pages.
+const PAL_SST       = ["#0d47a1","#1976d2","#4dd0e1","#a7ffeb","#fff59d","#ffb300","#e64a19","#7b0000"];
+const PAL_ANOMALY   = ["#2166ac","#67a9cf","#d1e5f0","#f7f7f7","#fddbc7","#ef8a62","#b2182b"];
+const PAL_HOTSPOT   = ["#ffffff","#fff59d","#ffb300","#e64a19","#b71c1c","#6a1b9a"];
+const PAL_DHW       = ["#ffffff","#fff59d","#ffb300","#e64a19","#b71c1c","#6a1b9a","#311b92"];
+const PAL_BAA       = ["#1e88e5","#fff176","#ffb300","#ef5350","#b71c1c","#6a1b9a"];
+
 const CRW_LAYERS: CrwLayer[] = [
   {
     id: "CRW_BAA_7D_MAX", label: "Bleaching Alerts (7-day max)", short: "Alerts",
     unit: "Level 0-5", color: "#FF0000",
-    colorscalerange: "0,5",
+    colorscalerange: "0,5", min: 0, max: 5, palette: PAL_BAA,
+    ticks: ["None","Watch","Warn","A1","A2","A3+"],
     desc: "Rolling 7-day maximum Bleaching Alert Area. Levels 1-5 indicate escalating coral thermal stress (Dec 2023+: new Levels 3-5 for extreme events). Level 1 = Bleaching Watch; 2 = Warning; 3 = Alert 1; 4 = Alert 2; 5 = Alert 3+.",
   },
   {
     id: "CRW_DHW", label: "Degree Heating Weeks", short: "DHW",
     unit: "deg C-weeks", color: "#FF6600",
-    colorscalerange: "0,16",
+    colorscalerange: "0,16", min: 0, max: 16, palette: PAL_DHW,
     desc: "Accumulated thermal stress above bleaching threshold over a 12-week rolling window. DHW > 4 deg C-weeks = significant bleaching risk; DHW > 8 deg C-weeks = widespread bleaching and mortality risk.",
   },
   {
     id: "CRW_HOTSPOT", label: "HotSpot", short: "HotSpot",
     unit: "deg C above MMM", color: "#FFAA00",
-    colorscalerange: "0,5",
+    colorscalerange: "0,5", min: 0, max: 5, palette: PAL_HOTSPOT,
     desc: "SST minus the Maximum Monthly Mean (MMM) climatology. HotSpot >= 1 deg C triggers coral bleaching thermal stress. Used to compute DHW accumulation.",
   },
   {
     id: "CRW_SST", label: "Sea Surface Temperature", short: "SST",
     unit: "deg C", color: "#FF4500",
-    colorscalerange: "15,32",
+    colorscalerange: "15,32", min: 15, max: 32, palette: PAL_SST,
     desc: "CoralTemp nighttime SST - daily 5 km blended multi-sensor satellite product (1985-present). Foundation variable for all CRW bleaching stress products. NOAA thermal palette: cool blue to hot red.",
   },
   {
     id: "CRW_SSTANOMALY", label: "SST Anomaly", short: "Anomaly",
     unit: "deg C", color: "#D62728",
-    colorscalerange: "-3,3",
+    colorscalerange: "-3,3", min: -3, max: 3, palette: PAL_ANOMALY,
     desc: "SST departure from the long-term climatological mean. Diverging palette: blue = cooler than climatology, red = warmer. Based on CRW daily 5-km satellite SST climatology.",
   },
   {
@@ -101,17 +115,41 @@ const CRW_LAYERS: CrwLayer[] = [
   {
     id: "CRW_BAA", label: "Outlook (single-day)", short: "Outlook",
     unit: "Level 0-5", color: "#990099",
-    colorscalerange: "0,5",
+    colorscalerange: "0,5", min: 0, max: 5, palette: PAL_BAA,
+    ticks: ["None","Watch","Warn","A1","A2","A3+"],
     desc: "Single-day Bleaching Alert Area - immediate pixel-level thermal stress condition. Complements the 7-day max layer to show the current day's alert status without temporal smoothing. Same categorical palette as Alerts.",
   },
 ];
 
-// Returns a date string 2 days ago - gives ERDDAP time to process the daily CRW product
-// CRW daily 5km products are updated ~13:30 ET each day; we go back 2 days to be safe
-function getCrwTime(): string {
+// Default = 2 days ago UTC. CRW daily 5km products are released ~13:30 ET, so
+// going back two days guarantees the slice is published on PacIOOS ERDDAP.
+function getDefaultCrwDate(): string {
   const d = new Date();
-  d.setDate(d.getDate() - 2);
-  return d.toISOString().slice(0, 10) + "T12:00:00Z";
+  d.setUTCDate(d.getUTCDate() - 2);
+  return d.toISOString().slice(0, 10);
+}
+// Convert YYYY-MM-DD to the ISO timestamp ERDDAP WMS expects.
+function getCrwTime(dateStr?: string): string {
+  return (dateStr ?? getDefaultCrwDate()) + "T12:00:00Z";
+}
+// Clamp a YYYY-MM-DD string to [1985-01-01, latest-available]. Returns the
+// fallback when the input is empty or malformed.
+function clampCrwDate(s: string, fallback: string): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return fallback;
+  const latest = getDefaultCrwDate();
+  if (s < "1985-01-01") return "1985-01-01";
+  if (s > latest) return latest;
+  return s;
+}
+
+// Builds a CSS linear-gradient from a palette array. Discrete=true renders
+// hard color stops (categorical) instead of a smooth ramp.
+function paletteGradient(palette: string[], discrete = false): string {
+  if (palette.length === 0) return "transparent";
+  if (!discrete) return `linear-gradient(to right, ${palette.join(",")})`;
+  const step = 100 / palette.length;
+  const stops = palette.map((c, i) => `${c} ${i * step}%, ${c} ${(i + 1) * step}%`).join(",");
+  return `linear-gradient(to right, ${stops})`;
 }
 
 // ─── GCRMN 2026 benthos monitoring sites ─────────────────────────────────────
@@ -988,6 +1026,18 @@ function ExpandedMapModal({
   const [showCoralTraits,    setShowCoralTraits]    = useState(false);
   const [activeCrwLayer,     setActiveCrwLayer]     = useState<string | null>(null);
   const [crwLoading,         setCrwLoading]         = useState(false);
+  const [crwDate,            setCrwDate]            = useState<string>(getDefaultCrwDate());
+  const [crwOpacity,         setCrwOpacity]         = useState<number>(0.85);
+  // Once an hour, clamp the selected date back into [1985-01-01, latest]. This
+  // catches a tab left open across midnight (date silently goes stale) as well
+  // as any out-of-range value that may have been injected. We never override a
+  // user-selected historical date.
+  useEffect(() => {
+    const t = setInterval(() => {
+      setCrwDate(prev => clampCrwDate(prev, getDefaultCrwDate()));
+    }, 60 * 60 * 1000);
+    return () => clearInterval(t);
+  }, []);
   const [activeCmsVar,       setActiveCmsVar]       = useState<CmsVar | null>(null);
   const [cmsYYYYMM,          setCmsYYYYMM]          = useState(CMS_MAX_YM);
   const [showToolbox,        setShowToolbox]        = useState<'cms'|'live'|null>(null);
@@ -1295,15 +1345,15 @@ function ExpandedMapModal({
               const cfg = CRW_LAYERS.find(l => l.id === activeCrwLayer);
               return cfg && !cfg.externalUrl ? (
                 <WMSTileLayer
-                  key={`crw-expanded-${activeCrwLayer}-${cfg.colorscalerange ?? ""}`}
+                  key={`crw-expanded-${activeCrwLayer}-${crwDate}-${cfg.colorscalerange ?? ""}`}
                   url={CRW_WMS_BASE}
                   layers={`${CRW_DATASET}:${activeCrwLayer}`}
                   format="image/png"
                   transparent={true}
-                  opacity={0.85}
+                  opacity={crwOpacity}
                   version="1.3.0"
                   styles=""
-                  time={getCrwTime()}
+                  time={getCrwTime(crwDate)}
                   {...(cfg.colorscalerange ? { colorscalerange: cfg.colorscalerange } : {})}
                   eventHandlers={{
                     loading: () => setCrwLoading(true),
@@ -2752,8 +2802,90 @@ function ExpandedMapModal({
                 </div>
               ) : null;
             })()}
+            {/* ── cwViewer-style controls: date scrub + opacity + color-scale legend ── */}
+            {activeCrwLayer && (() => {
+              const layer = CRW_LAYERS.find(l => l.id === activeCrwLayer);
+              if (!layer || layer.externalUrl) return null;
+              const today = getDefaultCrwDate();
+              const stepDate = (days: number) => {
+                const d = new Date(crwDate + "T12:00:00Z");
+                d.setUTCDate(d.getUTCDate() + days);
+                const s = d.toISOString().slice(0, 10);
+                if (s > today) return;
+                if (s < "1985-01-01") return;
+                setCrwDate(s);
+              };
+              const isLatest = crwDate === today;
+              return (
+                <div data-testid="crw-controls-expanded" style={{ marginTop: 6, marginBottom: 6, padding: "7px 7px 8px", background: "rgba(0,19,28,0.45)", border: `1px solid ${layer.color}33`, borderRadius: 6, fontFamily: "Inter,sans-serif" }}>
+                  {/* Date scrubber */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 6 }}>
+                    <span style={{ fontSize: 8, color: "#d4e9f366", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", flexShrink: 0 }}>Date</span>
+                    <button data-testid="crw-date-prev" onClick={() => stepDate(-1)} aria-label="Previous day" title="Previous day"
+                      style={{ fontSize: 9, padding: "1px 5px", background: "rgba(255,255,255,0.04)", border: `1px solid ${layer.color}44`, borderRadius: 3, color: "#d4e9f3aa", cursor: "pointer", fontFamily: "Inter,sans-serif", fontWeight: 600 }}>‹</button>
+                    <input
+                      data-testid="crw-date-input"
+                      type="date"
+                      aria-label={`Coral Reef Watch data date for ${layer.label}`}
+                      value={crwDate}
+                      min="1985-01-01"
+                      max={today}
+                      onChange={e => setCrwDate(clampCrwDate(e.target.value, today))}
+                      style={{ flex: 1, minWidth: 0, fontSize: 9.5, padding: "2px 4px", background: "rgba(255,255,255,0.03)", border: `1px solid ${layer.color}33`, borderRadius: 3, color: "#d4e9f3", fontFamily: "Inter,sans-serif", colorScheme: "dark" }}
+                    />
+                    <button data-testid="crw-date-next" onClick={() => stepDate(1)} disabled={isLatest} aria-label="Next day" title="Next day"
+                      style={{ fontSize: 9, padding: "1px 5px", background: "rgba(255,255,255,0.04)", border: `1px solid ${layer.color}44`, borderRadius: 3, color: isLatest ? "#d4e9f322" : "#d4e9f3aa", cursor: isLatest ? "not-allowed" : "pointer", fontFamily: "Inter,sans-serif", fontWeight: 600 }}>›</button>
+                    <button data-testid="crw-date-latest" onClick={() => setCrwDate(today)} disabled={isLatest} aria-label="Jump to latest available date" title="Jump to latest available"
+                      style={{ fontSize: 8, padding: "2px 6px", background: isLatest ? "rgba(255,255,255,0.02)" : `${layer.color}22`, border: `1px solid ${isLatest ? "rgba(255,255,255,0.06)" : `${layer.color}66`}`, borderRadius: 3, color: isLatest ? "#d4e9f344" : layer.color, cursor: isLatest ? "default" : "pointer", fontFamily: "Inter,sans-serif", fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase" }}>Latest</button>
+                  </div>
+
+                  {/* Opacity slider */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 7 }}>
+                    <span style={{ fontSize: 8, color: "#d4e9f366", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", flexShrink: 0, width: 36 }}>Opacity</span>
+                    <input
+                      data-testid="crw-opacity"
+                      type="range"
+                      min={0} max={1} step={0.05}
+                      value={crwOpacity}
+                      onChange={e => setCrwOpacity(Number(e.target.value))}
+                      aria-label={`Opacity for ${layer.label}`}
+                      aria-valuetext={`${Math.round(crwOpacity * 100)} percent`}
+                      style={{ flex: 1, accentColor: layer.color, height: 4 }}
+                    />
+                    <span style={{ fontSize: 9, color: "#d4e9f3aa", fontVariantNumeric: "tabular-nums", width: 28, textAlign: "right" }}>{Math.round(crwOpacity * 100)}%</span>
+                  </div>
+
+                  {/* Color-scale legend */}
+                  {layer.palette && layer.min !== undefined && layer.max !== undefined && (
+                    <div>
+                      <div data-testid="crw-legend-bar" style={{ height: 9, borderRadius: 3, background: paletteGradient(layer.palette, !!layer.ticks), border: "1px solid rgba(255,255,255,0.12)" }} />
+                      {layer.ticks ? (
+                        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 2, fontSize: 7.5, color: "#d4e9f377", fontVariantNumeric: "tabular-nums" }}>
+                          {layer.ticks.map((t, i) => (
+                            <span key={i} style={{ flex: 1, textAlign: i === 0 ? "left" : i === layer.ticks!.length - 1 ? "right" : "center" }}>{t}</span>
+                          ))}
+                        </div>
+                      ) : (
+                        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 2, fontSize: 8, color: "#d4e9f377", fontVariantNumeric: "tabular-nums" }}>
+                          <span>{layer.min}</span>
+                          <span>{((layer.min + layer.max) / 2).toFixed(layer.max - layer.min < 5 ? 1 : 0)}</span>
+                          <span>{layer.max}</span>
+                        </div>
+                      )}
+                      <div style={{ fontSize: 7.5, color: "#d4e9f344", marginTop: 2, textAlign: "center", letterSpacing: "0.03em" }}>{layer.unit}</div>
+                    </div>
+                  )}
+
+                  {/* Data-as-of footer */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 7, paddingTop: 5, borderTop: "1px solid rgba(255,255,255,0.05)", fontSize: 7.5, color: "#d4e9f355", letterSpacing: "0.03em" }}>
+                    <span data-testid="crw-data-as-of">Data as of <strong style={{ color: layer.color, fontWeight: 700 }}>{crwDate}</strong> UTC</span>
+                    <span>NOAA CoralTemp 5km</span>
+                  </div>
+                </div>
+              );
+            })()}
             <div style={{ fontSize: 7.5, color: "#d4e9f322", marginTop: 3, marginBottom: 4, lineHeight: 1.4 }}>
-              Data: NOAA CRW v3.1 - CoralTemp 5km - ERDDAP dataset dhw_5km (PacIOOS) - CRS EPSG:4326 - WMS 1.3.0
+              Data: NOAA CRW v3.1 - CoralTemp 5km - ERDDAP dataset dhw_5km (PacIOOS) - CRS EPSG:4326 - WMS 1.3.0 - daily refresh ~13:30 ET
             </div>
 
             {/* ── Community ── */}
@@ -3473,6 +3605,14 @@ export function ReefMap({
   const [showCoralTraitsC,  setShowCoralTraitsC]  = useState(false);
   const [activeCrwLayerC,   setActiveCrwLayerC]   = useState<string | null>(null);
   const [crwLoadingC,       setCrwLoadingC]       = useState(false);
+  const [crwDateC,          setCrwDateC]          = useState<string>(getDefaultCrwDate());
+  const [crwOpacityC,       setCrwOpacityC]       = useState<number>(0.82);
+  useEffect(() => {
+    const t = setInterval(() => {
+      setCrwDateC(prev => clampCrwDate(prev, getDefaultCrwDate()));
+    }, 60 * 60 * 1000);
+    return () => clearInterval(t);
+  }, []);
 
   const activeCmsLayer = activeCmsVar
     ? CMS_LAYERS.find(l => l.var === activeCmsVar) ?? null
@@ -3633,15 +3773,15 @@ export function ReefMap({
             const cfg = CRW_LAYERS.find(l => l.id === activeCrwLayerC);
             return cfg && !cfg.externalUrl ? (
               <WMSTileLayer
-                key={`crw-compact-${activeCrwLayerC}-${cfg.colorscalerange ?? ""}`}
+                key={`crw-compact-${activeCrwLayerC}-${crwDateC}-${cfg.colorscalerange ?? ""}`}
                 url={CRW_WMS_BASE}
                 layers={`${CRW_DATASET}:${activeCrwLayerC}`}
                 format="image/png"
                 transparent={true}
-                opacity={0.82}
+                opacity={crwOpacityC}
                 version="1.3.0"
                 styles=""
-                time={getCrwTime()}
+                time={getCrwTime(crwDateC)}
                 {...(cfg.colorscalerange ? { colorscalerange: cfg.colorscalerange } : {})}
                 eventHandlers={{
                   loading: () => setCrwLoadingC(true),
@@ -4097,6 +4237,40 @@ export function ReefMap({
                       </div>
                     </div>
                   ))}
+                  {/* compact cwViewer mini-controls: opacity + legend + as-of stamp */}
+                  {activeCrwLayerC && (() => {
+                    const layer = CRW_LAYERS.find(l => l.id === activeCrwLayerC);
+                    if (!layer || layer.externalUrl) return null;
+                    return (
+                      <div data-testid="crw-controls-compact" style={{ padding: "5px 10px 6px", marginTop: 2, borderTop: `1px solid ${layer.color}22`, background: "rgba(0,5,10,0.45)", fontFamily: "Inter,sans-serif" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 4 }}>
+                          <span style={{ fontSize: 7, color: "#d4e9f366", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>Opacity</span>
+                          <input
+                            data-testid="crw-opacity-c"
+                            type="range" min={0} max={1} step={0.05}
+                            value={crwOpacityC}
+                            onChange={e => setCrwOpacityC(Number(e.target.value))}
+                            aria-label={`Opacity for ${layer.label}`}
+                            aria-valuetext={`${Math.round(crwOpacityC * 100)} percent`}
+                            style={{ flex: 1, accentColor: layer.color, height: 3 }}
+                          />
+                          <span style={{ fontSize: 8, color: "#d4e9f3aa", fontVariantNumeric: "tabular-nums", width: 22, textAlign: "right" }}>{Math.round(crwOpacityC * 100)}%</span>
+                        </div>
+                        {layer.palette && layer.min !== undefined && layer.max !== undefined && (
+                          <>
+                            <div style={{ height: 6, borderRadius: 2, background: paletteGradient(layer.palette, !!layer.ticks), border: "1px solid rgba(255,255,255,0.1)" }} />
+                            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 1, fontSize: 7, color: "#d4e9f377", fontVariantNumeric: "tabular-nums" }}>
+                              <span>{layer.ticks ? layer.ticks[0] : layer.min}</span>
+                              <span>{layer.ticks ? layer.ticks[layer.ticks.length - 1] : layer.max}</span>
+                            </div>
+                          </>
+                        )}
+                        <div data-testid="crw-data-as-of-c" style={{ fontSize: 7, color: "#d4e9f355", marginTop: 4, letterSpacing: "0.03em" }}>
+                          Data as of <strong style={{ color: layer.color, fontWeight: 700 }}>{crwDateC}</strong> UTC - daily refresh
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             </div>
