@@ -1513,7 +1513,7 @@ function ExpandedMapModal({
                   const doiHref = p.doi ? `https://doi.org/${p.doi.replace(/^https?:\/\/doi\.org\//,"")}` : "";
                   m.bindPopup(
                     `<div style="font-family:Inter,sans-serif;font-size:11px;min-width:200px;max-width:260px;color:#d4e9f3">
-                      <div style="font-weight:700;color:#f9ca24;font-size:12px;margin-bottom:5px;line-height:1.3">🪸 ${p.species || "Coral species"}</div>
+                      <div style="font-weight:700;color:#f9ca24;font-size:12px;margin-bottom:5px;line-height:1.3">🪸 ${p.species ? `<em style="font-style:italic">${p.species}</em>` : "Coral species"}</div>
                       ${p.trait      ? `<div style="margin-bottom:3px"><span style="color:#d4e9f355;font-size:9px;text-transform:uppercase;letter-spacing:.05em">Trait</span><br/><span style="font-weight:600;color:#ffd32a">${p.trait}</span></div>` : ""}
                       ${valueStr     ? `<div style="margin-bottom:3px"><span style="color:#d4e9f355;font-size:9px;text-transform:uppercase;letter-spacing:.05em">Value</span><br/>${valueStr}</div>` : ""}
                       ${p.value_type ? `<div style="margin-bottom:3px"><span style="color:#d4e9f355;font-size:9px;text-transform:uppercase;letter-spacing:.05em">Value type</span> <span style="color:#d4e9f377;font-size:9px">${p.value_type}</span></div>` : ""}
@@ -3695,7 +3695,7 @@ export function ReefMap({
                 const valStr = p.value ? (p.unit ? `${p.value} ${p.unit}` : p.value) : "";
                 m.bindPopup(
                   `<div style="font-family:Inter,sans-serif;font-size:11px;min-width:180px;max-width:240px;color:#d4e9f3">
-                    <div style="font-weight:700;color:#f9ca24;font-size:12px;margin-bottom:4px;line-height:1.3">🪸 ${p.species || "Coral species"}</div>
+                    <div style="font-weight:700;color:#f9ca24;font-size:12px;margin-bottom:4px;line-height:1.3">🪸 ${p.species ? `<em style="font-style:italic">${p.species}</em>` : "Coral species"}</div>
                     ${p.trait      ? `<div style="margin-bottom:3px"><span style="font-size:8px;color:#d4e9f355;text-transform:uppercase">Trait</span><br/><b style="color:#ffd32a">${p.trait}</b></div>` : ""}
                     ${valStr       ? `<div style="font-size:9px;margin-bottom:2px"><span style="color:#d4e9f355">Value:</span> ${valStr}</div>` : ""}
                     ${p.value_type ? `<div style="font-size:8px;color:#d4e9f344;margin-bottom:2px">${p.value_type}</div>` : ""}
