@@ -18,20 +18,21 @@ Pepo is a full-stack DeSci and marine conservation web app that fuses six parall
 | **🧬 ORCID Login** | Primary standalone auth for researchers - no wallet required |
 | **🔐 Privy Auth** | Wallet + email + Google + Twitter + LinkedIn login |
 | **🗳️ Governance** | On-chain DAO voting via Vocdoni - Standard, Approval, and Quadratic voting |
-| **🗺️ Reef Network Map** | Leaflet map with Allen Coral Atlas WMS, GCRMN regions, NOAA DHW layer, and member pins |
-| **⏱️ ReefMap Timelapse** | Full-width CMS timelapse bar with slider, nav buttons, and year/quarter ticks |
-| **🌐 Reef Knowledge Graph** | Live Bonfires.ai graph visualization - interactive on all screen sizes (mobile + desktop) |
+| **🗺️ Reef Network Map** | Multi-layered Leaflet map with 15+ data overlays across 6 category groups |
+| **🌡️ NOAA CRW Heat Stress** | 7 real-time satellite coral bleaching layers via NOAA ERDDAP WMS |
+| **⏱️ CMS Timelapse** | Full-width Copernicus Marine Service timelapse bar with slider and year/quarter ticks |
+| **🌐 Reef Knowledge Graph** | Live Bonfires.ai graph visualization - interactive on all screen sizes |
 | **🏆 Community Leaderboard** | Reputation points, profile cards, and member directory |
 | **👤 User Profiles** | Bio, tags, location, ORCID iD badge, IPFS avatar/images |
-| **🧭 Onboarding Wizard** | 5-step guided tour for new users - Framer Motion overlay, localStorage flag |
-| **📊 Journey / Profile Status** | Collapsible completeness bar - links to ORCID, avatar, bio, display name + points |
+| **🧭 Onboarding Wizard** | 5-step guided tour for new users - Framer Motion overlay, localStorage-gated |
+| **📊 Journey / Profile Status** | Collapsible completeness bar - quick links to ORCID, avatar, bio, display name + points |
 | **📊 Regen Reef Index** | Holistic socio-ecological framework (RRI) - 4 dimensions: Abiotic Stability, Structural Integrity, Functional Integrity, Social & Economic |
 | **🎥 Video Monitor** | DeepReefMap AI pipeline - benthic classification from underwater video transects |
 | **📷 Reef Curation** | Community submission queue for reef images and video surveys - ORCID-gated review |
 | **🗂️ Reef Workspace** | Fileverse dDocs + dSheets for decentralized collaborative documents |
 | **📦 IPFS Storage** | Pinata-backed IPFS pinning - avatar, reef images, and video survey archiving |
-| **🌍 Multilingual** | i18next with RTL support - English, Spanish, French, Arabic, Portuguese, Italian, Chinese, Indonesian, Tagalog, Malay, Thai, Tok Pisin |
-| **🍪 Cookie Consent** | GDPR-compliant cookie banner with accept/decline |
+| **🌍 Multilingual** | i18next with RTL support - 12 languages including Arabic, Chinese, Thai, Tok Pisin |
+| **🍪 Cookie Consent** | GDPR-compliant cookie banner |
 
 ---
 
@@ -43,11 +44,11 @@ Pepo is a full-stack DeSci and marine conservation web app that fuses six parall
 | Animations | Framer Motion |
 | Backend | Express 5, TypeScript (port 5000) |
 | Database | PostgreSQL via Drizzle ORM |
-| Auth | ORCID OAuth 2.0 (primary) · Privy.io (wallet/social) |
+| Auth | ORCID OAuth 2.0 (primary) - Privy.io (wallet/social) |
 | Voting | Vocdoni SDK (`@vocdoni/sdk`) - on-chain proposals |
-| Map | Leaflet · Allen Coral Atlas WMS · GCRMN GeoJSON |
+| Map | Leaflet - Allen Coral Atlas WMS - NOAA ERDDAP WMS - GCRMN GeoJSON |
 | IPFS | Pinata SDK - cloud pinning + dedicated gateway |
-| Knowledge | Bonfires.ai · OpenAlex · Europe PMC · Wikipedia |
+| Knowledge | Bonfires.ai - OpenAlex - Europe PMC - Wikipedia - CoralTraits |
 | i18n | i18next + react-i18next - RTL-aware language switching |
 
 ---
@@ -65,6 +66,83 @@ Every chat response fuses up to six sources in parallel:
 
 ---
 
+## 🗺️ Reef Network Map
+
+The interactive map (`/reef-map`) combines live satellite products, global monitoring databases, community data, and oceanographic model output into a single view. Layers are grouped into six categories:
+
+### Satellite & Environmental
+
+| Layer | Source | Description |
+|-------|--------|-------------|
+| **NOAA CRW** (7 layers) | NOAA ERDDAP | Real-time coral bleaching heat stress - see section below |
+| **CMS Timelapse** | Copernicus Marine | Daily SST/CHL/SSH animated timelapse bar |
+| **Copernicus Live** | CMEMS NEMO | Physics/biogeochemistry ocean model tiles |
+
+### Reef Extent & Boundaries
+
+| Layer | Source | Description |
+|-------|--------|-------------|
+| **Allen Coral Atlas** | Planet Labs / UH | 5 m resolution benthic habitat WMS tiles |
+| **Coral Mapping Regions** | CoralMapping.org | Global reef mapping region polygons |
+| **Marine Regions EEZ** | VLIZ MarineRegions | Exclusive Economic Zone boundary polygons |
+
+### Scientific Monitoring
+
+| Layer | Source | Description |
+|-------|--------|-------------|
+| **GCRMN Regions** | GCRMN | Global Coral Reef Monitoring Network region polygons |
+| **GCRMN Monitoring Sites** | GCRMN 2026 | 2,000+ individual benthic survey site markers |
+| **WCS Coral Cover Sites** | WCS Marine | Wildlife Conservation Society transect survey sites |
+| **WCS ReefCloud** | WCS / ReefCloud | AI-powered underwater photo analysis sites |
+| **Reef Check Sites** | Reef Check | Global volunteer monitoring sites |
+| **Reef Life Survey** | RLS Foundation | Fish and invertebrate survey sites |
+
+### Species & Traits
+
+| Layer | Source | Description |
+|-------|--------|-------------|
+| **CoralTraits** | coraltraits.org | 166,000+ geolocated observations across 5,112 species and 172 biological traits - CoralTraits v2 dataset |
+
+### Community
+
+| Layer | Source | Description |
+|-------|--------|-------------|
+| **Member Pins** | Pepo DB | Opted-in member locations |
+| **Reef Images** | Pepo DB | Community-submitted and curated reef photographs |
+| **Reef Videos** | Pepo DB | Community-submitted underwater video transects |
+
+---
+
+## 🌡️ NOAA Coral Reef Watch Layers
+
+Seven real-time global satellite heat stress layers served via NOAA ERDDAP WMS (dataset `NOAA_DHW`, 5 km / 0.05 deg daily, WMS 1.3.0, EPSG:4326). Updated daily at ~13:30 ET. Radio-style selector in the map - one layer active at a time.
+
+| Layer ID | Label | Unit | Description |
+|----------|-------|------|-------------|
+| `CRW_BAA_7D_MAX` | Bleaching Alerts 7-day Max | Level 0-5 | Rolling 7-day maximum Bleaching Alert Area level |
+| `CRW_DHW` | Degree Heating Weeks | deg C-weeks | Accumulated 12-week thermal stress above Maximum Monthly Mean |
+| `CRW_HOTSPOT` | HotSpot | deg C | SST above Maximum Monthly Mean climatology |
+| `CRW_SST` | Sea Surface Temperature | deg C | CoralTemp daily 5 km blended multi-sensor SST |
+| `CRW_SSTANOMALY` | SST Anomaly | deg C | Departure from long-term monthly climatological mean |
+| `CRW_SSTTREND` | SST Trend 7-day | deg C/week | Rate of SST change over 7 days |
+| `CRW_BAA` | Bleaching Alert (daily) | Level 0-5 | Single-day immediate bleaching alert status |
+
+### Bleaching Alert Levels
+
+| Level | Status | DHW Threshold |
+|-------|--------|---------------|
+| 0 | No Stress | - |
+| 1 | Bleaching Watch | >0 |
+| 2 | Bleaching Warning | >4 deg C-weeks |
+| 3 | Bleaching Alert 1 | >4 (significant bleaching likely) |
+| 4 | Bleaching Alert 2 | >8 (widespread bleaching + mortality risk) |
+| 5 | Bleaching Alert 3+ | >12 (severe mass bleaching) |
+
+WMS endpoint: `https://coastwatch.pfeg.noaa.gov/erddap/wms/NOAA_DHW/request`  
+Sources: [coralreefwatch.noaa.gov](https://coralreefwatch.noaa.gov/product/5km/) - [NOAA CoastWatch Viewer](https://coastwatch.noaa.gov/cw_html/cwViewer.html) - [NNVL Global Data](https://www.nnvl.noaa.gov/view/globaldata.html)
+
+---
+
 ## 🗳️ Governance (Vocdoni)
 
 The `/governance` page provides adaptive on-chain DAO voting powered by the [Vocdoni](https://vocdoni.io) network. A collapsible **How Voting Works** panel explains all three strategies and census modes before users engage.
@@ -75,7 +153,7 @@ The `/governance` page provides adaptive on-chain DAO voting powered by the [Voc
 |----------|-------------|
 | **Standard** | Each voter picks exactly one option |
 | **Approval** | Voters approve any number of options they support |
-| **Quadratic** | Voters distribute 25 credits; cost = credits² - prevents vote concentration |
+| **Quadratic** | Voters distribute 25 credits; cost = credits squared - prevents vote concentration |
 
 ### Census Modes
 
@@ -86,7 +164,7 @@ The `/governance` page provides adaptive on-chain DAO voting powered by the [Voc
 
 ### GitHub Import
 
-The "New Proposal" form includes an **Import from GitHub** button that fetches open issues and pull requests from any public repository and converts them into ready-made ballot options (e.g. "Merge PR #42: …" or "Resolve #17: …").
+The "New Proposal" form includes an **Import from GitHub** button that fetches open issues and pull requests from any public repository and converts them into ready-made ballot options (e.g. "Merge PR #42: ..." or "Resolve #17: ...").
 
 ### Governance Environment Variables
 
@@ -122,7 +200,7 @@ The "New Proposal" form includes an **Import from GitHub** button that fetches o
 | `VITE_VOCDONI_ENV` | Vocdoni network (`stg` or `prod`) |
 | `GITHUB_TOKEN` | Optional - increases GitHub API rate limit for proposal import |
 
-> `VITE_PRIVY_APP_ID` is optional - the app runs without Privy, using ORCID-only auth.
+> `VITE_PRIVY_APP_ID` is optional - the app runs without Privy using ORCID-only auth.
 
 ### Install and Run
 
@@ -140,7 +218,7 @@ npm run dev       # start dev server on port 5000
 
 ORCID is the primary standalone login - no wallet required.
 
-1. User clicks "Sign in" → GET `/api/auth/orcid`
+1. User clicks "Sign in" - GET `/api/auth/orcid`
 2. Server builds ORCID authorization URL with `redirect_uri` derived dynamically from the request host
 3. ORCID redirects to `/api/auth/orcid/callback?code=...`
 4. Server exchanges code for access token + ORCID iD, creates/updates profile, stores session
@@ -199,7 +277,7 @@ Registered redirect URIs:
 
 | Route | Method | Description |
 |-------|--------|-------------|
-| `/api/ipfs/upload` | POST (multipart) | Upload image (≤10 MB); pins to Pinata; returns `{ cid, size, mimeType }` |
+| `/api/ipfs/upload` | POST (multipart) | Upload image (<=10 MB); pins to Pinata; returns `{ cid, size, mimeType }` |
 | `/api/ipfs/cat/:cid` | GET | Stream image bytes for a CID |
 | `/api/ipfs/info` | GET | IPFS/Pinata node status |
 
@@ -257,7 +335,7 @@ Points are stored persistently in PostgreSQL and displayed on the Community lead
 client/src/
   pages/
     Body.tsx                               - Main layout: JourneySection + dashboard
-    CommunityLeaderboard.tsx               - Leaderboard + profile cards → /members/:id
+    CommunityLeaderboard.tsx               - Leaderboard + profile cards -> /members/:id
     Governance.tsx                         - /governance: Vocdoni voting + HowVotingWorks guide
     PublicProfile.tsx                      - /members/:id public member profile
     UserProfileDashboard.tsx               - /profile: edit bio, tags, links, ORCID
@@ -266,7 +344,7 @@ client/src/
     ReefMapPage.tsx                        - /reef-map: desktop reef map page
     VideosMonitoringPage.tsx               - /videos: DeepReefMap AI pipeline + community video surveys
     CurationPage.tsx                       - /curation: image & video review queue (Images | Videos tabs)
-    RegenReefIndexPage.tsx                 - /rri: Regen Reef Index framework dashboard (4 dimensions + 4 platform verticals)
+    RegenReefIndexPage.tsx                 - /rri: Regen Reef Index framework dashboard
     sections/
       ApplicationHeaderSection.tsx         - Top nav with auth button + completeness dot
       ExplorerNavigationSidebarSection.tsx  - Sidebar nav with profile completeness badge
@@ -275,7 +353,7 @@ client/src/
     SplashScreen.tsx                       - Animated intro screen (session-gated)
     OnboardingWizard.tsx                   - 5-step guided tour overlay (localStorage-gated)
     JourneySection.tsx                     - Collapsible profile completeness bar + points
-    ReefMap.tsx                            - Leaflet map: coral layers, timelapse bar, member pins
+    ReefMap.tsx                            - Leaflet map: 15+ data layers, timelapse bar, member pins
     PrivyLoginButton.tsx                   - Privy login modal trigger
     OrcidLoginButton.tsx                   - ORCID OAuth redirect button
     IPFSImageUpload.tsx                    - Drag-and-drop IPFS upload widget (Pinata)
@@ -304,7 +382,7 @@ shared/
 ## 🚢 Deployment
 
 ```bash
-npm run build   # Vite frontend → dist/public/ + esbuild server → dist/index.mjs
+npm run build   # Vite frontend -> dist/public/ + esbuild server -> dist/index.mjs
 node dist/index.mjs
 ```
 
@@ -326,4 +404,14 @@ The server bundle uses ESM. CJS packages are bundled inline by esbuild; ESM-only
 | 🧬 ORCID | https://orcid.org |
 | 🗺️ Allen Coral Atlas | https://allencoralatlas.org |
 | 🌐 GCRMN | https://gcrmn.net |
+| 🌡️ NOAA Coral Reef Watch | https://coralreefwatch.noaa.gov |
+| 📡 NOAA CoastWatch Viewer | https://coastwatch.noaa.gov/cw_html/cwViewer.html |
+| 🌍 NNVL Global Data | https://www.nnvl.noaa.gov/view/globaldata.html |
+| 🐠 CoralTraits | https://coraltraits.org |
+| 🌊 WCS Marine | https://marine.wcs.org |
+| 🐟 Reef Check | https://reefcheck.org |
+| 🐡 Reef Life Survey | https://reeflifesurvey.com |
+| 🛰️ Copernicus Marine | https://marine.copernicus.eu |
 | 📦 Pinata IPFS | https://pinata.cloud |
+| 🗂️ Fileverse | https://fileverse.io |
+| 🎥 DeepReefMap | https://github.com/eceo-epfl/deepreefmap |
