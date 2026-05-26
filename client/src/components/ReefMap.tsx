@@ -43,10 +43,11 @@ const GCRMN_LONG: Record<string, string> = {
 };
 
 // ─── NOAA Coral Reef Watch (CRW) v3.1 - 5 km daily products ──────────────────
-// WMS via NOAA ERDDAP: https://coastwatch.pfeg.noaa.gov/erddap/wms/NOAA_DHW/request
+// WMS via PacIOOS ERDDAP mirror (redirected from coastwatch.pfeg.noaa.gov): dhw_5km dataset
 // Docs: https://coralreefwatch.noaa.gov/product/5km/
 // Procedures: https://coastwatch.noaa.gov/cw_html/cwViewer.html
-const CRW_WMS_BASE = "https://coastwatch.pfeg.noaa.gov/erddap/wms/NOAA_DHW/request";
+const CRW_WMS_BASE = "https://pae-paha.pacioos.hawaii.edu/erddap/wms/dhw_5km/request";
+const CRW_DATASET  = "dhw_5km";
 
 interface CrwLayer {
   id: string; label: string; short: string;
@@ -79,22 +80,17 @@ const CRW_LAYERS: CrwLayer[] = [
     desc: "SST departure from the long-term climatological mean. Positive = warmer than historical average. Negative = cooler. Based on CRW daily 5-km satellite SST climatology.",
   },
   {
-    id: "CRW_SSTTREND", label: "SST Trend (7-day)", short: "SST Trend",
-    unit: "deg C per week", color: "#00cec9",
-    desc: "Rate of SST change over the past 7 days. Positive values indicate the ocean is warming; negative values indicate cooling. Useful for anticipating near-term bleaching risk.",
-  },
-  {
     id: "CRW_BAA", label: "Outlook (single-day)", short: "Outlook",
     unit: "Level 0-5", color: "#fd79a8",
     desc: "Single-day Bleaching Alert Area - immediate pixel-level thermal stress condition. Complements the 7-day max layer to show the current day's alert status without temporal smoothing.",
   },
 ];
 
-// Returns yesterday's date in ISO format - ensures near-real-time data is available
-// CRW daily 5km products are updated ~13:30 ET each day
+// Returns a date string 2 days ago - gives ERDDAP time to process the daily CRW product
+// CRW daily 5km products are updated ~13:30 ET each day; we go back 2 days to be safe
 function getCrwTime(): string {
   const d = new Date();
-  d.setDate(d.getDate() - 1);
+  d.setDate(d.getDate() - 2);
   return d.toISOString().slice(0, 10) + "T12:00:00Z";
 }
 
@@ -1276,13 +1272,13 @@ function ExpandedMapModal({
               <WMSTileLayer
                 key={`crw-expanded-${activeCrwLayer}`}
                 url={CRW_WMS_BASE}
-                layers={`NOAA_DHW:${activeCrwLayer}`}
+                layers={`${CRW_DATASET}:${activeCrwLayer}`}
                 format="image/png"
                 transparent={true}
                 opacity={0.85}
                 version="1.3.0"
                 time={getCrwTime()}
-                attribution='<a href="https://coralreefwatch.noaa.gov" target="_blank" rel="noopener noreferrer">NOAA Coral Reef Watch v3.1</a> via ERDDAP'
+                attribution='<a href="https://coralreefwatch.noaa.gov" target="_blank" rel="noopener noreferrer">NOAA Coral Reef Watch v3.1</a> - PacIOOS ERDDAP'
               />
             )}
             {showCoralMapping && coralMappingGeoJson && (
@@ -2711,7 +2707,7 @@ function ExpandedMapModal({
               ) : null;
             })()}
             <div style={{ fontSize: 7.5, color: "#d4e9f322", marginTop: 3, marginBottom: 4, lineHeight: 1.4 }}>
-              Data: NOAA CRW v3.1 - CoralTemp 5km - ERDDAP dataset NOAA_DHW - CRS EPSG:4326 - WMS 1.3.0
+              Data: NOAA CRW v3.1 - CoralTemp 5km - ERDDAP dataset dhw_5km (PacIOOS) - CRS EPSG:4326 - WMS 1.3.0
             </div>
 
             {/* ── Community ── */}
@@ -3044,7 +3040,7 @@ function ExpandedMapModal({
 
           <SideSection title="NOAA Coral Reef Watch">
             <div style={{ fontSize: 9.5, color: "#d4e9f3aa", lineHeight: 1.5, marginBottom: 8 }}>
-              NOAA Coral Reef Watch (CRW) provides the world's only global near-real-time coral bleaching thermal stress monitoring and outlook products. CRW v3.1 products are derived from <strong style={{ color: "#54a0ff" }}>CoralTemp</strong> - a daily 5 km blended multi-sensor SST satellite product - and are updated every day at approximately 13:30 ET. The ERDDAP dataset <code style={{ color: "#83eef0", fontSize: 8 }}>NOAA_DHW</code> is served at 0.05 degree resolution (EPSG:4326) via WMS 1.3.0.
+              NOAA Coral Reef Watch (CRW) provides the world's only global near-real-time coral bleaching thermal stress monitoring and outlook products. CRW v3.1 products are derived from <strong style={{ color: "#54a0ff" }}>CoralTemp</strong> - a daily 5 km blended multi-sensor SST satellite product - updated daily at ~13:30 ET. Tiles served via PacIOOS ERDDAP (<code style={{ color: "#83eef0", fontSize: 8 }}>dhw_5km</code>), 0.05 degree resolution, EPSG:4326, WMS 1.3.0.
             </div>
 
             {/* CRW layer legend */}
@@ -3104,7 +3100,7 @@ function ExpandedMapModal({
             <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
               {[
                 { label: "coralreefwatch.noaa.gov - CRW 5km product page", href: "https://coralreefwatch.noaa.gov/product/5km/", color: "#e84040" },
-                { label: "ERDDAP: NOAA_DHW dataset info", href: "https://coastwatch.pfeg.noaa.gov/erddap/wms/NOAA_DHW/index.html", color: "#e8404088" },
+                { label: "PacIOOS ERDDAP: dhw_5km dataset info", href: "https://pae-paha.pacioos.hawaii.edu/erddap/info/dhw_5km/index.html", color: "#e8404088" },
                 { label: "NOAA CoastWatch Viewer", href: "https://coastwatch.noaa.gov/cw_html/cwViewer.html", color: "#ff9f43aa" },
                 { label: "NNVL Global Data Visualization", href: "https://www.nnvl.noaa.gov/view/globaldata.html", color: "#54a0ffaa" },
                 { label: "CRW Bleaching Seasonal Outlook", href: "https://coralreefwatch.noaa.gov/product/outlook/", color: "#fd79a8aa" },
@@ -3485,13 +3481,13 @@ export function ReefMap({
             <WMSTileLayer
               key={`crw-compact-${activeCrwLayerC}`}
               url={CRW_WMS_BASE}
-              layers={`NOAA_DHW:${activeCrwLayerC}`}
+              layers={`${CRW_DATASET}:${activeCrwLayerC}`}
               format="image/png"
               transparent={true}
               opacity={0.82}
               version="1.3.0"
               time={getCrwTime()}
-              attribution='NOAA Coral Reef Watch v3.1 via ERDDAP'
+              attribution='NOAA Coral Reef Watch v3.1 - PacIOOS ERDDAP'
             />
           )}
           {showCoralMapping && coralMappingGeoJson && (

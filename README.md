@@ -115,7 +115,7 @@ The interactive map (`/reef-map`) combines live satellite products, global monit
 
 ## 🌡️ NOAA Coral Reef Watch Layers
 
-Seven real-time global satellite heat stress layers served via NOAA ERDDAP WMS (dataset `NOAA_DHW`, 5 km / 0.05 deg daily, WMS 1.3.0, EPSG:4326). Updated daily at ~13:30 ET. Radio-style selector in the map - one layer active at a time.
+Six real-time global satellite heat stress layers served via PacIOOS ERDDAP WMS (dataset `dhw_5km`, 5 km / 0.05 deg daily, WMS 1.3.0, EPSG:4326, `Access-Control-Allow-Origin: *`). Updated daily at ~13:30 ET. Radio-style selector in the map - one layer active at a time.
 
 | Layer ID | Label | Unit | Description |
 |----------|-------|------|-------------|
@@ -124,7 +124,6 @@ Seven real-time global satellite heat stress layers served via NOAA ERDDAP WMS (
 | `CRW_HOTSPOT` | HotSpot | deg C | SST above Maximum Monthly Mean climatology |
 | `CRW_SST` | Sea Surface Temperature | deg C | CoralTemp daily 5 km blended multi-sensor SST |
 | `CRW_SSTANOMALY` | SST Anomaly | deg C | Departure from long-term monthly climatological mean |
-| `CRW_SSTTREND` | SST Trend 7-day | deg C/week | Rate of SST change over 7 days |
 | `CRW_BAA` | Bleaching Alert (daily) | Level 0-5 | Single-day immediate bleaching alert status |
 
 ### Bleaching Alert Levels
@@ -138,7 +137,7 @@ Seven real-time global satellite heat stress layers served via NOAA ERDDAP WMS (
 | 4 | Bleaching Alert 2 | >8 (widespread bleaching + mortality risk) |
 | 5 | Bleaching Alert 3+ | >12 (severe mass bleaching) |
 
-WMS endpoint: `https://coastwatch.pfeg.noaa.gov/erddap/wms/NOAA_DHW/request`  
+WMS endpoint: `https://pae-paha.pacioos.hawaii.edu/erddap/wms/dhw_5km/request` (PacIOOS ERDDAP mirror - the coastwatch.pfeg.noaa.gov endpoint redirects here)  
 Sources: [coralreefwatch.noaa.gov](https://coralreefwatch.noaa.gov/product/5km/) - [NOAA CoastWatch Viewer](https://coastwatch.noaa.gov/cw_html/cwViewer.html) - [NNVL Global Data](https://www.nnvl.noaa.gov/view/globaldata.html)
 
 ---
