@@ -98,9 +98,164 @@ function ctCsvToFeatures(csv: string, source: string): object[] {
   return features;
 }
 
+// Pre-seeded trait definitions from www.coraltraits.org/traits. Mapped to the
+// upstream trait id so coral_traits.id stays stable across re-seeds. Kept in
+// sync with client/src/data/coralTraits.ts. Used to backfill coral_traits even
+// when the upstream CSV is unavailable.
+const CT_TRAIT_DEFS: { id: number; name: string; category: string }[] = [
+  { id: 583, name: "Axis presence", category: "Biomechanical" },
+  { id: 614, name: "CaCO3 concentration in sclerites", category: "Biomechanical" },
+  { id: 616, name: "CaCO3 concentration in the axis", category: "Biomechanical" },
+  { id: 511, name: "Calcareous sclerites presence", category: "Biomechanical" },
+  { id: 137, name: "Colony shape factor", category: "Biomechanical" },
+  { id: 61,  name: "Skeletal density", category: "Biomechanical" },
+  { id: 179, name: "Skeletal micro-density", category: "Biomechanical" },
+  { id: 103, name: "Substrate attachment", category: "Biomechanical" },
+  { id: 561, name: "Type of skeleton", category: "Biomechanical" },
+  { id: 77,  name: "IUCN Red List category", category: "Conservation" },
+  { id: 65,  name: "Abundance GBR", category: "Ecological" },
+  { id: 89,  name: "Abundance world", category: "Ecological" },
+  { id: 92,  name: "Depth lower", category: "Ecological" },
+  { id: 91,  name: "Depth upper", category: "Ecological" },
+  { id: 579, name: "Depth zone", category: "Ecological" },
+  { id: 584, name: "Feeding mechanism", category: "Ecological" },
+  { id: 79,  name: "Generation time", category: "Ecological" },
+  { id: 233, name: "Life history strategy", category: "Ecological" },
+  { id: 97,  name: "Water clarity preference", category: "Ecological" },
+  { id: 96,  name: "Wave exposure preference", category: "Ecological" },
+  { id: 564, name: "Climate zone", category: "Geographical" },
+  { id: 35,  name: "Geographical region", category: "Geographical" },
+  { id: 218, name: "Indo-Pacific faunal province", category: "Geographical" },
+  { id: 40,  name: "Ocean basin", category: "Geographical" },
+  { id: 138, name: "Range size", category: "Geographical" },
+  { id: 567, name: "Branch diameter", category: "Morphological" },
+  { id: 560, name: "Branching architecture", category: "Morphological" },
+  { id: 558, name: "Calyx height", category: "Morphological" },
+  { id: 565, name: "Calyx width", category: "Morphological" },
+  { id: 104, name: "Coloniality", category: "Morphological" },
+  { id: 155, name: "Colony area", category: "Morphological" },
+  { id: 506, name: "Colony height", category: "Morphological" },
+  { id: 90,  name: "Colony maximum diameter", category: "Morphological" },
+  { id: 213, name: "Corallite width", category: "Morphological" },
+  { id: 31,  name: "Bleaching susceptibility", category: "Physiological" },
+  { id: 127, name: "Calcification rate", category: "Physiological" },
+  { id: 60,  name: "Growth rate", category: "Physiological" },
+  { id: 553, name: "Longevity", category: "Physiological" },
+  { id: 128, name: "Symbiodinium clade", category: "Physiological" },
+  { id: 41,  name: "Zooxanthellate", category: "Physiological" },
+  { id: 47,  name: "Age at maturity", category: "Reproductive" },
+  { id: 217, name: "Egg size", category: "Reproductive" },
+  { id: 552, name: "Frequency of reproduction", category: "Reproductive" },
+  { id: 5,   name: "Mode of larval development", category: "Reproductive" },
+  { id: 12,  name: "Polyp fecundity", category: "Reproductive" },
+  { id: 146, name: "Chlorophyll a", category: "Stoichiometric" },
+  { id: 131, name: "Lipid content", category: "Stoichiometric" },
+  { id: 150, name: "Total biomass", category: "Stoichiometric" },
+];
+const CT_TRAIT_BY_NAME = new Map(CT_TRAIT_DEFS.map(d => [d.name.toLowerCase(), d]));
+
+// Persist trait observations to the database so the /coral-traits page +
+// the reef-map layer share one source of truth. Idempotent: silent on error.
+async function persistCoralTraitsToDb(features: any[]): Promise<void> {
+  try {
+    const { storage } = await import("./storage");
+    // Seed trait definitions once.
+    if ((await storage.listCoralTraitDefs()).length === 0) {
+      await storage.bulkInsertCoralTraitDefs(CT_TRAIT_DEFS.map(d => ({
+        id: d.id, name: d.name, category: d.category, unit: "", description: "",
+      })));
+    }
+    // Group features by scientific name.
+    const taxaMap = new Map<string, { genus: string; species: string }>();
+    for (const f of features) {
+      const p = (f as any).properties;
+      const sci = (p.species || "").trim();
+      if (!sci) continue;
+      if (!taxaMap.has(sci)) {
+        const parts = sci.split(/\s+/);
+        taxaMap.set(sci, { genus: parts[0] ?? "", species: parts.slice(1).join(" ") });
+      }
+    }
+    if (taxaMap.size === 0) return;
+    // Insert taxa (skip on conflict by scientific name).
+    const entries = Array.from(taxaMap.entries());
+    await storage.bulkInsertCoralTaxa(
+      entries.map(([scientificName, t]) => ({
+        scientificName, genus: t.genus, species: t.species,
+        family: "", authority: "", commonName: "", iucnStatus: "",
+      }))
+    );
+    // Build sci -> taxonId lookup.
+    const sciToId = new Map<string, number>();
+    const sciNames = Array.from(taxaMap.keys());
+    for (const sci of sciNames) {
+      const row = await storage.getCoralTaxonByName(sci);
+      if (row) sciToId.set(sci, row.id);
+    }
+    // Skip sample insert if already populated to keep this idempotent.
+    if ((await storage.getCoralTraitSamplesCount()) > 0) {
+      await storage.recomputeCoralSampleCounts();
+      return;
+    }
+    const samples = features
+      .map((f: any) => {
+        const p = f.properties || {};
+        const sci = (p.species || "").trim();
+        const taxonId = sciToId.get(sci);
+        if (!taxonId) return null;
+        const def = CT_TRAIT_BY_NAME.get((p.trait || "").toLowerCase());
+        const [lon, lat] = f.geometry?.coordinates ?? [];
+        return {
+          taxonId,
+          traitId: def?.id ?? null,
+          traitName: p.trait || "",
+          value: p.value || "",
+          valueType: p.value_type || "",
+          unit: p.unit || "",
+          resource: p.resource || "",
+          doi: p.doi || "",
+          location: p.location || "",
+          country: p.country || "",
+          latitude: typeof lat === "number" ? lat : null,
+          longitude: typeof lon === "number" ? lon : null,
+          notes: p.notes || "",
+          source: p.source || "",
+        };
+      })
+      .filter(Boolean) as any[];
+    await storage.bulkInsertCoralTraitSamples(samples);
+    await storage.recomputeCoralSampleCounts();
+    console.log(`[coralTraits] DB seed complete: ${taxaMap.size} taxa, ${samples.length} samples`);
+  } catch (e) {
+    console.warn("[coralTraits] DB persist failed:", (e as Error).message);
+  }
+}
+
 async function fetchCoralTraitsData(): Promise<object> {
   const now = Date.now();
   if (_coralTraitsCache && now < _coralTraitsCache.expiresAt) return _coralTraitsCache.geojson;
+
+  // Fast path: if DB already has geolocated samples, serve them directly.
+  try {
+    const { storage } = await import("./storage");
+    const dbSamples = await storage.getGeolocatedCoralSamples(3000);
+    if (dbSamples.length > 50) {
+      const features = dbSamples.map(s => ({
+        type: "Feature",
+        geometry: { type: "Point", coordinates: [s.longitude, s.latitude] },
+        properties: {
+          species: s.scientificName, trait: s.traitName, value: s.value,
+          unit: s.unit, value_type: s.valueType, resource: s.resource, doi: s.doi,
+          location: s.location, country: s.country, notes: s.notes, source: s.source || "db",
+        },
+      }));
+      const geojson = { type: "FeatureCollection", features };
+      _coralTraitsCache = { geojson, expiresAt: now + 24 * 60 * 60 * 1000 };
+      return geojson;
+    }
+  } catch (e) {
+    console.warn("[coralTraits] DB read failed, falling back to upstream:", (e as Error).message);
+  }
 
   const CT_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
@@ -123,6 +278,7 @@ async function fetchCoralTraitsData(): Promise<object> {
         console.log(`[coralTraits] Loaded ${features.length} geolocated obs from official release CSV`);
         const geojson = { type: "FeatureCollection", features };
         _coralTraitsCache = { geojson, expiresAt: now + 24 * 60 * 60 * 1000 };
+        persistCoralTraitsToDb(features).catch(() => undefined);
         return geojson;
       }
     }
@@ -161,6 +317,7 @@ async function fetchCoralTraitsData(): Promise<object> {
         console.log(`[coralTraits] Loaded ${features.length} geolocated obs from observations endpoint`);
         const geojson = { type: "FeatureCollection", features };
         _coralTraitsCache = { geojson, expiresAt: now + 24 * 60 * 60 * 1000 };
+        persistCoralTraitsToDb(features).catch(() => undefined);
         return geojson;
       }
     }
@@ -195,6 +352,7 @@ async function fetchCoralTraitsData(): Promise<object> {
     }));
   const geojson = { type: "FeatureCollection", features };
   _coralTraitsCache = { geojson, expiresAt: now + 24 * 60 * 60 * 1000 };
+  persistCoralTraitsToDb(features).catch(() => undefined);
   return geojson;
 }
 
@@ -2318,6 +2476,7 @@ hr, [class*="divider"], [class*="separator"] {
 
   // GET /api/coral-traits - CoralTraits.org species trait observations (with lat/lon)
   // Tries coraltraits.org CSV directly; falls back to GBIF Scleractinia occurrences.
+  // Side-effect: hydrates the coral_taxa / coral_trait_samples tables on first hit.
   app.get("/api/coral-traits", async (_req: Request, res: Response) => {
     try {
       const geojson = await fetchCoralTraitsData();
@@ -2326,6 +2485,66 @@ hr, [class*="divider"], [class*="separator"] {
     } catch (err) {
       console.error("[coralTraits]", err);
       return res.status(500).json({ error: "Failed to fetch CoralTraits data" });
+    }
+  });
+
+  // GET /api/coral-traits/stats - quick counters for the page header
+  app.get("/api/coral-traits/stats", async (_req, res) => {
+    try {
+      const [taxa, samples, traits, families] = await Promise.all([
+        storage.getCoralTaxaCount(),
+        storage.getCoralTraitSamplesCount(),
+        storage.listCoralTraitDefs().then(r => r.length),
+        storage.listCoralFamilies(),
+      ]);
+      // Lazy hydrate: trigger upstream fetch if DB is empty, but don't block.
+      if (taxa === 0) fetchCoralTraitsData().catch(() => undefined);
+      return res.json({ taxa, samples, traits, families });
+    } catch (err) {
+      console.error("[coralTraits/stats]", err);
+      return res.status(500).json({ error: "Failed to fetch stats" });
+    }
+  });
+
+  // GET /api/coral-traits/taxa?search=&family=&limit=&offset=
+  app.get("/api/coral-traits/taxa", async (req, res) => {
+    try {
+      const taxa = await storage.listCoralTaxa({
+        search: req.query.search as string | undefined,
+        family: req.query.family as string | undefined,
+        limit:  req.query.limit  ? Math.min(parseInt(req.query.limit as string, 10) || 200, 1000) : 200,
+        offset: req.query.offset ? parseInt(req.query.offset as string, 10) || 0 : 0,
+      });
+      return res.json(taxa);
+    } catch (err) {
+      console.error("[coralTraits/taxa]", err);
+      return res.status(500).json({ error: "Failed to list taxa" });
+    }
+  });
+
+  // GET /api/coral-traits/taxa/:id - taxon detail + its samples
+  app.get("/api/coral-traits/taxa/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      if (Number.isNaN(id)) return res.status(400).json({ error: "Invalid id" });
+      const taxon = await storage.getCoralTaxon(id);
+      if (!taxon) return res.status(404).json({ error: "Taxon not found" });
+      const samples = await storage.getCoralSamplesForTaxon(id, 500);
+      return res.json({ taxon, samples });
+    } catch (err) {
+      console.error("[coralTraits/taxon]", err);
+      return res.status(500).json({ error: "Failed to fetch taxon" });
+    }
+  });
+
+  // GET /api/coral-traits/definitions - all trait definitions
+  app.get("/api/coral-traits/definitions", async (_req, res) => {
+    try {
+      const defs = await storage.listCoralTraitDefs();
+      return res.json(defs);
+    } catch (err) {
+      console.error("[coralTraits/defs]", err);
+      return res.status(500).json({ error: "Failed to fetch definitions" });
     }
   });
 

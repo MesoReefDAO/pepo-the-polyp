@@ -2,6 +2,7 @@ import { eq, desc, sql } from "drizzle-orm";
 import { db } from "./db";
 import {
   users, profiles, contributions, reefImages, reefVideos, ipfsBlocks, gcrmnSites,
+  coralTaxa, coralTraits, coralTraitSamples,
   type User, type InsertUser,
   type Profile, type InsertProfile,
   type Contribution, type InsertContribution,
@@ -10,6 +11,9 @@ import {
   type ReefVideo, type InsertReefVideo,
   type IpfsBlock,
   type GcrmnSite, type InsertGcrmnSite,
+  type CoralTaxon, type InsertCoralTaxon,
+  type CoralTraitDef, type InsertCoralTrait,
+  type CoralTraitSample, type InsertCoralTraitSample,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -70,6 +74,21 @@ export interface IStorage {
   getGcrmnSiteCount(): Promise<number>;
   getAllGcrmnSites(): Promise<GcrmnSite[]>;
   bulkInsertGcrmnSites(sites: InsertGcrmnSite[]): Promise<void>;
+
+  // Coral Traits (taxa / trait definitions / samples)
+  getCoralTaxaCount(): Promise<number>;
+  getCoralTraitSamplesCount(): Promise<number>;
+  listCoralTaxa(opts?: { search?: string; family?: string; limit?: number; offset?: number }): Promise<CoralTaxon[]>;
+  getCoralTaxonByName(scientificName: string): Promise<CoralTaxon | undefined>;
+  getCoralTaxon(id: number): Promise<CoralTaxon | undefined>;
+  listCoralTraitDefs(): Promise<CoralTraitDef[]>;
+  getCoralSamplesForTaxon(taxonId: number, limit?: number): Promise<CoralTraitSample[]>;
+  getGeolocatedCoralSamples(limit?: number): Promise<(CoralTraitSample & { scientificName: string })[]>;
+  bulkInsertCoralTaxa(rows: InsertCoralTaxon[]): Promise<void>;
+  bulkInsertCoralTraitDefs(rows: InsertCoralTrait[]): Promise<void>;
+  bulkInsertCoralTraitSamples(rows: InsertCoralTraitSample[]): Promise<void>;
+  recomputeCoralSampleCounts(): Promise<void>;
+  listCoralFamilies(): Promise<string[]>;
 }
 
 // ─── Database-backed storage ───────────────────────────────────────────────────
@@ -521,6 +540,112 @@ export class DbStorage implements IStorage {
     for (let i = 0; i < sites.length; i += BATCH) {
       await db.insert(gcrmnSites).values(sites.slice(i, i + BATCH));
     }
+  }
+
+  // ── Coral Traits (taxa / trait defs / samples) ───────────────────────────
+  async getCoralTaxaCount(): Promise<number> {
+    const [r] = await db.select({ c: sql<number>`count(*)::int` }).from(coralTaxa);
+    return r?.c ?? 0;
+  }
+  async getCoralTraitSamplesCount(): Promise<number> {
+    const [r] = await db.select({ c: sql<number>`count(*)::int` }).from(coralTraitSamples);
+    return r?.c ?? 0;
+  }
+  async listCoralTaxa(opts: { search?: string; family?: string; limit?: number; offset?: number } = {}): Promise<CoralTaxon[]> {
+    const lim = Math.min(opts.limit ?? 200, 1000);
+    const off = opts.offset ?? 0;
+    const where: any[] = [];
+    if (opts.search && opts.search.trim()) {
+      const q = `%${opts.search.trim().toLowerCase()}%`;
+      where.push(sql`lower(${coralTaxa.scientificName}) like ${q}`);
+    }
+    if (opts.family && opts.family.trim()) {
+      where.push(sql`${coralTaxa.family} = ${opts.family}`);
+    }
+    const whereSql = where.length ? sql`${sql.join(where, sql` and `)}` : sql`true`;
+    return db.select().from(coralTaxa).where(whereSql).orderBy(desc(coralTaxa.sampleCount), coralTaxa.scientificName).limit(lim).offset(off);
+  }
+  async getCoralTaxonByName(scientificName: string): Promise<CoralTaxon | undefined> {
+    const [r] = await db.select().from(coralTaxa).where(eq(coralTaxa.scientificName, scientificName));
+    return r;
+  }
+  async getCoralTaxon(id: number): Promise<CoralTaxon | undefined> {
+    const [r] = await db.select().from(coralTaxa).where(eq(coralTaxa.id, id));
+    return r;
+  }
+  async listCoralTraitDefs(): Promise<CoralTraitDef[]> {
+    return db.select().from(coralTraits).orderBy(coralTraits.category, coralTraits.name);
+  }
+  async getCoralSamplesForTaxon(taxonId: number, limit = 500): Promise<CoralTraitSample[]> {
+    return db.select().from(coralTraitSamples).where(eq(coralTraitSamples.taxonId, taxonId)).limit(limit);
+  }
+  async getGeolocatedCoralSamples(limit = 2000): Promise<(CoralTraitSample & { scientificName: string })[]> {
+    const rows = await db
+      .select({
+        id: coralTraitSamples.id,
+        taxonId: coralTraitSamples.taxonId,
+        traitId: coralTraitSamples.traitId,
+        traitName: coralTraitSamples.traitName,
+        value: coralTraitSamples.value,
+        valueType: coralTraitSamples.valueType,
+        unit: coralTraitSamples.unit,
+        resource: coralTraitSamples.resource,
+        doi: coralTraitSamples.doi,
+        location: coralTraitSamples.location,
+        country: coralTraitSamples.country,
+        latitude: coralTraitSamples.latitude,
+        longitude: coralTraitSamples.longitude,
+        notes: coralTraitSamples.notes,
+        source: coralTraitSamples.source,
+        scientificName: coralTaxa.scientificName,
+      })
+      .from(coralTraitSamples)
+      .innerJoin(coralTaxa, eq(coralTaxa.id, coralTraitSamples.taxonId))
+      .where(sql`${coralTraitSamples.latitude} is not null and ${coralTraitSamples.longitude} is not null`)
+      .limit(limit);
+    return rows as any;
+  }
+  async bulkInsertCoralTaxa(rows: InsertCoralTaxon[]): Promise<void> {
+    if (!rows.length) return;
+    const BATCH = 500;
+    for (let i = 0; i < rows.length; i += BATCH) {
+      await db.insert(coralTaxa).values(rows.slice(i, i + BATCH)).onConflictDoNothing({ target: coralTaxa.scientificName });
+    }
+  }
+  async bulkInsertCoralTraitDefs(rows: InsertCoralTrait[]): Promise<void> {
+    if (!rows.length) return;
+    const BATCH = 200;
+    for (let i = 0; i < rows.length; i += BATCH) {
+      await db.insert(coralTraits).values(rows.slice(i, i + BATCH)).onConflictDoNothing({ target: coralTraits.id });
+    }
+  }
+  async bulkInsertCoralTraitSamples(rows: InsertCoralTraitSample[]): Promise<void> {
+    if (!rows.length) return;
+    const BATCH = 500;
+    for (let i = 0; i < rows.length; i += BATCH) {
+      await db.insert(coralTraitSamples).values(rows.slice(i, i + BATCH));
+    }
+  }
+  async recomputeCoralSampleCounts(): Promise<void> {
+    await db.execute(sql`
+      update coral_taxa t set sample_count = sub.c from (
+        select taxon_id, count(*)::int as c from coral_trait_samples group by taxon_id
+      ) sub where sub.taxon_id = t.id
+    `);
+    await db.execute(sql`
+      update coral_traits t set sample_count = sub.c from (
+        select trait_id, count(*)::int as c from coral_trait_samples where trait_id is not null group by trait_id
+      ) sub where sub.trait_id = t.id
+    `);
+  }
+  async listCoralFamilies(): Promise<string[]> {
+    const rows = await db
+      .select({ family: coralTaxa.family })
+      .from(coralTaxa)
+      .where(sql`${coralTaxa.family} <> ''`)
+      .groupBy(coralTaxa.family)
+      .orderBy(coralTaxa.family);
+    return rows.map(r => r.family);
   }
 }
 

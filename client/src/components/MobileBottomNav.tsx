@@ -181,6 +181,21 @@ export function MobileBottomNav() {
         }
       />
 
+      {/* Coral Traits */}
+      <NavItem
+        href="/coral-traits"
+        testId="nav-mobile-coral-traits"
+        active={at("/coral-traits")}
+        label="Traits"
+        icon={
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path d="M12 3v3M5 7l2 2M19 7l-2 2M3 14h3M21 14h-3M8 21l1-5h6l1 5"
+              stroke={at("/coral-traits") ? "#f9ca24" : c("/coral-traits")} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/>
+            <circle cx="12" cy="12" r="2.2" stroke={at("/coral-traits") ? "#f9ca24" : c("/coral-traits")} strokeWidth="1.7"/>
+          </svg>
+        }
+      />
+
       {/* Videos Monitoring */}
       <NavItem
         href="/videos"

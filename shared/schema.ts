@@ -155,6 +155,61 @@ export const insertReefVideoSchema = createInsertSchema(reefVideos).omit({
 export type InsertReefVideo = z.infer<typeof insertReefVideoSchema>;
 export type ReefVideo = typeof reefVideos.$inferSelect;
 
+// ─── Coral Traits (jmadinlab/coraltraits2 - https://www.coraltraits.org) ─────
+// Three relational tables mirroring the CTDB v0.1.0 release:
+//   * coral_taxa     - one row per Scleractinia species (taxonomy)
+//   * coral_traits   - trait definitions (id maps to coraltraits.org/traits/{id})
+//   * coral_trait_samples - individual observations linking taxon + trait + value
+//                            + optional geo-location, source and DOI
+
+export const coralTaxa = pgTable("coral_taxa", {
+  id:             serial("id").primaryKey(),
+  scientificName: text("scientific_name").notNull().unique(),
+  genus:          text("genus").notNull().default(""),
+  species:        text("species").notNull().default(""),
+  family:         text("family").notNull().default(""),
+  authority:      text("authority").notNull().default(""),
+  commonName:     text("common_name").notNull().default(""),
+  iucnStatus:     text("iucn_status").notNull().default(""),
+  sampleCount:    integer("sample_count").notNull().default(0),
+});
+export const insertCoralTaxonSchema = createInsertSchema(coralTaxa).omit({ id: true, sampleCount: true });
+export type InsertCoralTaxon = z.infer<typeof insertCoralTaxonSchema>;
+export type CoralTaxon = typeof coralTaxa.$inferSelect;
+
+export const coralTraits = pgTable("coral_traits", {
+  id:           integer("id").primaryKey(),                 // upstream trait id
+  name:         text("name").notNull().unique(),
+  category:     text("category").notNull().default(""),     // Morphological, Reproductive, ...
+  unit:         text("unit").notNull().default(""),
+  description:  text("description").notNull().default(""),
+  sampleCount:  integer("sample_count").notNull().default(0),
+});
+export const insertCoralTraitSchema = createInsertSchema(coralTraits).omit({ sampleCount: true });
+export type InsertCoralTrait = z.infer<typeof insertCoralTraitSchema>;
+export type CoralTraitDef = typeof coralTraits.$inferSelect;
+
+export const coralTraitSamples = pgTable("coral_trait_samples", {
+  id:            serial("id").primaryKey(),
+  taxonId:       integer("taxon_id").notNull().references(() => coralTaxa.id),
+  traitId:       integer("trait_id"),                       // nullable - upstream sometimes lacks it
+  traitName:     text("trait_name").notNull().default(""),  // denormalised for fast filter
+  value:         text("value").notNull().default(""),
+  valueType:     text("value_type").notNull().default(""),
+  unit:          text("unit").notNull().default(""),
+  resource:      text("resource").notNull().default(""),
+  doi:           text("doi").notNull().default(""),
+  location:      text("location").notNull().default(""),
+  country:       text("country").notNull().default(""),
+  latitude:      real("latitude"),
+  longitude:     real("longitude"),
+  notes:         text("notes").notNull().default(""),
+  source:        text("source").notNull().default(""),      // 'coraltraits-release' | 'gbif-scleractinia' | ...
+});
+export const insertCoralTraitSampleSchema = createInsertSchema(coralTraitSamples).omit({ id: true });
+export type InsertCoralTraitSample = z.infer<typeof insertCoralTraitSampleSchema>;
+export type CoralTraitSample = typeof coralTraitSamples.$inferSelect;
+
 // ─── Leaderboard (aggregated view) ────────────────────────────────────────────
 export interface LeaderboardEntry {
   id: string;

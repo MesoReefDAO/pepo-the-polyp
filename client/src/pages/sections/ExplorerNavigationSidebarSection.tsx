@@ -387,6 +387,28 @@ export const ExplorerNavigationSidebarSection = (): JSX.Element => {
           </span>
         </Link>
 
+        {/* Coral Traits */}
+        <Link
+          href="/coral-traits"
+          data-testid="link-coral-traits"
+          className={`${PILL_BASE} ${location === "/coral-traits" ? PILL_ACTIVE : PILL_INACTIVE}`}
+          style={location === "/coral-traits" ? EMBOSS : {}}
+        >
+          <div className="w-5 h-5 flex-shrink-0 flex items-center justify-center">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M12 3v4M5 7l3 3M19 7l-3 3M3 14h4M21 14h-4M8 21l1-6h6l1 6"
+                stroke={location === "/coral-traits" ? "#f9ca24" : "#d4e9f380"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+              <circle cx="12" cy="12" r="2.5" stroke={location === "/coral-traits" ? "#f9ca24" : "#d4e9f380"} strokeWidth="1.8"/>
+            </svg>
+          </div>
+          <span className={`${TEXT_BASE} ${location === "/coral-traits" ? "font-bold text-[#83eef0]" : "font-medium text-[#d4e9f380]"}`}>
+            Coral Traits
+          </span>
+          <span className="ml-auto text-[8px] [font-family:'Inter',Helvetica] px-1.5 py-0.5 rounded-full bg-[#f9ca2418] border border-[#f9ca2433] text-[#f9ca24cc]">
+            CTDB
+          </span>
+        </Link>
+
         {/* Regen Reef Index */}
         <Link
           href="/rri"
