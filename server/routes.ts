@@ -44,6 +44,35 @@ function parseCsvRow(line: string): string[] {
   return result;
 }
 
+// Hand-curated genus -> family map for common Scleractinia, used when upstream
+// payload lacks a family column. Covers the bulk of CTDB observations; unknown
+// genera simply fall through to "" and the UI shows "All families".
+const SCLERACTINIA_FAMILY_BY_GENUS: Record<string, string> = {
+  Acropora: "Acroporidae", Astreopora: "Acroporidae", Isopora: "Acroporidae", Montipora: "Acroporidae",
+  Pocillopora: "Pocilloporidae", Seriatopora: "Pocilloporidae", Stylophora: "Pocilloporidae", Madracis: "Pocilloporidae",
+  Porites: "Poritidae", Goniopora: "Poritidae", Alveopora: "Poritidae",
+  Favia: "Faviidae", Favites: "Faviidae", Goniastrea: "Faviidae", Platygyra: "Faviidae",
+  Diploastrea: "Faviidae", Leptoria: "Faviidae", Montastraea: "Faviidae", Echinopora: "Faviidae",
+  Cyphastrea: "Faviidae", Oulastrea: "Faviidae", Caulastraea: "Faviidae", Plesiastrea: "Faviidae",
+  Mussa: "Mussidae", Mussismilia: "Mussidae", Symphyllia: "Mussidae", Lobophyllia: "Mussidae",
+  Acanthastrea: "Mussidae", Scolymia: "Mussidae",
+  Fungia: "Fungiidae", Ctenactis: "Fungiidae", Herpolitha: "Fungiidae", Halomitra: "Fungiidae",
+  Sandalolitha: "Fungiidae", Polyphyllia: "Fungiidae", Lithophyllon: "Fungiidae",
+  Pavona: "Agariciidae", Agaricia: "Agariciidae", Leptoseris: "Agariciidae", Coeloseris: "Agariciidae",
+  Gardineroseris: "Agariciidae", Pachyseris: "Agariciidae",
+  Galaxea: "Oculinidae", Oculina: "Oculinidae",
+  Turbinaria: "Dendrophylliidae", Tubastraea: "Dendrophylliidae", Dendrophyllia: "Dendrophylliidae",
+  Balanophyllia: "Dendrophylliidae", Heteropsammia: "Dendrophylliidae",
+  Hydnophora: "Merulinidae", Merulina: "Merulinidae", Scapophyllia: "Merulinidae",
+  Pectinia: "Pectiniidae", Mycedium: "Pectiniidae", Echinophyllia: "Pectiniidae", Oxypora: "Pectiniidae",
+  Euphyllia: "Euphylliidae", Plerogyra: "Euphylliidae", Physogyra: "Euphylliidae", Catalaphyllia: "Euphylliidae",
+  Cynarina: "Lobophylliidae",
+  Siderastrea: "Siderastreidae", Coscinaraea: "Siderastreidae", Pseudosiderastrea: "Siderastreidae", Psammocora: "Siderastreidae",
+  Diploria: "Mussidae", Manicina: "Mussidae", Colpophyllia: "Mussidae",
+  Stylocoeniella: "Astrocoeniidae", Madrepora: "Oculinidae",
+  Leptastrea: "Faviidae", Astrangia: "Rhizangiidae",
+};
+
 // Parse a full CSV text block into GeoJSON features (requires lat/lon columns).
 // Uses the coraltraits.org column naming conventions (contextual=on default).
 function ctCsvToFeatures(csv: string, source: string): object[] {
@@ -64,6 +93,7 @@ function ctCsvToFeatures(csv: string, source: string): object[] {
   const locationIdx  = idx([/^location_name$/i]);
   const countryIdx   = idx([/^country$/i]);
   const notesIdx     = idx([/^notes$/i]);
+  const familyIdx    = idx([/^family$/i, /^family_name$/i]);
 
   if (latIdx < 0 || lonIdx < 0) return [];
 
@@ -91,6 +121,7 @@ function ctCsvToFeatures(csv: string, source: string): object[] {
         location:   locationIdx  >= 0 ? (cols[locationIdx]  || "") : "",
         country:    countryIdx   >= 0 ? (cols[countryIdx]   || "") : "",
         notes:      notesIdx     >= 0 ? (cols[notesIdx]     || "") : "",
+        family:     familyIdx    >= 0 ? (cols[familyIdx]    || "") : "",
         source,
       },
     });
@@ -98,60 +129,12 @@ function ctCsvToFeatures(csv: string, source: string): object[] {
   return features;
 }
 
-// Pre-seeded trait definitions from www.coraltraits.org/traits. Mapped to the
-// upstream trait id so coral_traits.id stays stable across re-seeds. Kept in
-// sync with client/src/data/coralTraits.ts. Used to backfill coral_traits even
-// when the upstream CSV is unavailable.
-const CT_TRAIT_DEFS: { id: number; name: string; category: string }[] = [
-  { id: 583, name: "Axis presence", category: "Biomechanical" },
-  { id: 614, name: "CaCO3 concentration in sclerites", category: "Biomechanical" },
-  { id: 616, name: "CaCO3 concentration in the axis", category: "Biomechanical" },
-  { id: 511, name: "Calcareous sclerites presence", category: "Biomechanical" },
-  { id: 137, name: "Colony shape factor", category: "Biomechanical" },
-  { id: 61,  name: "Skeletal density", category: "Biomechanical" },
-  { id: 179, name: "Skeletal micro-density", category: "Biomechanical" },
-  { id: 103, name: "Substrate attachment", category: "Biomechanical" },
-  { id: 561, name: "Type of skeleton", category: "Biomechanical" },
-  { id: 77,  name: "IUCN Red List category", category: "Conservation" },
-  { id: 65,  name: "Abundance GBR", category: "Ecological" },
-  { id: 89,  name: "Abundance world", category: "Ecological" },
-  { id: 92,  name: "Depth lower", category: "Ecological" },
-  { id: 91,  name: "Depth upper", category: "Ecological" },
-  { id: 579, name: "Depth zone", category: "Ecological" },
-  { id: 584, name: "Feeding mechanism", category: "Ecological" },
-  { id: 79,  name: "Generation time", category: "Ecological" },
-  { id: 233, name: "Life history strategy", category: "Ecological" },
-  { id: 97,  name: "Water clarity preference", category: "Ecological" },
-  { id: 96,  name: "Wave exposure preference", category: "Ecological" },
-  { id: 564, name: "Climate zone", category: "Geographical" },
-  { id: 35,  name: "Geographical region", category: "Geographical" },
-  { id: 218, name: "Indo-Pacific faunal province", category: "Geographical" },
-  { id: 40,  name: "Ocean basin", category: "Geographical" },
-  { id: 138, name: "Range size", category: "Geographical" },
-  { id: 567, name: "Branch diameter", category: "Morphological" },
-  { id: 560, name: "Branching architecture", category: "Morphological" },
-  { id: 558, name: "Calyx height", category: "Morphological" },
-  { id: 565, name: "Calyx width", category: "Morphological" },
-  { id: 104, name: "Coloniality", category: "Morphological" },
-  { id: 155, name: "Colony area", category: "Morphological" },
-  { id: 506, name: "Colony height", category: "Morphological" },
-  { id: 90,  name: "Colony maximum diameter", category: "Morphological" },
-  { id: 213, name: "Corallite width", category: "Morphological" },
-  { id: 31,  name: "Bleaching susceptibility", category: "Physiological" },
-  { id: 127, name: "Calcification rate", category: "Physiological" },
-  { id: 60,  name: "Growth rate", category: "Physiological" },
-  { id: 553, name: "Longevity", category: "Physiological" },
-  { id: 128, name: "Symbiodinium clade", category: "Physiological" },
-  { id: 41,  name: "Zooxanthellate", category: "Physiological" },
-  { id: 47,  name: "Age at maturity", category: "Reproductive" },
-  { id: 217, name: "Egg size", category: "Reproductive" },
-  { id: 552, name: "Frequency of reproduction", category: "Reproductive" },
-  { id: 5,   name: "Mode of larval development", category: "Reproductive" },
-  { id: 12,  name: "Polyp fecundity", category: "Reproductive" },
-  { id: 146, name: "Chlorophyll a", category: "Stoichiometric" },
-  { id: 131, name: "Lipid content", category: "Stoichiometric" },
-  { id: 150, name: "Total biomass", category: "Stoichiometric" },
-];
+// Trait definitions come from the canonical catalog in shared/ so server and
+// client always agree on the full set (currently 138 traits across 8 categories).
+import { CORAL_TRAIT_CATEGORIES } from "@shared/coralTraitsCatalog";
+const CT_TRAIT_DEFS = CORAL_TRAIT_CATEGORIES.flatMap(cat =>
+  cat.traits.map(t => ({ id: t.id, name: t.name, category: cat.name }))
+);
 const CT_TRAIT_BY_NAME = new Map(CT_TRAIT_DEFS.map(d => [d.name.toLowerCase(), d]));
 
 // Persist trait observations to the database so the /coral-traits page +
@@ -159,44 +142,44 @@ const CT_TRAIT_BY_NAME = new Map(CT_TRAIT_DEFS.map(d => [d.name.toLowerCase(), d
 async function persistCoralTraitsToDb(features: any[]): Promise<void> {
   try {
     const { storage } = await import("./storage");
-    // Seed trait definitions once.
-    if ((await storage.listCoralTraitDefs()).length === 0) {
-      await storage.bulkInsertCoralTraitDefs(CT_TRAIT_DEFS.map(d => ({
-        id: d.id, name: d.name, category: d.category, unit: "", description: "",
-      })));
-    }
-    // Group features by scientific name.
-    const taxaMap = new Map<string, { genus: string; species: string }>();
+    // Seed trait definitions (idempotent via onConflictDoNothing on id),
+    // run every time so newly added entries in the canonical catalog are
+    // backfilled without manual migration.
+    await storage.bulkInsertCoralTraitDefs(CT_TRAIT_DEFS.map(d => ({
+      id: d.id, name: d.name, category: d.category, unit: "", description: "",
+    })));
+    // Group features by scientific name; track best family seen per taxon.
+    const taxaMap = new Map<string, { genus: string; species: string; family: string }>();
     for (const f of features) {
       const p = (f as any).properties;
       const sci = (p.species || "").trim();
       if (!sci) continue;
-      if (!taxaMap.has(sci)) {
-        const parts = sci.split(/\s+/);
-        taxaMap.set(sci, { genus: parts[0] ?? "", species: parts.slice(1).join(" ") });
+      const parts = sci.split(/\s+/);
+      const genus = parts[0] ?? "";
+      const fam   = (p.family || "").trim() || SCLERACTINIA_FAMILY_BY_GENUS[genus] || "";
+      const cur   = taxaMap.get(sci);
+      if (!cur) {
+        taxaMap.set(sci, { genus, species: parts.slice(1).join(" "), family: fam });
+      } else if (!cur.family && fam) {
+        cur.family = fam;
       }
     }
     if (taxaMap.size === 0) return;
-    // Insert taxa (skip on conflict by scientific name).
     const entries = Array.from(taxaMap.entries());
     await storage.bulkInsertCoralTaxa(
       entries.map(([scientificName, t]) => ({
         scientificName, genus: t.genus, species: t.species,
-        family: "", authority: "", commonName: "", iucnStatus: "",
+        family: t.family, authority: "", commonName: "", iucnStatus: "",
       }))
     );
     // Build sci -> taxonId lookup.
     const sciToId = new Map<string, number>();
-    const sciNames = Array.from(taxaMap.keys());
-    for (const sci of sciNames) {
+    for (const sci of Array.from(taxaMap.keys())) {
       const row = await storage.getCoralTaxonByName(sci);
       if (row) sciToId.set(sci, row.id);
     }
-    // Skip sample insert if already populated to keep this idempotent.
-    if ((await storage.getCoralTraitSamplesCount()) > 0) {
-      await storage.recomputeCoralSampleCounts();
-      return;
-    }
+    // Per-sample dedupe via stable key; bulkInsert uses onConflictDoNothing.
+    // This is race-safe and incremental: re-runs only insert new observations.
     const samples = features
       .map((f: any) => {
         const p = f.properties || {};
@@ -205,6 +188,13 @@ async function persistCoralTraitsToDb(features: any[]): Promise<void> {
         if (!taxonId) return null;
         const def = CT_TRAIT_BY_NAME.get((p.trait || "").toLowerCase());
         const [lon, lat] = f.geometry?.coordinates ?? [];
+        const latNum = typeof lat === "number" ? lat : null;
+        const lonNum = typeof lon === "number" ? lon : null;
+        const dedupeKey = [
+          taxonId, p.trait || "", p.value || "",
+          p.location || "", p.country || "",
+          latNum != null ? latNum.toFixed(4) : "", lonNum != null ? lonNum.toFixed(4) : "",
+        ].join("|");
         return {
           taxonId,
           traitId: def?.id ?? null,
@@ -216,16 +206,17 @@ async function persistCoralTraitsToDb(features: any[]): Promise<void> {
           doi: p.doi || "",
           location: p.location || "",
           country: p.country || "",
-          latitude: typeof lat === "number" ? lat : null,
-          longitude: typeof lon === "number" ? lon : null,
+          latitude: latNum,
+          longitude: lonNum,
           notes: p.notes || "",
           source: p.source || "",
+          dedupeKey,
         };
       })
       .filter(Boolean) as any[];
     await storage.bulkInsertCoralTraitSamples(samples);
     await storage.recomputeCoralSampleCounts();
-    console.log(`[coralTraits] DB seed complete: ${taxaMap.size} taxa, ${samples.length} samples`);
+    console.log(`[coralTraits] DB hydrate: ${taxaMap.size} taxa seen, ${samples.length} samples processed (dupes skipped)`);
   } catch (e) {
     console.warn("[coralTraits] DB persist failed:", (e as Error).message);
   }
@@ -347,6 +338,7 @@ async function fetchCoralTraitsData(): Promise<object> {
         location:   "",
         country:    r.country || "",
         notes:      "",
+        family:     r.family || "",
         source: "gbif-scleractinia",
       },
     }));

@@ -623,7 +623,8 @@ export class DbStorage implements IStorage {
     if (!rows.length) return;
     const BATCH = 500;
     for (let i = 0; i < rows.length; i += BATCH) {
-      await db.insert(coralTraitSamples).values(rows.slice(i, i + BATCH));
+      await db.insert(coralTraitSamples).values(rows.slice(i, i + BATCH))
+        .onConflictDoNothing({ target: coralTraitSamples.dedupeKey });
     }
   }
   async recomputeCoralSampleCounts(): Promise<void> {

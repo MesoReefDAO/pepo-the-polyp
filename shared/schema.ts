@@ -189,6 +189,9 @@ export const insertCoralTraitSchema = createInsertSchema(coralTraits).omit({ sam
 export type InsertCoralTrait = z.infer<typeof insertCoralTraitSchema>;
 export type CoralTraitDef = typeof coralTraits.$inferSelect;
 
+// Deterministic dedupe key: same taxon+trait+value+location+coord
+// triple is treated as the same observation across re-seeds. Used with
+// onConflictDoNothing so the seeder is fully idempotent and race-safe.
 export const coralTraitSamples = pgTable("coral_trait_samples", {
   id:            serial("id").primaryKey(),
   taxonId:       integer("taxon_id").notNull().references(() => coralTaxa.id),
@@ -205,6 +208,7 @@ export const coralTraitSamples = pgTable("coral_trait_samples", {
   longitude:     real("longitude"),
   notes:         text("notes").notNull().default(""),
   source:        text("source").notNull().default(""),      // 'coraltraits-release' | 'gbif-scleractinia' | ...
+  dedupeKey:     text("dedupe_key").notNull().unique(),     // sha-ish concat of dedupe cols
 });
 export const insertCoralTraitSampleSchema = createInsertSchema(coralTraitSamples).omit({ id: true });
 export type InsertCoralTraitSample = z.infer<typeof insertCoralTraitSampleSchema>;
