@@ -954,8 +954,8 @@ function ExpandedMapModal({
   inline?: boolean;
 }) {
   const [showGcrmn,          setShowGcrmn]          = useState(true);
-  const [showCoralMapping,   setShowCoralMapping]   = useState(true);
-  const [showMarineRegions,  setShowMarineRegions]  = useState(true);
+  const [showCoralMapping,   setShowCoralMapping]   = useState(false);
+  const [showMarineRegions,  setShowMarineRegions]  = useState(false);
   const [showImgs,           setShowImgs]           = useState(true);
   const [showVideos,         setShowVideos]         = useState(true);
   const [showDaoMembers,     setShowDaoMembers]     = useState(true);
@@ -1231,6 +1231,8 @@ function ExpandedMapModal({
             zoomControl={true}
             scrollWheelZoom={true}
             attributionControl={true}
+            preferCanvas={true}
+            worldCopyJump={true}
             style={{ width: "100%", height: "100%", background: "#00131c" }}
           >
             <MapResizer />
@@ -3304,13 +3306,13 @@ export function ReefMap({
   expanded?: boolean;
   onExpandChange?: (v: boolean) => void;
 }) {
-  const [showGcrmn,         setShowGcrmn]         = useState(true);
-  const [showCoralMapping,  setShowCoralMapping]  = useState(true);
-  const [showMarineRegions, setShowMarineRegions] = useState(true);
+  const [showGcrmn,         setShowGcrmn]         = useState(false);
+  const [showCoralMapping,  setShowCoralMapping]  = useState(false);
+  const [showMarineRegions, setShowMarineRegions] = useState(false);
   const [showImgs,          setShowImgs]          = useState(true);
   const [showVideos,        setShowVideos]        = useState(true);
   const [showDaoMembers,    setShowDaoMembers]    = useState(true);
-  const [showGcrmnSites,    setShowGcrmnSites]    = useState(true);
+  const [showGcrmnSites,    setShowGcrmnSites]    = useState(false);
   const [showLayerMenu,     setShowLayerMenu]     = useState(false);
   const [internalExpanded,  setInternalExpanded]  = useState(false);
   const [activeCmsVar,      setActiveCmsVar]      = useState<CmsVar | null>(null);
@@ -3356,27 +3358,34 @@ export function ReefMap({
 
   const { data: markers = [] } = useQuery<MapMarker[]>({
     queryKey: ["/api/map/markers"],
-    refetchInterval: 60_000,
+    refetchInterval: 5 * 60_000,
+    staleTime: 60_000,
   });
 
   const { data: reefImgs = [] } = useQuery<ReefImageMarker[]>({
     queryKey: ["/api/reef-images"],
-    refetchInterval: 60_000,
+    refetchInterval: 5 * 60_000,
+    staleTime: 60_000,
+    enabled: showImgs,
   });
 
   const { data: reefVideos = [] } = useQuery<ReefVideoMarker[]>({
     queryKey: ["/api/reef-videos"],
-    refetchInterval: 60_000,
+    refetchInterval: 5 * 60_000,
+    staleTime: 60_000,
+    enabled: showVideos,
   });
 
   const { data: gcrmnGeoJson } = useQuery<GeoJSON.FeatureCollection>({
     queryKey: ["/api/gcrmn/regions"],
     staleTime: 24 * 60 * 60 * 1000,
+    enabled: showGcrmn,
   });
 
   const { data: coralMappingGeoJson } = useQuery<GeoJSON.FeatureCollection>({
     queryKey: ["/api/coral-mapping/regions"],
     staleTime: 24 * 60 * 60 * 1000,
+    enabled: showCoralMapping,
   });
 
   const { data: compactWcsReefCloudGeoJson } = useQuery<GeoJSON.FeatureCollection>({
@@ -3440,6 +3449,7 @@ export function ReefMap({
           zoomControl={false}
           scrollWheelZoom={false}
           attributionControl={false}
+          preferCanvas={true}
           style={{ width: "100%", height: "100%", background: "#00131c" }}
         >
           <MapResizer />
