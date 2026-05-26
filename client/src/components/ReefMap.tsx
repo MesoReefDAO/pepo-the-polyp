@@ -7,6 +7,7 @@ import "leaflet/dist/leaflet.css";
 import { Maximize2, X, Users, Globe, Layers, Camera } from "lucide-react";
 import type { Feature } from "geojson";
 import { usePrivy } from "@privy-io/react-auth";
+import { CORAL_TRAIT_CATEGORIES, CORAL_TRAITS_TOTAL, CORAL_TRAITS_URL } from "@/data/coralTraits";
 
 // ─── Fix Leaflet default icon paths broken by Vite ────────────────────────────
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -3008,7 +3009,7 @@ function ExpandedMapModal({
               {[
                 ["Observations", "166,245"],
                 ["Trait entries", "244,324"],
-                ["Traits tracked", "172"],
+                ["Traits tracked", String(CORAL_TRAITS_TOTAL)],
                 ["Species", "5,112"],
               ].map(([k, v]) => (
                 <div key={String(k)} style={{ background: "rgba(249,202,36,0.07)", border: "1px solid rgba(249,202,36,0.2)", borderRadius: 6, padding: "5px 7px" }}>
@@ -3018,15 +3019,9 @@ function ExpandedMapModal({
               ))}
             </div>
 
-            {/* Trait categories */}
-            <div style={{ marginBottom: 8 }}>
-              <div style={{ fontSize: 8, fontWeight: 700, color: "#f9ca2488", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>Trait categories</div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "3px 5px" }}>
-                {["Growth rate", "Skeletal density", "Bleaching response", "Symbiodinium", "Morphology", "Colony shape", "Spawning date", "Geographic range", "Corallite width", "Calcification"].map(t => (
-                  <span key={t} style={{ fontSize: 8, background: "rgba(249,202,36,0.08)", border: "1px solid rgba(249,202,36,0.2)", borderRadius: 10, padding: "1px 6px", color: "#f9ca24bb" }}>{t}</span>
-                ))}
-              </div>
-            </div>
+            {/* Trait taxonomy - all 138 traits across 10 classes, sourced from coraltraits.org/traits */}
+            <CoralTraitsBrowser />
+
 
             {/* Data model note */}
             <div style={{ fontSize: 8, color: "#d4e9f333", lineHeight: 1.45, marginBottom: 8, borderTop: "1px solid rgba(249,202,36,0.1)", paddingTop: 7 }}>
@@ -3186,6 +3181,103 @@ function SideSection({ title, children }: { title: string; children: React.React
         color: "#83eef066", textTransform: "uppercase", marginBottom: 10,
       }}>{title}</div>
       {children}
+    </div>
+  );
+}
+
+// Browsable trait taxonomy for the CoralTraits side panel.
+// Renders all 138 traits (10 classes) sourced from https://www.coraltraits.org/traits.
+// Each trait deep-links to coraltraits.org/traits/{id}. Categories collapse to keep the panel scannable.
+function CoralTraitsBrowser() {
+  const [openCat, setOpenCat] = useState<string | null>(null);
+  const [filter, setFilter] = useState("");
+  const q = filter.trim().toLowerCase();
+
+  const filtered = useMemo(() => {
+    if (!q) return CORAL_TRAIT_CATEGORIES;
+    return CORAL_TRAIT_CATEGORIES
+      .map(c => ({ ...c, traits: c.traits.filter(t => t.name.toLowerCase().includes(q)) }))
+      .filter(c => c.traits.length > 0);
+  }, [q]);
+
+  const totalShown = filtered.reduce((n, c) => n + c.traits.length, 0);
+
+  return (
+    <div style={{ marginBottom: 8 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 5 }}>
+        <div style={{ fontSize: 8, fontWeight: 700, color: "#f9ca2488", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+          Trait Taxonomy ({CORAL_TRAITS_TOTAL})
+        </div>
+        <a href={CORAL_TRAITS_URL} target="_blank" rel="noopener noreferrer"
+          data-testid="link-coraltraits-full-list"
+          style={{ fontSize: 8, color: "#f9ca24bb", textDecoration: "none", fontWeight: 600 }}>↗ full list</a>
+      </div>
+
+      <input
+        type="text"
+        value={filter}
+        onChange={e => setFilter(e.target.value)}
+        placeholder="Filter traits..."
+        data-testid="input-coraltraits-filter"
+        style={{
+          width: "100%", boxSizing: "border-box",
+          fontSize: 9, padding: "4px 7px", marginBottom: 5,
+          background: "rgba(249,202,36,0.06)", border: "1px solid rgba(249,202,36,0.2)",
+          borderRadius: 5, color: "#f9ca24dd", outline: "none", fontFamily: "Inter,sans-serif",
+        }}
+      />
+
+      {q && (
+        <div style={{ fontSize: 7.5, color: "#d4e9f344", marginBottom: 4 }}>
+          {totalShown} match{totalShown === 1 ? "" : "es"}
+        </div>
+      )}
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 2, maxHeight: 280, overflowY: "auto", paddingRight: 2 }}>
+        {filtered.map(cat => {
+          const isOpen = q ? true : openCat === cat.name;
+          return (
+            <div key={cat.name} style={{ border: "1px solid rgba(249,202,36,0.12)", borderRadius: 5, overflow: "hidden" }}>
+              <button
+                data-testid={`button-coraltraits-cat-${cat.name.toLowerCase()}`}
+                onClick={() => !q && setOpenCat(isOpen ? null : cat.name)}
+                style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%",
+                  padding: "4px 7px", background: isOpen ? "rgba(249,202,36,0.1)" : "rgba(249,202,36,0.03)",
+                  border: "none", cursor: q ? "default" : "pointer", fontFamily: "Inter,sans-serif",
+                }}
+              >
+                <span style={{ fontSize: 9, fontWeight: 600, color: "#f9ca24cc" }}>
+                  <span style={{ display: "inline-block", width: 8, color: "#f9ca2466", marginRight: 4 }}>
+                    {q ? "·" : isOpen ? "▾" : "▸"}
+                  </span>
+                  {cat.name}
+                </span>
+                <span style={{ fontSize: 8, color: "#f9ca2477", fontWeight: 700 }}>{cat.traits.length}</span>
+              </button>
+              {isOpen && (
+                <div style={{ padding: "3px 7px 5px 18px", background: "rgba(0,0,0,0.15)", display: "flex", flexDirection: "column", gap: 1 }}>
+                  {cat.traits.map(t => (
+                    <a key={t.id} href={`${CORAL_TRAITS_URL}/${t.id}`} target="_blank" rel="noopener noreferrer"
+                      data-testid={`link-coraltrait-${t.id}`}
+                      style={{ fontSize: 8.5, color: "#d4e9f3aa", textDecoration: "none", padding: "1px 0", lineHeight: 1.4 }}
+                      onMouseEnter={e => (e.currentTarget.style.color = "#f9ca24")}
+                      onMouseLeave={e => (e.currentTarget.style.color = "#d4e9f3aa")}
+                    >
+                      ↗ {t.name}
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+        {filtered.length === 0 && (
+          <div style={{ fontSize: 9, color: "#d4e9f344", padding: "8px 4px", textAlign: "center" }}>
+            No traits match "{filter}"
+          </div>
+        )}
+      </div>
     </div>
   );
 }
