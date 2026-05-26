@@ -23,90 +23,152 @@ let _gcrmnMonSitesCache: { geojson: object; expiresAt: number } | null = null;
 // ─── CoralTraits / coral species observation cache ────────────────────────────
 let _coralTraitsCache: { geojson: object; expiresAt: number } | null = null;
 
+// ─── CoralTraits CSV parser (handles RFC-4180 quoted fields) ─────────────────
+function parseCsvRow(line: string): string[] {
+  const result: string[] = [];
+  let field = "";
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (inQuotes && line[i + 1] === '"') { field += '"'; i++; }
+      else inQuotes = !inQuotes;
+    } else if (ch === ',' && !inQuotes) {
+      result.push(field.trim());
+      field = "";
+    } else {
+      field += ch;
+    }
+  }
+  result.push(field.trim());
+  return result;
+}
+
+// Parse a full CSV text block into GeoJSON features (requires lat/lon columns).
+// Uses the coraltraits.org column naming conventions (contextual=on default).
+function ctCsvToFeatures(csv: string, source: string): object[] {
+  const rows = csv.split("\n").filter(l => l.trim());
+  if (rows.length < 2) return [];
+  const hdrs = parseCsvRow(rows[0]);
+  const idx = (patterns: RegExp[]) => hdrs.findIndex(h => patterns.some(p => p.test(h)));
+
+  const latIdx       = idx([/^lat$/i]);
+  const lonIdx       = idx([/^lon$/i]);
+  const speciesIdx   = idx([/^specie_name$/i, /^coral_name$/i, /^species$/i]);
+  const traitIdx     = idx([/^trait_name$/i]);
+  const valueIdx     = idx([/^value$/i]);
+  const unitIdx      = idx([/^standard_unit$/i, /^unit$/i]);
+  const valueTypeIdx = idx([/^value_type$/i]);
+  const resourceIdx  = idx([/^resource_name$/i]);
+  const doiIdx       = idx([/^doi$/i]);
+  const locationIdx  = idx([/^location_name$/i]);
+  const countryIdx   = idx([/^country$/i]);
+  const notesIdx     = idx([/^notes$/i]);
+
+  if (latIdx < 0 || lonIdx < 0) return [];
+
+  const features: object[] = [];
+  const seen = new Set<string>();
+  for (let i = 1; i < rows.length; i++) {
+    const cols = parseCsvRow(rows[i]);
+    const lat = parseFloat(cols[latIdx]);
+    const lon = parseFloat(cols[lonIdx]);
+    if (isNaN(lat) || isNaN(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) continue;
+    const key = `${lat.toFixed(3)},${lon.toFixed(3)},${cols[speciesIdx] || ""},${cols[traitIdx] || ""}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    features.push({
+      type: "Feature",
+      geometry: { type: "Point", coordinates: [lon, lat] },
+      properties: {
+        species:    speciesIdx   >= 0 ? (cols[speciesIdx]   || "") : "",
+        trait:      traitIdx     >= 0 ? (cols[traitIdx]     || "") : "",
+        value:      valueIdx     >= 0 ? (cols[valueIdx]     || "") : "",
+        unit:       unitIdx      >= 0 ? (cols[unitIdx]      || "") : "",
+        value_type: valueTypeIdx >= 0 ? (cols[valueTypeIdx] || "") : "",
+        resource:   resourceIdx  >= 0 ? (cols[resourceIdx]  || "") : "",
+        doi:        doiIdx       >= 0 ? (cols[doiIdx]       || "") : "",
+        location:   locationIdx  >= 0 ? (cols[locationIdx]  || "") : "",
+        country:    countryIdx   >= 0 ? (cols[countryIdx]   || "") : "",
+        notes:      notesIdx     >= 0 ? (cols[notesIdx]     || "") : "",
+        source,
+      },
+    });
+  }
+  return features;
+}
+
 async function fetchCoralTraitsData(): Promise<object> {
   const now = Date.now();
   if (_coralTraitsCache && now < _coralTraitsCache.expiresAt) return _coralTraitsCache.geojson;
 
-  // Try CoralTraits CSV directly (server-side, bypasses CORS).
-  // Fetches up to 3 pages (2,400 rows) and deduplicates by lat/lon/species.
   const CT_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
     "Accept": "text/csv,text/plain,*/*",
     "Accept-Language": "en-US,en;q=0.9",
-    "Referer": "https://coraltraits.org/observations",
+    "Referer": "https://coraltraits.org/procedures",
   };
+
+  // Strategy 1: Official full-database release CSV
+  // Documented at https://coraltraits.org/procedures#website-downloads
   try {
-    // Fetch pages 1-3 in parallel for broader coverage
+    const resp = await fetch(
+      "https://coraltraits.org/releases/ctdb_0.1.0/ctdb_0.1.0_data.csv",
+      { headers: CT_HEADERS, signal: AbortSignal.timeout(25000) }
+    );
+    if (resp.ok) {
+      const csv = await resp.text();
+      const features = ctCsvToFeatures(csv, "coraltraits-release");
+      if (features.length > 10) {
+        console.log(`[coralTraits] Loaded ${features.length} geolocated obs from official release CSV`);
+        const geojson = { type: "FeatureCollection", features };
+        _coralTraitsCache = { geojson, expiresAt: now + 24 * 60 * 60 * 1000 };
+        return geojson;
+      }
+    }
+  } catch (e) {
+    console.warn("[coralTraits] Release CSV unavailable:", (e as Error).message);
+  }
+
+  // Strategy 2: Paginated observations endpoint (contextual=on includes lat/lon by default)
+  // Per coraltraits.org/procedures: contextual data is included by default.
+  try {
     const pages = await Promise.allSettled(
-      [1, 2, 3].map(pg =>
-        fetch(`https://coraltraits.org/observations.csv?per_page=800&page=${pg}`, {
-          headers: CT_HEADERS,
-          signal: AbortSignal.timeout(14000),
-        }).then(r => r.ok ? r.text() : null)
+      [1, 2, 3, 4, 5].map(pg =>
+        fetch(
+          `https://coraltraits.org/observations.csv?contextual=on&per_page=800&page=${pg}`,
+          { headers: CT_HEADERS, signal: AbortSignal.timeout(15000) }
+        ).then(r => r.ok ? r.text() : null)
       )
     );
-    const allLines: string[] = [];
-    let headers: string[] | null = null;
+    let headerRow: string | null = null;
+    const dataRows: string[] = [];
     for (const result of pages) {
       if (result.status !== "fulfilled" || !result.value) continue;
       const lines = result.value.split("\n").filter(l => l.trim());
       if (lines.length < 2) continue;
-      if (!headers) {
-        headers = lines[0].split(",").map(h => h.trim().replace(/"/g, ""));
-        allLines.push(...lines.slice(1));
+      if (!headerRow) {
+        headerRow = lines[0];
+        dataRows.push(...lines.slice(1));
       } else {
-        allLines.push(...lines.slice(1)); // skip repeated header rows
+        dataRows.push(...lines.slice(1));
       }
     }
-    if (headers && headers.length > 2 && allLines.length > 5) {
-      const latIdx      = headers.findIndex(h => h === "lat");
-      const lonIdx      = headers.findIndex(h => h === "lon");
-      const speciesIdx  = headers.findIndex(h => h === "specie_name" || h === "coral_name");
-      const traitIdx    = headers.findIndex(h => h === "trait_name");
-      const valueIdx    = headers.findIndex(h => h === "value");
-      const resourceIdx = headers.findIndex(h => h === "resource_name");
-      const doiIdx      = headers.findIndex(h => h === "doi");
-      const locationIdx = headers.findIndex(h => h === "location_name");
-      const countryIdx  = headers.findIndex(h => h === "country" || h === "country_name");
-      if (latIdx >= 0 && lonIdx >= 0) {
-        const features: object[] = [];
-        const seen = new Set<string>();
-        for (const line of allLines) {
-          const cols = line.split(",").map(c => c.trim().replace(/"/g, ""));
-          const lat = parseFloat(cols[latIdx]);
-          const lon = parseFloat(cols[lonIdx]);
-          if (isNaN(lat) || isNaN(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) continue;
-          const key = `${lat.toFixed(3)},${lon.toFixed(3)},${cols[speciesIdx] || ""},${cols[traitIdx] || ""}`;
-          if (seen.has(key)) continue;
-          seen.add(key);
-          features.push({
-            type: "Feature",
-            geometry: { type: "Point", coordinates: [lon, lat] },
-            properties: {
-              species:  cols[speciesIdx]  || "",
-              trait:    cols[traitIdx]    || "",
-              value:    cols[valueIdx]    || "",
-              resource: cols[resourceIdx] || "",
-              doi:      cols[doiIdx]      || "",
-              location: locationIdx >= 0 ? (cols[locationIdx] || "") : "",
-              country:  countryIdx  >= 0 ? (cols[countryIdx]  || "") : "",
-              source: "coraltraits",
-            },
-          });
-        }
-        if (features.length > 5) {
-          console.log(`[coralTraits] Loaded ${features.length} geolocated observations from coraltraits.org`);
-          const geojson = { type: "FeatureCollection", features };
-          _coralTraitsCache = { geojson, expiresAt: now + 24 * 60 * 60 * 1000 };
-          return geojson;
-        }
+    if (headerRow && dataRows.length > 5) {
+      const combined = headerRow + "\n" + dataRows.join("\n");
+      const features = ctCsvToFeatures(combined, "coraltraits");
+      if (features.length > 5) {
+        console.log(`[coralTraits] Loaded ${features.length} geolocated obs from observations endpoint`);
+        const geojson = { type: "FeatureCollection", features };
+        _coralTraitsCache = { geojson, expiresAt: now + 24 * 60 * 60 * 1000 };
+        return geojson;
       }
     }
   } catch (e) {
-    console.warn("[coralTraits] Direct fetch failed, falling back to GBIF:", (e as Error).message);
+    console.warn("[coralTraits] Observations endpoint failed, trying GBIF:", (e as Error).message);
   }
 
-  // Fallback: GBIF occurrence search for Scleractinia (order key 1416 - stony corals)
+  // Strategy 3: GBIF occurrence search for Scleractinia (order key 1416 - stony corals)
   console.log("[coralTraits] Using GBIF Scleractinia fallback");
   const gbifUrl = "https://api.gbif.org/v1/occurrence/search?orderKey=1416&hasCoordinate=true&limit=300&basisOfRecord=HUMAN_OBSERVATION";
   const gbifResp = await fetch(gbifUrl, { signal: AbortSignal.timeout(15000) });
@@ -118,14 +180,16 @@ async function fetchCoralTraitsData(): Promise<object> {
       type: "Feature",
       geometry: { type: "Point", coordinates: [r.decimalLongitude, r.decimalLatitude] },
       properties: {
-        species: r.species || r.scientificName || "",
-        trait: "",
-        value: "",
-        resource: r.datasetName || "GBIF",
-        doi: "",
-        location: "",
-        country: r.country || "",
-        eventDate: r.eventDate || "",
+        species:    r.species || r.scientificName || "",
+        trait:      "",
+        value:      "",
+        unit:       "",
+        value_type: "",
+        resource:   r.datasetName || "GBIF",
+        doi:        "",
+        location:   "",
+        country:    r.country || "",
+        notes:      "",
         source: "gbif-scleractinia",
       },
     }));
