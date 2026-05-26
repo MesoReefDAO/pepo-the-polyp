@@ -52,37 +52,48 @@ const CRW_DATASET  = "dhw_5km";
 interface CrwLayer {
   id: string; label: string; short: string;
   unit: string; color: string; desc: string;
+  unavailable?: boolean;
 }
+// Colors aligned with NOAA CRW v3.1 standard palette - see:
+//   https://coralreefwatch.noaa.gov/product/5km/methodology.php
+//   https://coastwatch.noaa.gov/cw_html/cwViewer.html
+//   https://www.nnvl.noaa.gov/view/globaldata.html
 const CRW_LAYERS: CrwLayer[] = [
   {
-    id: "CRW_BAA_7D_MAX", label: "Bleaching Alerts (7-day)", short: "Alerts",
-    unit: "Level 0-5", color: "#e84040",
-    desc: "Rolling 7-day maximum Bleaching Alert Area. Levels 1-5 indicate escalating coral thermal stress (Dec 2023+: new Levels 3-5 for extreme events). Level 1 = Bleaching Watch; 2 = Warning; 3 = Alert 1; 4 = Alert 2; 5 = Alert 3.",
+    id: "CRW_BAA_7D_MAX", label: "Bleaching Alerts (7-day max)", short: "Alerts",
+    unit: "Level 0-5", color: "#FF0000",
+    desc: "Rolling 7-day maximum Bleaching Alert Area. Levels 1-5 indicate escalating coral thermal stress (Dec 2023+: new Levels 3-5 for extreme events). Level 1 = Bleaching Watch; 2 = Warning; 3 = Alert 1; 4 = Alert 2; 5 = Alert 3+.",
   },
   {
     id: "CRW_DHW", label: "Degree Heating Weeks", short: "DHW",
-    unit: "deg C-weeks", color: "#ff6348",
+    unit: "deg C-weeks", color: "#FF6600",
     desc: "Accumulated thermal stress above bleaching threshold over a 12-week rolling window. DHW > 4 deg C-weeks = significant bleaching risk; DHW > 8 deg C-weeks = widespread bleaching and mortality risk.",
   },
   {
     id: "CRW_HOTSPOT", label: "HotSpot", short: "HotSpot",
-    unit: "deg C above MMM", color: "#ff9f43",
+    unit: "deg C above MMM", color: "#FFAA00",
     desc: "SST minus the Maximum Monthly Mean (MMM) climatology. HotSpot >= 1 deg C triggers coral bleaching thermal stress. Used to compute DHW accumulation.",
   },
   {
     id: "CRW_SST", label: "Sea Surface Temperature", short: "SST",
-    unit: "deg C", color: "#54a0ff",
-    desc: "CoralTemp nighttime SST - daily 5 km blended multi-sensor satellite product (1985-present). Foundation variable for all CRW bleaching stress products.",
+    unit: "deg C", color: "#FF4500",
+    desc: "CoralTemp nighttime SST - daily 5 km blended multi-sensor satellite product (1985-present). Foundation variable for all CRW bleaching stress products. NOAA thermal palette: cool blue to hot red.",
   },
   {
     id: "CRW_SSTANOMALY", label: "SST Anomaly", short: "Anomaly",
-    unit: "deg C", color: "#a29bfe",
-    desc: "SST departure from the long-term climatological mean. Positive = warmer than historical average. Negative = cooler. Based on CRW daily 5-km satellite SST climatology.",
+    unit: "deg C", color: "#D62728",
+    desc: "SST departure from the long-term climatological mean. Diverging palette: blue = cooler than climatology, red = warmer. Based on CRW daily 5-km satellite SST climatology.",
+  },
+  {
+    id: "SST_TREND_7D", label: "SST Trend (7-day)", short: "SST Trend",
+    unit: "deg C / week", color: "#16A085",
+    desc: "Rate of SST change over the past 7 days (warming vs cooling). Diverging palette: red = warming, blue = cooling. Not exposed via the current PacIOOS ERDDAP feed - data pending integration with NOAA NCEI direct service.",
+    unavailable: true,
   },
   {
     id: "CRW_BAA", label: "Outlook (single-day)", short: "Outlook",
-    unit: "Level 0-5", color: "#fd79a8",
-    desc: "Single-day Bleaching Alert Area - immediate pixel-level thermal stress condition. Complements the 7-day max layer to show the current day's alert status without temporal smoothing.",
+    unit: "Level 0-5", color: "#990099",
+    desc: "Single-day Bleaching Alert Area - immediate pixel-level thermal stress condition. Complements the 7-day max layer to show the current day's alert status without temporal smoothing. Same categorical palette as Alerts.",
   },
 ];
 
@@ -2674,16 +2685,18 @@ function ExpandedMapModal({
               <div
                 key={layer.id}
                 data-testid={`expanded-toggle-crw-${layer.id.toLowerCase()}`}
-                onClick={() => setActiveCrwLayer(activeCrwLayer === layer.id ? null : layer.id)}
+                onClick={() => { if (!layer.unavailable) setActiveCrwLayer(activeCrwLayer === layer.id ? null : layer.id); }}
+                title={layer.unavailable ? "Data feed pending" : undefined}
                 style={{
                   display: "flex", alignItems: "center", gap: 8, padding: "5px 6px", marginBottom: 2,
-                  borderRadius: 6, cursor: "pointer",
+                  borderRadius: 6, cursor: layer.unavailable ? "not-allowed" : "pointer",
+                  opacity: layer.unavailable ? 0.45 : 1,
                   background: activeCrwLayer === layer.id ? `${layer.color}16` : "rgba(255,255,255,0.02)",
                   border: `1px solid ${activeCrwLayer === layer.id ? `${layer.color}55` : "rgba(255,255,255,0.05)"}`,
                   transition: "all 0.15s",
                 }}
-                onMouseEnter={e => { if (activeCrwLayer !== layer.id) (e.currentTarget as HTMLDivElement).style.background = "rgba(255,255,255,0.04)"; }}
-                onMouseLeave={e => { if (activeCrwLayer !== layer.id) (e.currentTarget as HTMLDivElement).style.background = "rgba(255,255,255,0.02)"; }}
+                onMouseEnter={e => { if (!layer.unavailable && activeCrwLayer !== layer.id) (e.currentTarget as HTMLDivElement).style.background = "rgba(255,255,255,0.04)"; }}
+                onMouseLeave={e => { if (!layer.unavailable && activeCrwLayer !== layer.id) (e.currentTarget as HTMLDivElement).style.background = "rgba(255,255,255,0.02)"; }}
               >
                 <span style={{
                   width: 10, height: 10, borderRadius: "50%", flexShrink: 0, display: "inline-block",
@@ -2694,7 +2707,7 @@ function ExpandedMapModal({
                 }}/>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 10, fontWeight: activeCrwLayer === layer.id ? 700 : 500, color: activeCrwLayer === layer.id ? layer.color : "#d4e9f3bb", fontFamily: "Inter,sans-serif", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                    {layer.label}
+                    {layer.label}{layer.unavailable && <span style={{ marginLeft: 6, fontSize: 7.5, color: "#d4e9f344", fontWeight: 500, letterSpacing: "0.05em" }}>SOON</span>}
                   </div>
                   <div style={{ fontSize: 8, color: "#d4e9f333", fontFamily: "Inter,sans-serif" }}>{layer.unit}</div>
                 </div>
@@ -3050,12 +3063,12 @@ function ExpandedMapModal({
               <div style={{ fontSize: 8, fontWeight: 700, color: "#e8404088", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 5 }}>Bleaching Alert Levels (BAA)</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                 {[
-                  { level: "Level 0", label: "No Stress", color: "#3d8bcd" },
-                  { level: "Level 1", label: "Bleaching Watch", color: "#feca57" },
-                  { level: "Level 2", label: "Bleaching Warning", color: "#ff9f43" },
-                  { level: "Level 3", label: "Bleaching Alert 1", color: "#ff6348" },
-                  { level: "Level 4", label: "Bleaching Alert 2", color: "#c0392b" },
-                  { level: "Level 5", label: "Bleaching Alert 3+", color: "#8e0000" },
+                  { level: "Level 0", label: "No Stress", color: "#99CCFF" },
+                  { level: "Level 1", label: "Bleaching Watch", color: "#FFFF00" },
+                  { level: "Level 2", label: "Bleaching Warning", color: "#FFAA00" },
+                  { level: "Level 3", label: "Bleaching Alert 1", color: "#FF0000" },
+                  { level: "Level 4", label: "Bleaching Alert 2", color: "#800000" },
+                  { level: "Level 5", label: "Bleaching Alert 3+", color: "#990099" },
                 ].map(({ level, label, color }) => (
                   <div key={level} style={{ display: "flex", alignItems: "center", gap: 6 }}>
                     <span style={{ width: 11, height: 8, borderRadius: 2, background: `${color}44`, border: `1.5px solid ${color}`, display: "inline-block", flexShrink: 0 }}/>
@@ -3072,9 +3085,10 @@ function ExpandedMapModal({
               <div style={{ fontSize: 8, fontWeight: 700, color: "#ff634888", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 5 }}>DHW Thresholds</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
                 {[
-                  { val: "0-4 deg C-weeks",  label: "Low stress - monitoring recommended", color: "#feca57" },
-                  { val: ">4 deg C-weeks",   label: "Significant bleaching likely", color: "#ff9f43" },
-                  { val: ">8 deg C-weeks",   label: "Widespread bleaching + mortality risk", color: "#e84040" },
+                  { val: "0-4 deg C-weeks",   label: "Low stress - monitoring recommended", color: "#FFFF00" },
+                  { val: ">4 deg C-weeks",    label: "Alert 1 - significant bleaching likely", color: "#FFAA00" },
+                  { val: ">8 deg C-weeks",    label: "Alert 2 - widespread bleaching + mortality risk", color: "#FF0000" },
+                  { val: ">12 deg C-weeks",   label: "Alert 3+ - severe mass bleaching", color: "#990099" },
                 ].map(({ val, label, color }) => (
                   <div key={val} style={{ fontSize: 8.5, color: "#d4e9f355", lineHeight: 1.4 }}>
                     <span style={{ color, fontWeight: 600 }}>{val}</span> - {label}
@@ -3910,9 +3924,12 @@ export function ReefMap({
                     <div
                       key={layer.id}
                       data-testid={`compact-toggle-crw-${layer.id.toLowerCase()}`}
-                      onClick={() => setActiveCrwLayerC(activeCrwLayerC === layer.id ? null : layer.id)}
+                      onClick={() => { if (!layer.unavailable) setActiveCrwLayerC(activeCrwLayerC === layer.id ? null : layer.id); }}
+                      title={layer.unavailable ? "Data feed pending" : undefined}
                       style={{
-                        display: "flex", alignItems: "center", gap: 8, padding: "4px 10px", cursor: "pointer",
+                        display: "flex", alignItems: "center", gap: 8, padding: "4px 10px",
+                        cursor: layer.unavailable ? "not-allowed" : "pointer",
+                        opacity: layer.unavailable ? 0.45 : 1,
                         background: activeCrwLayerC === layer.id ? `${layer.color}14` : "transparent",
                         transition: "background 0.12s",
                       }}
@@ -3925,7 +3942,7 @@ export function ReefMap({
                       }}/>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 9.5, fontWeight: activeCrwLayerC === layer.id ? 700 : 400, color: activeCrwLayerC === layer.id ? layer.color : "#d4e9f388", fontFamily: "Inter,sans-serif" }}>
-                          {layer.short}
+                          {layer.short}{layer.unavailable && <span style={{ marginLeft: 5, fontSize: 7, color: "#d4e9f344", fontWeight: 500 }}>SOON</span>}
                         </div>
                         <div style={{ fontSize: 7.5, color: "#d4e9f328", fontFamily: "Inter,sans-serif" }}>{layer.unit}</div>
                       </div>
