@@ -44,7 +44,7 @@ async function fetchCsv(name: string): Promise<any[]> {
   if (!res.ok) throw new Error(`${url} -> HTTP ${res.status}`);
   const text = await res.text();
   return new Promise((resolve, reject) => {
-    parse(text, { columns: true, skip_empty_lines: true, relax_column_count: true, trim: true }, (err, records) => {
+    parse(text, { columns: true, skip_empty_lines: true, relax_column_count: true, trim: true, bom: true }, (err, records) => {
       if (err) return reject(err);
       resolve(records as any[]);
     });
@@ -56,7 +56,7 @@ async function streamCsv(name: string, onRow: (row: any) => Promise<void> | void
   console.log(`  streaming ${name}…`);
   const res = await fetch(url);
   if (!res.ok || !res.body) throw new Error(`${url} -> HTTP ${res.status}`);
-  const parser = parse({ columns: true, skip_empty_lines: true, relax_column_count: true, trim: true });
+  const parser = parse({ columns: true, skip_empty_lines: true, relax_column_count: true, trim: true, bom: true });
   const stream = Readable.fromWeb(res.body as any).pipe(parser);
   let n = 0;
   for await (const row of stream) {
@@ -119,37 +119,57 @@ async function main() {
   })).filter(r => r.id));
   console.log(`  ct_resources: ${resourceRows.length}`);
 
+  // Lookup IDs in the source are bare integers (e.g. 10, 15, 8) but
+  // ct_measurements references them with sigils (e.g. "st10", "mt15",
+  // "t8"). We re-prefix on insert so joinability is restored without
+  // touching the (much larger) measurements table on each read.
   const standardRows = await fetchCsv("standard_id.csv");
-  await batchInsert(ctStandards, standardRows.map(r => ({
-    id: toInt(r.standard_id) as number,
-    name: s(r.standard_name),
-    units: s(r.units),
-    standardClass: s(r.standard_class),
-    description: s(r.standard_description),
-  })).filter(r => r.id !== null));
-  console.log(`  ct_standards: ${standardRows.length}`);
+  const stdMapped = standardRows.map(r => {
+    const raw = String(r.standard_id ?? "").trim();
+    if (!raw) return null;
+    return {
+      id: /^\d+$/.test(raw) ? `st${raw}` : raw,
+      name: s(r.standard_name),
+      units: s(r.units),
+      standardClass: s(r.standard_class),
+      description: s(r.standard_description),
+    };
+  }).filter(Boolean) as any[];
+  await batchInsert(ctStandards, stdMapped);
+  console.log(`  ct_standards: ${stdMapped.length} (of ${standardRows.length} source rows)`);
 
   const methRows = await fetchCsv("methodology_id.csv");
-  await batchInsert(ctMethodologies, methRows.map(r => ({
-    id: toInt(r.method_id) as number,
-    name: s(r.method_name),
-    description: s(r.method_description),
-    userId: toInt(r.user_id),
-  })).filter(r => r.id !== null));
-  console.log(`  ct_methodologies: ${methRows.length}`);
+  const methMapped = methRows.map(r => {
+    const raw = String(r.method_id ?? "").trim();
+    if (!raw) return null;
+    return {
+      id: /^\d+$/.test(raw) ? `mt${raw}` : raw,
+      name: s(r.method_name),
+      description: s(r.method_description),
+      userId: toInt(r.user_id),
+    };
+  }).filter(Boolean) as any[];
+  await batchInsert(ctMethodologies, methMapped);
+  console.log(`  ct_methodologies: ${methMapped.length} (of ${methRows.length} source rows)`);
 
   const traitRows = await fetchCsv("trait_id.csv");
-  await batchInsert(ctTraits, traitRows.map(r => ({
-    id: toInt(r.id) as number,
-    name: s(r.trait_name),
-    standardId: toInt(r.standard_id),
-    traitClassId: s(r.traitclass_id),
-    description: s(r.trait_description),
-    userId: toInt(r.user_id),
-    editor: s(r.Editor),
-    traitEditorId: toInt(r.trait_editor_id),
-  })).filter(r => r.id !== null));
-  console.log(`  ct_traits: ${traitRows.length}`);
+  const traitMapped = traitRows.map(r => {
+    const raw = String(r.id ?? "").trim();
+    if (!raw) return null;
+    const stdRaw = String(r.standard_id ?? "").trim();
+    return {
+      id: /^\d+$/.test(raw) ? `t${raw}` : raw,
+      name: s(r.trait_name),
+      standardId: stdRaw ? (/^\d+$/.test(stdRaw) ? `st${stdRaw}` : stdRaw) : null,
+      traitClassId: s(r.traitclass_id),
+      description: s(r.trait_description),
+      userId: toInt(r.user_id),
+      editor: s(r.Editor),
+      traitEditorId: toInt(r.trait_editor_id),
+    };
+  }).filter(Boolean) as any[];
+  await batchInsert(ctTraits, traitMapped);
+  console.log(`  ct_traits: ${traitMapped.length} (of ${traitRows.length} source rows)`);
 
   const vtRows = await fetchCsv("value_type_id.csv");
   await batchInsert(ctValueTypes, vtRows.map(r => ({
@@ -190,8 +210,17 @@ async function main() {
   let seen = 0;
   const total = await streamCsv("database_v_1_july.csv", async (r) => {
     seen++;
+    // The measurements CSV uses mixed ID encodings for the same column
+    // (e.g. trait_id is "t2" on most rows but a bare integer "60" on
+    // others). Lookup tables are sigil-prefixed (t/st/mt) so we
+    // normalise bare integers to the same shape before insert.
+    const sig = (v: unknown, prefix: string): string | null => {
+      const t = s(v).trim();
+      if (!t) return null;
+      return /^\d+$/.test(t) ? `${prefix}${t}` : t;
+    };
     buf.push({
-      observationId: toInt(r.observation_id),
+      observationId: s(r.observation_id) || null,
       measurementId: toInt(r.measurement_id),
       access: s(r.access),
       userId: toInt(r.user_id),
@@ -203,13 +232,13 @@ async function main() {
       latitude: toFloat(r.latitude),
       longitude: toFloat(r.longitude),
       resourceId: s(r.resource_id) || null,
-      resourceSecondaryId: s(r.resource_secondary_id),
-      traitId: toInt(r.trait_id),
+      resourceSecondaryId: s(r.resource_secondary_id) || null,
+      traitId: sig(r.trait_id, "t"),
       traitName: s(r.trait_name),
       traitCategory: s(r.trait_category),
-      standardId: toInt(r.standard_id),
+      standardId: sig(r.standard_id, "st"),
       standardUnit: s(r.standard_unit),
-      methodologyId: toInt(r.methodology_id),
+      methodologyId: sig(r.methodology_id, "mt"),
       methodologyName: s(r.methodology_name),
       value: s(r.value),
       valueTypeId: toInt(r.value_type_id),

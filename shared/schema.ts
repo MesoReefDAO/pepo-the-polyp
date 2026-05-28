@@ -291,8 +291,11 @@ export const ctResources = pgTable("ct_resources", {
 });
 export type CtResource = typeof ctResources.$inferSelect;
 
+// IDs are stored with their upstream sigil so they join directly to the
+// _id columns on ct_measurements (e.g. trait "Sexual system" is stored
+// here as "t8" and ct_measurements.trait_id is "t8").
 export const ctStandards = pgTable("ct_standards", {
-  id: integer("id").primaryKey(),
+  id: text("id").primaryKey(),
   name: text("name").notNull().default(""),
   units: text("units").notNull().default(""),
   standardClass: text("standard_class").notNull().default(""),
@@ -301,7 +304,7 @@ export const ctStandards = pgTable("ct_standards", {
 export type CtStandard = typeof ctStandards.$inferSelect;
 
 export const ctMethodologies = pgTable("ct_methodologies", {
-  id: integer("id").primaryKey(),
+  id: text("id").primaryKey(),
   name: text("name").notNull().default(""),
   description: text("description").notNull().default(""),
   userId: integer("user_id"),
@@ -309,9 +312,9 @@ export const ctMethodologies = pgTable("ct_methodologies", {
 export type CtMethodology = typeof ctMethodologies.$inferSelect;
 
 export const ctTraits = pgTable("ct_traits", {
-  id: integer("id").primaryKey(),
+  id: text("id").primaryKey(),
   name: text("name").notNull().default(""),
-  standardId: integer("standard_id"),
+  standardId: text("standard_id"),
   traitClassId: text("trait_class_id").notNull().default(""),
   description: text("description").notNull().default(""),
   userId: integer("user_id"),
@@ -350,7 +353,7 @@ export type CtContributor = typeof ctContributors.$inferSelect;
 // while all *_id columns remain joinable to the lookup tables above.
 export const ctMeasurements = pgTable("ct_measurements", {
   id: serial("id").primaryKey(),
-  observationId: integer("observation_id"),
+  observationId: text("observation_id"),
   measurementId: integer("measurement_id"),
   access: text("access").notNull().default(""),
   userId: integer("user_id"),
@@ -362,13 +365,13 @@ export const ctMeasurements = pgTable("ct_measurements", {
   latitude: real("latitude"),
   longitude: real("longitude"),
   resourceId: text("resource_id"),
-  resourceSecondaryId: text("resource_secondary_id").notNull().default(""),
-  traitId: integer("trait_id"),
+  resourceSecondaryId: text("resource_secondary_id"),
+  traitId: text("trait_id"),
   traitName: text("trait_name").notNull().default(""),
   traitCategory: text("trait_category").notNull().default(""),
-  standardId: integer("standard_id"),
+  standardId: text("standard_id"),
   standardUnit: text("standard_unit").notNull().default(""),
-  methodologyId: integer("methodology_id"),
+  methodologyId: text("methodology_id"),
   methodologyName: text("methodology_name").notNull().default(""),
   value: text("value").notNull().default(""),
   valueTypeId: integer("value_type_id"),
