@@ -387,6 +387,29 @@ export const ExplorerNavigationSidebarSection = (): JSX.Element => {
           </span>
         </Link>
 
+        {/* Coral Fact Sheets */}
+        <Link
+          href="/coral-fact-sheets"
+          data-testid="link-coral-fact-sheets"
+          className={`${PILL_BASE} ${location === "/coral-fact-sheets" ? PILL_ACTIVE : PILL_INACTIVE}`}
+          style={location === "/coral-fact-sheets" ? EMBOSS : {}}
+        >
+          <div className="w-5 h-5 flex-shrink-0 flex items-center justify-center">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M6 3h9l5 5v13H6z"
+                stroke={location === "/coral-fact-sheets" ? "#83eef0" : "#d4e9f380"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M15 3v5h5M9 13h6M9 17h6"
+                stroke={location === "/coral-fact-sheets" ? "#83eef0" : "#d4e9f380"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+          <span className={`${TEXT_BASE} ${location === "/coral-fact-sheets" ? "font-bold text-[#83eef0]" : "font-medium text-[#d4e9f380]"}`}>
+            Fact Sheets
+          </span>
+          <span className="ml-auto text-[8px] [font-family:'Inter',Helvetica] px-1.5 py-0.5 rounded-full bg-[#83eef018] border border-[#83eef033] text-[#83eef0cc]">
+            CoTW
+          </span>
+        </Link>
+
         {/* Coral Traits */}
         <Link
           href="/coral-traits"

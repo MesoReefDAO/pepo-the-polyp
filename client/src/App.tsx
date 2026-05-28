@@ -21,6 +21,7 @@ import { GraphPage } from "@/pages/GraphPage";
 import { VideosMonitoringPage } from "@/pages/VideosMonitoringPage";
 import { RegenReefIndexPage } from "@/pages/RegenReefIndexPage";
 import { CoralTraitsPage } from "@/pages/CoralTraitsPage";
+import { CoralFactSheetsPage } from "@/pages/CoralFactSheetsPage";
 import { PRIVY_ENABLED, PRIVY_APP_ID } from "@/lib/privy";
 import { useProfileSync } from "@/hooks/use-profile-sync";
 import { useGeolocation } from "@/hooks/use-geolocation";
@@ -63,6 +64,7 @@ function Router() {
       <Route path="/videos" component={VideosMonitoringPage} />
       <Route path="/rri" component={RegenReefIndexPage} />
       <Route path="/coral-traits" component={CoralTraitsPage} />
+      <Route path="/coral-fact-sheets" component={CoralFactSheetsPage} />
       <Route component={NotFound} />
     </Switch>
   );

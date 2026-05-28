@@ -209,6 +209,14 @@ export function CoralTraitsPage() {
                   >
                     View on CoralTraits.org
                   </a>
+                  <a
+                    href={`https://www.coralsoftheworld.org/species_factsheet/${detail.taxon.scientificName.toLowerCase().trim().replace(/[^a-z0-9\s-]/g, "").replace(/\s+/g, "-")}/`}
+                    target="_blank" rel="noopener noreferrer"
+                    data-testid="link-cotw-species"
+                    className="text-[10px] uppercase tracking-widest px-2 py-0.5 rounded-full border border-[#a6ce3933] text-[#a6ce39] hover:bg-[#a6ce390f] no-underline"
+                  >
+                    Corals of the World fact sheet
+                  </a>
                 </div>
 
                 {/* Samples table */}

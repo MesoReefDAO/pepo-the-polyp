@@ -1024,6 +1024,7 @@ function ExpandedMapModal({
   const [showReefLife,       setShowReefLife]        = useState(false);
   const [showGcrmnMonSites,  setShowGcrmnMonSites]  = useState(false);
   const [showCoralTraits,    setShowCoralTraits]    = useState(false);
+  const [showCotwEcoregions, setShowCotwEcoregions] = useState(false);
   const [activeCrwLayer,     setActiveCrwLayer]     = useState<string | null>(null);
   const [crwLoading,         setCrwLoading]         = useState(false);
   const [crwDate,            setCrwDate]            = useState<string>(getDefaultCrwDate());
@@ -1221,7 +1222,7 @@ function ExpandedMapModal({
     setLiveDepthIdx(Math.round(nearest / 5500 * (DEPTH_LEVELS.length - 1)));
   };
 
-  const activeLayers = (showGcrmn ? 1 : 0) + (showCoralMapping ? 1 : 0) + (showMarineRegions ? 1 : 0) + (showImgs ? 1 : 0) + (showVideos ? 1 : 0) + (showGcrmnSites ? 1 : 0) + (showWcsReefCloud ? 1 : 0) + (showWcsCcSites ? 1 : 0) + (showReefCheck ? 1 : 0) + (showReefLife ? 1 : 0) + (showGcrmnMonSites ? 1 : 0) + (showCoralTraits ? 1 : 0) + (activeCrwLayer ? 1 : 0) + (activeCmsVar ? 1 : 0) + (activeLiveVar ? 1 : 0) + 1;
+  const activeLayers = (showGcrmn ? 1 : 0) + (showCoralMapping ? 1 : 0) + (showMarineRegions ? 1 : 0) + (showImgs ? 1 : 0) + (showVideos ? 1 : 0) + (showGcrmnSites ? 1 : 0) + (showWcsReefCloud ? 1 : 0) + (showWcsCcSites ? 1 : 0) + (showReefCheck ? 1 : 0) + (showReefLife ? 1 : 0) + (showGcrmnMonSites ? 1 : 0) + (showCoralTraits ? 1 : 0) + (showCotwEcoregions ? 1 : 0) + (activeCrwLayer ? 1 : 0) + (activeCmsVar ? 1 : 0) + (activeLiveVar ? 1 : 0) + 1;
 
   // Country breakdown for GCRMN legend - derived from live GeoJSON
   const gcrmnCountryStats = useMemo(() => {
@@ -1339,6 +1340,17 @@ function ExpandedMapModal({
                 opacity={0.45}
                 version="1.1.1"
                 attribution='© <a href="https://www.marineregions.org">MarineRegions.org · VLIZ</a>'
+              />
+            )}
+            {showCotwEcoregions && (
+              <WMSTileLayer
+                url="https://geo.vliz.be/geoserver/wms"
+                layers="Ecoregions:ecoregions"
+                format="image/png"
+                transparent={true}
+                opacity={0.55}
+                version="1.1.1"
+                attribution='Marine Ecoregions of the World (MEOW) - basemap for <a href="https://www.coralsoftheworld.org/coral_geographic/interactive_map/" target="_blank" rel="noopener noreferrer">Corals of the World</a> · VLIZ'
               />
             )}
             {activeCrwLayer && (() => {
@@ -2415,12 +2427,12 @@ function ExpandedMapModal({
             <div style={{ display: "flex", gap: 5, marginBottom: 10, paddingBottom: 10, borderBottom: "1px solid rgba(131,238,240,0.08)" }}>
               <button
                 data-testid="expanded-toggle-all-layers"
-                onClick={() => { setShowMarineRegions(true); setShowCoralMapping(true); setShowGcrmn(true); setShowGcrmnSites(true); setShowGcrmnMonSites(true); setShowWcsReefCloud(true); setShowWcsCcSites(true); setShowReefCheck(true); setShowReefLife(true); setShowImgs(true); setShowDaoMembers(true); setShowCoralTraits(true); setActiveCmsVar("CHL"); setActiveLiveVar(null); }}
+                onClick={() => { setShowMarineRegions(true); setShowCoralMapping(true); setShowGcrmn(true); setShowGcrmnSites(true); setShowGcrmnMonSites(true); setShowWcsReefCloud(true); setShowWcsCcSites(true); setShowReefCheck(true); setShowReefLife(true); setShowImgs(true); setShowDaoMembers(true); setShowCoralTraits(true); setShowCotwEcoregions(true); setActiveCmsVar("CHL"); setActiveLiveVar(null); }}
                 style={{ flex: 1, fontSize: 9, fontFamily: "Inter,sans-serif", fontWeight: 700, background: "rgba(131,238,240,0.12)", border: "1px solid rgba(131,238,240,0.3)", borderRadius: 6, padding: "4px 0", color: "#83eef0", cursor: "pointer" }}
               >All On</button>
               <button
                 data-testid="expanded-toggle-no-layers"
-                onClick={() => { setShowMarineRegions(false); setShowCoralMapping(false); setShowGcrmn(false); setShowGcrmnSites(false); setShowGcrmnMonSites(false); setShowWcsReefCloud(false); setShowWcsCcSites(false); setShowReefCheck(false); setShowReefLife(false); setShowImgs(false); setShowDaoMembers(false); setShowCoralTraits(false); setActiveCmsVar(null); setActiveLiveVar(null); setShowToolbox(null); }}
+                onClick={() => { setShowMarineRegions(false); setShowCoralMapping(false); setShowGcrmn(false); setShowGcrmnSites(false); setShowGcrmnMonSites(false); setShowWcsReefCloud(false); setShowWcsCcSites(false); setShowReefCheck(false); setShowReefLife(false); setShowImgs(false); setShowDaoMembers(false); setShowCoralTraits(false); setShowCotwEcoregions(false); setActiveCmsVar(null); setActiveLiveVar(null); setShowToolbox(null); }}
                 style={{ flex: 1, fontSize: 9, fontFamily: "Inter,sans-serif", fontWeight: 700, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 6, padding: "4px 0", color: "#d4e9f355", cursor: "pointer" }}
               >All Off</button>
             </div>
@@ -2737,6 +2749,13 @@ function ExpandedMapModal({
             </div>
             <div style={{ fontSize: 7.5, color: "#d4e9f328", marginBottom: 5, lineHeight: 1.5 }}>Geolocated coral species trait observations from the CoralTraits.org database - the world's largest open repository of coral biological characteristics.</div>
             <LayerToggle label="Coral Traits"         sublabel={`166k+ observations across 5,112 species and ${CORAL_TRAITS_TOTAL} traits - coraltraits2 / coraltraits.org`}  active={showCoralTraits}   color="#f9ca24" onClick={() => setShowCoralTraits(v => !v)}   testId="expanded-toggle-coral-traits" />
+
+            {/* ── Coral Geography ── */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "10px 0 2px" }}>
+              <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#d4e9f340" }}>Coral Geography</span>
+            </div>
+            <div style={{ fontSize: 7.5, color: "#d4e9f328", marginBottom: 5, lineHeight: 1.5 }}>Marine Ecoregions of the World (MEOW) - the basemap underlying the <a href="https://www.coralsoftheworld.org/coral_geographic/interactive_map/" target="_blank" rel="noopener noreferrer" style={{ color: "#83eef0aa", textDecoration: "none" }}>Corals of the World</a> geographic distributions atlas (Veron et al.).</div>
+            <LayerToggle label="Corals of the World"  sublabel="232 marine ecoregions used by Corals of the World as the geographic basis for coral distributions - MEOW / VLIZ" active={showCotwEcoregions} color="#83eef0" onClick={() => setShowCotwEcoregions(v => !v)} testId="expanded-toggle-cotw-ecoregions" />
 
             {/* ── NOAA Coral Reef Watch ── */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "10px 0 2px" }}>
