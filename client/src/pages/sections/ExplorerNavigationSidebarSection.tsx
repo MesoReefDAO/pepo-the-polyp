@@ -403,7 +403,7 @@ export const ExplorerNavigationSidebarSection = (): JSX.Element => {
             </svg>
           </div>
           <span className={`${TEXT_BASE} ${location === "/coral-fact-sheets" ? "font-bold text-[#83eef0]" : "font-medium text-[#d4e9f380]"}`}>
-            Fact Sheets
+            Coral Species
           </span>
           <span className="ml-auto text-[8px] [font-family:'Inter',Helvetica] px-1.5 py-0.5 rounded-full bg-[#83eef018] border border-[#83eef033] text-[#83eef0cc]">
             CoTW

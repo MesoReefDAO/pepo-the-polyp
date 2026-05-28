@@ -59,7 +59,7 @@ export function CoralFactSheetsPage() {
                     <path d="M15 3v5h5M9 13h6M9 17h6" stroke="#00080c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 </div>
-                <h1 className="text-xl md:text-2xl font-bold tracking-tight text-[#d4e9f3]" data-testid="text-factsheets-title">Fact Sheets</h1>
+                <h1 className="text-xl md:text-2xl font-bold tracking-tight text-[#d4e9f3]" data-testid="text-factsheets-title">Coral Species</h1>
               </div>
               <p className="text-xs text-[#d4e9f399] max-w-2xl">
                 The complete <a href={COTW_FACTSHEETS} target="_blank" rel="noopener noreferrer" className="text-[#83eef0] hover:underline" data-testid="link-cotw-factsheets-source">Corals of the World</a> species catalog by J.E.N. Veron et al. - the global reference atlas for hard coral taxonomy, biology and distribution. Every species links to its full fact sheet on coralsoftheworld.org with taxonomy, distribution map, photographs, similar species and habitat notes.
