@@ -159,51 +159,100 @@ export function CoralFactSheetsPage() {
             </div>
           </section>
 
-          {/* Preview pane */}
-          <aside className="hidden lg:flex flex-col border-l border-[#ffffff08] overflow-hidden">
+          {/* Detail pane */}
+          <aside className="hidden lg:flex flex-col border-l border-[#ffffff08] overflow-y-auto">
             {!activeSlug ? (
               <div className="flex-1 flex items-center justify-center p-8 text-center">
                 <div>
-                  <div className="text-xs uppercase tracking-widest text-[#d4e9f366] mb-2">Fact sheet preview</div>
-                  <p className="text-sm text-[#d4e9f399] max-w-xs">Select any species card to load its Corals of the World fact sheet here. Embedded view; click "Open on coralsoftheworld.org" for the full page.</p>
+                  <div className="text-xs uppercase tracking-widest text-[#d4e9f366] mb-2">Fact sheet</div>
+                  <p className="text-sm text-[#d4e9f399] max-w-xs">Select any species card to see its summary and a direct link to the full Corals of the World fact sheet.</p>
                 </div>
               </div>
-            ) : (
-              <>
-                <div className="flex items-center justify-between px-3 py-2 border-b border-[#ffffff0d] flex-shrink-0">
-                  <div className="italic text-sm font-medium text-[#d4e9f3]" data-testid="text-preview-name">
-                    {cards.find(c => c.slug === activeSlug)?.taxon.scientificName}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <a
-                      href={`${COTW_BASE}/species_factsheet/${activeSlug}/`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      data-testid="link-preview-open-external"
-                      className="text-[10px] text-[#83eef0] hover:underline"
-                    >
-                      Open ↗
-                    </a>
+            ) : (() => {
+              const active = cards.find(c => c.slug === activeSlug);
+              if (!active) return null;
+              const t = active.taxon;
+              return (
+                <div className="p-5 md:p-6 flex flex-col gap-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h2 className="italic font-bold text-xl text-[#d4e9f3] leading-tight" data-testid="text-preview-name">
+                        {t.scientificName}
+                      </h2>
+                      {t.authority && <div className="text-[11px] text-[#d4e9f377] mt-1">{t.authority}</div>}
+                    </div>
                     <button
                       onClick={() => setActiveSlug(null)}
                       data-testid="button-preview-close"
-                      className="text-[10px] px-2 py-0.5 rounded border border-[#ffffff14] text-[#d4e9f399] hover:bg-[#ffffff08]"
+                      className="text-[10px] px-2 py-0.5 rounded border border-[#ffffff14] text-[#d4e9f399] hover:bg-[#ffffff08] flex-shrink-0"
                     >
                       Close
                     </button>
                   </div>
+                  <div className="flex flex-wrap gap-1.5 text-[10px]">
+                    {t.family && <span className="px-2 py-0.5 rounded-full border border-[#83eef033] bg-[#83eef00f] text-[#83eef0]">Family: {t.family}</span>}
+                    {t.genus && <span className="px-2 py-0.5 rounded-full border border-[#a6ce3933] bg-[#a6ce390f] text-[#a6ce39]">Genus: {t.genus}</span>}
+                    {t.iucnStatus && <span className="px-2 py-0.5 rounded-full border border-[#f9ca2433] bg-[#f9ca240f] text-[#f9ca24]">IUCN: {t.iucnStatus}</span>}
+                    {t.sampleCount > 0 && <span className="px-2 py-0.5 rounded-full border border-[#ffffff14] bg-[#ffffff05] text-[#d4e9f399]">{t.sampleCount} trait observations</span>}
+                  </div>
+
+                  <a
+                    href={active.factsheetUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    data-testid="link-preview-open-external"
+                    className="block text-center px-4 py-3 rounded-lg bg-gradient-to-r from-[#83eef0] to-[#26de81] text-[#00080c] font-bold text-sm hover:opacity-90 no-underline"
+                  >
+                    Open full fact sheet on coralsoftheworld.org ↗
+                  </a>
+
+                  <div className="rounded-lg border border-[#ffffff0d] bg-[#0a293322] p-3 text-[11px] text-[#d4e9f399] leading-relaxed">
+                    <div className="text-[10px] uppercase tracking-widest text-[#d4e9f366] mb-1">Why open in a new tab?</div>
+                    Corals of the World does not allow its pages to be embedded in other sites (X-Frame-Options: SAMEORIGIN), so we link out instead of showing an iframe. The full fact sheet includes taxonomy, distribution map, photographs, similar species and habitat notes.
+                  </div>
+
+                  <div className="rounded-lg border border-[#ffffff0d] bg-[#0a293322] p-3 text-[11px] text-[#d4e9f399]">
+                    <div className="text-[10px] uppercase tracking-widest text-[#d4e9f366] mb-1">Related views</div>
+                    <ul className="space-y-1">
+                      <li>
+                        <a
+                          href={`https://coraltraits.org/species/${encodeURIComponent(t.scientificName)}`}
+                          target="_blank" rel="noopener noreferrer"
+                          data-testid="link-preview-coraltraits"
+                          className="text-[#f9ca24] hover:underline no-underline"
+                        >
+                          CoralTraits.org · trait observations ↗
+                        </a>
+                      </li>
+                      <li>
+                        <a
+                          href={`https://www.gbif.org/species/search?q=${encodeURIComponent(t.scientificName)}`}
+                          target="_blank" rel="noopener noreferrer"
+                          data-testid="link-preview-gbif"
+                          className="text-[#a6ce39] hover:underline no-underline"
+                        >
+                          GBIF · occurrences ↗
+                        </a>
+                      </li>
+                      <li>
+                        <a
+                          href={`https://en.wikipedia.org/wiki/${encodeURIComponent(t.scientificName.replace(/\s+/g, "_"))}`}
+                          target="_blank" rel="noopener noreferrer"
+                          data-testid="link-preview-wikipedia"
+                          className="text-[#83eef0] hover:underline no-underline"
+                        >
+                          Wikipedia ↗
+                        </a>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div className="text-[10px] text-[#d4e9f355] italic">
+                    Fact sheet slug derived from the scientific name. If "Open" returns a 404, the species may not yet have a published fact sheet on Corals of the World.
+                  </div>
                 </div>
-                <iframe
-                  key={activeSlug}
-                  src={`${COTW_BASE}/species_factsheet/${activeSlug}/`}
-                  title={`Corals of the World fact sheet: ${activeSlug}`}
-                  data-testid="iframe-factsheet-preview"
-                  className="flex-1 w-full bg-white"
-                  sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
-                  referrerPolicy="no-referrer"
-                />
-              </>
-            )}
+              );
+            })()}
           </aside>
         </div>
       </main>

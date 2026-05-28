@@ -3003,6 +3003,12 @@ function ExpandedMapModal({
                 <span style={{ fontSize: 10.5, color: "#d4e9f3bb" }}>CoralTraits observation</span>
               </div>
             )}
+            {showCotwEcoregions && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "3px 0" }}>
+                <span style={{ width: 13, height: 8, borderRadius: 2, background: "rgba(131,238,240,0.18)", border: "1.5px solid #83eef0", display: "inline-block", flexShrink: 0 }}/>
+                <span style={{ fontSize: 10.5, color: "#d4e9f3bb" }}>Corals of the World ecoregion (MEOW)</span>
+              </div>
+            )}
             {activeCrwLayer && (() => {
               const layer = CRW_LAYERS.find(l => l.id === activeCrwLayer);
               return layer ? (
@@ -3012,7 +3018,7 @@ function ExpandedMapModal({
                 </div>
               ) : null;
             })()}
-            {!showMarineRegions && !showCoralMapping && !showGcrmn && !showGcrmnSites && !showDaoMembers && !showImgs && !showGcrmnMonSites && !showReefCheck && !showReefLife && !showWcsCcSites && !showWcsReefCloud && !showCoralTraits && !activeCrwLayer && (
+            {!showMarineRegions && !showCoralMapping && !showGcrmn && !showGcrmnSites && !showDaoMembers && !showImgs && !showGcrmnMonSites && !showReefCheck && !showReefLife && !showWcsCcSites && !showWcsReefCloud && !showCoralTraits && !showCotwEcoregions && !activeCrwLayer && (
               <div style={{ fontSize: 9, color: "#d4e9f333", fontStyle: "italic" }}>No point or boundary layers active</div>
             )}
           </SideSection>
