@@ -81,13 +81,13 @@ const CRW_LAYERS: CrwLayer[] = [
 // month-ago and year-ago CDHW accumulations using the same palette.
 export type CdhwWindow = "7d" | "monthly" | "yearly";
 export const CDHW_WINDOWS: { id: CdhwWindow; label: string; sub: string; days: number }[] = [
-  { id: "7d",      label: "7-day",   sub: "Latest week",  days: 2   },
+  { id: "7d",      label: "7-day",   sub: "~7 days ago",  days: 7   },
   { id: "monthly", label: "Monthly", sub: "~30 days ago", days: 30  },
   { id: "yearly",  label: "Yearly",  sub: "~1 year ago",  days: 365 },
 ];
-// Convert a CDHW window to the YYYY-MM-DD ERDDAP needs. CRW 5km is released
-// ~13:30 ET each day, so even the "latest" window backs off 2 days to be
-// safely on the published slice.
+// Convert a CDHW window to the YYYY-MM-DD ERDDAP needs. Each offset matches
+// its labelled lookback (7 days, 30 days, 365 days). All three sit safely
+// past the ~2-day CRW publish lag (release ~13:30 ET).
 export function cdhwWindowDate(w: CdhwWindow): string {
   const cfg = CDHW_WINDOWS.find(c => c.id === w) ?? CDHW_WINDOWS[0];
   const d = new Date();
