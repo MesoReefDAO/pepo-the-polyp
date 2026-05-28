@@ -2,7 +2,7 @@ import { eq, desc, sql } from "drizzle-orm";
 import { db } from "./db";
 import {
   users, profiles, contributions, reefImages, reefVideos, ipfsBlocks, gcrmnSites,
-  coralTaxa, coralTraits, coralTraitSamples,
+  coralTaxa, coralTraits, coralTraitSamples, cotwSpecies,
   type User, type InsertUser,
   type Profile, type InsertProfile,
   type Contribution, type InsertContribution,
@@ -14,6 +14,7 @@ import {
   type CoralTaxon, type InsertCoralTaxon,
   type CoralTraitDef, type InsertCoralTrait,
   type CoralTraitSample, type InsertCoralTraitSample,
+  type CotwSpecies,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -611,6 +612,30 @@ export class DbStorage implements IStorage {
     for (let i = 0; i < rows.length; i += BATCH) {
       await db.insert(coralTaxa).values(rows.slice(i, i + BATCH)).onConflictDoNothing({ target: coralTaxa.scientificName });
     }
+  }
+
+  // ── Corals of the World species catalog (831 species fact-sheet index) ────
+  async getCotwSpeciesCount(): Promise<number> {
+    const [r] = await db.select({ c: sql<number>`count(*)::int` }).from(cotwSpecies);
+    return r?.c ?? 0;
+  }
+  async listCotwSpecies(opts: { search?: string; genus?: string; limit?: number; offset?: number } = {}): Promise<CotwSpecies[]> {
+    const lim = Math.min(opts.limit ?? 1000, 2000);
+    const off = opts.offset ?? 0;
+    const where: any[] = [];
+    if (opts.search && opts.search.trim()) {
+      const q = `%${opts.search.trim().toLowerCase()}%`;
+      where.push(sql`lower(${cotwSpecies.scientificName}) like ${q}`);
+    }
+    if (opts.genus && opts.genus.trim()) {
+      where.push(sql`${cotwSpecies.genus} = ${opts.genus}`);
+    }
+    const whereSql = where.length ? sql`${sql.join(where, sql` and `)}` : sql`true`;
+    return db.select().from(cotwSpecies).where(whereSql).orderBy(cotwSpecies.scientificName).limit(lim).offset(off);
+  }
+  async listCotwGenera(): Promise<string[]> {
+    const rows = await db.select({ genus: cotwSpecies.genus }).from(cotwSpecies).where(sql`${cotwSpecies.genus} <> ''`).groupBy(cotwSpecies.genus).orderBy(cotwSpecies.genus);
+    return rows.map(r => r.genus);
   }
   async bulkInsertCoralTraitDefs(rows: InsertCoralTrait[]): Promise<void> {
     if (!rows.length) return;

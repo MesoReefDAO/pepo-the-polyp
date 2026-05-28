@@ -179,6 +179,22 @@ app.use((req, res, next) => {
 
   await registerRoutes(httpServer, app);
 
+  // Seed Corals of the World species catalog (831 fact sheets) - idempotent,
+  // skips if already populated. One HTTP GET to the public CoTW index page.
+  (async () => {
+    try {
+      const { seedCotwSpecies } = await import("./seedCotwSpecies");
+      const r = await seedCotwSpecies();
+      if (r.inserted > 0 || r.fetched > 0) {
+        log(`CoTW species seed: fetched=${r.fetched} inserted=${r.inserted} total=${r.total}`);
+      } else {
+        log(`CoTW species seed: already populated (${r.total} species)`);
+      }
+    } catch (err) {
+      console.error("[cotw-seed] startup seed failed:", err);
+    }
+  })();
+
   // Backfill + recalculate points for all users on every startup (idempotent)
   storage.syncAllUserPoints()
     .then(({ synced, pointsAdded }) => {

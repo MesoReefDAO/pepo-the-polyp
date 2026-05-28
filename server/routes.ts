@@ -132,6 +132,7 @@ function ctCsvToFeatures(csv: string, source: string): object[] {
 // Trait definitions come from the canonical catalog in shared/ so server and
 // client always agree on the full set (currently 138 traits across 8 categories).
 import { CORAL_TRAIT_CATEGORIES } from "@shared/coralTraitsCatalog";
+import { seedCotwSpecies } from "./seedCotwSpecies";
 const CT_TRAIT_DEFS = CORAL_TRAIT_CATEGORIES.flatMap(cat =>
   cat.traits.map(t => ({ id: t.id, name: t.name, category: cat.name }))
 );
@@ -2526,6 +2527,48 @@ hr, [class*="divider"], [class*="separator"] {
     } catch (err) {
       console.error("[coralTraits/taxon]", err);
       return res.status(500).json({ error: "Failed to fetch taxon" });
+    }
+  });
+
+  // ── Corals of the World full species catalog (831 fact sheets) ────────────
+  // GET /api/cotw/species?search=&genus=&limit=&offset=
+  app.get("/api/cotw/species", async (req: Request, res: Response) => {
+    try {
+      const search = typeof req.query.search === "string" ? req.query.search : undefined;
+      const genus = typeof req.query.genus === "string" ? req.query.genus : undefined;
+      const limit = req.query.limit ? Math.min(Number(req.query.limit) || 1000, 2000) : 1000;
+      const offset = req.query.offset ? Number(req.query.offset) || 0 : 0;
+      const rows = await storage.listCotwSpecies({ search, genus, limit, offset });
+      res.json(rows);
+    } catch (err: any) {
+      console.error("[cotw/species]", err);
+      res.status(500).json({ message: err?.message ?? "cotw species fetch failed" });
+    }
+  });
+
+  // GET /api/cotw/stats - quick counters + genus list for the fact-sheets page
+  app.get("/api/cotw/stats", async (_req: Request, res: Response) => {
+    try {
+      const [species, genera] = await Promise.all([
+        storage.getCotwSpeciesCount(),
+        storage.listCotwGenera(),
+      ]);
+      res.json({ species, genera });
+    } catch (err: any) {
+      console.error("[cotw/stats]", err);
+      res.status(500).json({ message: err?.message ?? "cotw stats failed" });
+    }
+  });
+
+  // POST /api/cotw/seed - manual re-seed trigger (idempotent, force-refresh)
+  app.post("/api/cotw/seed", async (req: Request, res: Response) => {
+    try {
+      const force = req.query.force === "1" || req.query.force === "true";
+      const r = await seedCotwSpecies({ force });
+      res.json(r);
+    } catch (err: any) {
+      console.error("[cotw/seed]", err);
+      res.status(500).json({ message: err?.message ?? "cotw seed failed" });
     }
   });
 

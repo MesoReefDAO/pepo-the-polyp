@@ -2,53 +2,45 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ExplorerNavigationSidebarSection } from "@/pages/sections/ExplorerNavigationSidebarSection";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
-import type { CoralTaxon } from "@shared/schema";
+import type { CotwSpecies } from "@shared/schema";
 
 const COTW_BASE = "https://www.coralsoftheworld.org";
 const COTW_FACTSHEETS = `${COTW_BASE}/species_factsheets/`;
 
-function slugifyForCotw(scientificName: string): string {
-  return scientificName
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9\s-]/g, "")
-    .replace(/\s+/g, "-");
-}
-
-interface Stats { taxa: number; samples: number; traits: number; families: string[] }
+interface CotwStats { species: number; genera: string[] }
 
 export function CoralFactSheetsPage() {
   const [search, setSearch] = useState("");
-  const [family, setFamily] = useState<string>("");
+  const [genus, setGenus] = useState<string>("");
   const [activeSlug, setActiveSlug] = useState<string | null>(null);
 
-  const { data: stats } = useQuery<Stats>({
-    queryKey: ["/api/coral-traits/stats"],
+  const { data: stats } = useQuery<CotwStats>({
+    queryKey: ["/api/cotw/stats"],
     staleTime: 60 * 60 * 1000,
   });
 
-  const taxaKey = useMemo(() => ["/api/coral-traits/taxa", { search, family, limit: 500 }], [search, family]);
-  const { data: taxa, isLoading } = useQuery<CoralTaxon[]>({
-    queryKey: taxaKey,
+  const speciesKey = useMemo(() => ["/api/cotw/species", { search, genus, limit: 1000 }], [search, genus]);
+  const { data: species, isLoading } = useQuery<CotwSpecies[]>({
+    queryKey: speciesKey,
     queryFn: async () => {
       const params = new URLSearchParams();
       if (search) params.set("search", search);
-      if (family) params.set("family", family);
-      params.set("limit", "500");
-      const res = await fetch(`/api/coral-traits/taxa?${params.toString()}`);
-      if (!res.ok) throw new Error("taxa fetch failed");
+      if (genus) params.set("genus", genus);
+      params.set("limit", "1000");
+      const res = await fetch(`/api/cotw/species?${params.toString()}`);
+      if (!res.ok) throw new Error("CoTW species fetch failed");
       return res.json();
     },
     staleTime: 5 * 60 * 1000,
   });
 
   const cards = useMemo(() => {
-    return (taxa ?? []).map(t => ({
-      taxon: t,
-      slug: slugifyForCotw(t.scientificName),
-      factsheetUrl: `${COTW_BASE}/species_factsheet/${slugifyForCotw(t.scientificName)}/`,
+    return (species ?? []).map(s => ({
+      sp: s,
+      slug: s.slug,
+      factsheetUrl: s.factsheetUrl || `${COTW_BASE}/species_factsheet/${s.slug}/`,
     }));
-  }, [taxa]);
+  }, [species]);
 
   return (
     <div className="flex h-screen w-screen bg-[#00080c] text-[#d4e9f3] overflow-hidden">
@@ -70,12 +62,12 @@ export function CoralFactSheetsPage() {
                 <h1 className="text-xl md:text-2xl font-bold tracking-tight text-[#d4e9f3]" data-testid="text-factsheets-title">Coral Species Fact Sheets</h1>
               </div>
               <p className="text-xs text-[#d4e9f399] max-w-2xl">
-                Curated species fact sheets from <a href={COTW_FACTSHEETS} target="_blank" rel="noopener noreferrer" className="text-[#83eef0] hover:underline" data-testid="link-cotw-factsheets-source">Corals of the World</a> by J.E.N. Veron et al., the global reference atlas for hard coral taxonomy, biology and distribution. Click any species to open its full fact sheet in a side panel.
+                The complete <a href={COTW_FACTSHEETS} target="_blank" rel="noopener noreferrer" className="text-[#83eef0] hover:underline" data-testid="link-cotw-factsheets-source">Corals of the World</a> species catalog by J.E.N. Veron et al. - the global reference atlas for hard coral taxonomy, biology and distribution. Every species links to its full fact sheet on coralsoftheworld.org with taxonomy, distribution map, photographs, similar species and habitat notes.
               </p>
             </div>
             <div className="flex gap-2 flex-wrap">
-              <Stat label="Species" value={stats?.taxa ?? 0} color="#83eef0" testId="stat-fs-species" />
-              <Stat label="Families" value={stats?.families.length ?? 0} color="#a6ce39" testId="stat-fs-families" />
+              <Stat label="Species" value={stats?.species ?? 0} color="#83eef0" testId="stat-fs-species" />
+              <Stat label="Genera" value={stats?.genera.length ?? 0} color="#a6ce39" testId="stat-fs-genera" />
               <Stat label="Source" value="CoTW v0.01" color="#26de81" testId="stat-fs-source" />
             </div>
           </div>
@@ -91,13 +83,13 @@ export function CoralFactSheetsPage() {
             className="flex-1 min-w-[200px] bg-[#0a293344] border border-[#ffffff14] rounded-md px-3 py-1.5 text-sm text-[#d4e9f3] placeholder:text-[#d4e9f366] focus:outline-none focus:border-[#83eef066]"
           />
           <select
-            value={family}
-            onChange={e => setFamily(e.target.value)}
-            data-testid="select-factsheet-family"
-            className="bg-[#0a293344] border border-[#ffffff14] rounded-md px-3 py-1.5 text-sm text-[#d4e9f3] focus:outline-none focus:border-[#83eef066]"
+            value={genus}
+            onChange={e => setGenus(e.target.value)}
+            data-testid="select-factsheet-genus"
+            className="bg-[#0a293344] border border-[#ffffff14] rounded-md px-3 py-1.5 text-sm text-[#d4e9f3] focus:outline-none focus:border-[#83eef066] max-w-[180px]"
           >
-            <option value="">All families</option>
-            {(stats?.families ?? []).map(f => <option key={f} value={f}>{f}</option>)}
+            <option value="">All genera</option>
+            {(stats?.genera ?? []).map(g => <option key={g} value={g}>{g}</option>)}
           </select>
           <span className="text-[10px] text-[#d4e9f366] ml-auto">
             {isLoading ? "Loading..." : `${cards.length} species`}
@@ -113,12 +105,12 @@ export function CoralFactSheetsPage() {
               </div>
             )}
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-              {cards.map(({ taxon, slug, factsheetUrl }) => {
+              {cards.map(({ sp, slug, factsheetUrl }) => {
                 const isActive = activeSlug === slug;
                 return (
                   <article
-                    key={taxon.id}
-                    data-testid={`card-factsheet-${taxon.id}`}
+                    key={sp.id}
+                    data-testid={`card-factsheet-${sp.cotwId}`}
                     className={`rounded-lg border p-3 transition-colors cursor-pointer ${
                       isActive
                         ? "bg-[#83eef00f] border-[#83eef066]"
@@ -126,13 +118,12 @@ export function CoralFactSheetsPage() {
                     }`}
                     onClick={() => setActiveSlug(slug)}
                   >
-                    <h3 className="italic font-semibold text-sm text-[#d4e9f3] leading-tight" data-testid={`text-factsheet-name-${taxon.id}`}>
-                      {taxon.scientificName}
+                    <h3 className="italic font-semibold text-sm text-[#d4e9f3] leading-tight" data-testid={`text-factsheet-name-${sp.cotwId}`}>
+                      {sp.scientificName}
                     </h3>
                     <div className="mt-1 flex flex-wrap gap-1.5 text-[10px] text-[#d4e9f377]">
-                      {taxon.family && <span className="px-1.5 py-0.5 rounded bg-[#83eef00f] border border-[#83eef033] text-[#83eef0cc]">{taxon.family}</span>}
-                      {taxon.genus && <span className="px-1.5 py-0.5 rounded bg-[#a6ce3910] border border-[#a6ce3933] text-[#a6ce39cc]">{taxon.genus}</span>}
-                      {taxon.authority && <span className="text-[#d4e9f355]">{taxon.authority}</span>}
+                      {sp.genus && <span className="px-1.5 py-0.5 rounded bg-[#a6ce3910] border border-[#a6ce3933] text-[#a6ce39cc]">{sp.genus}</span>}
+                      <span className="text-[#d4e9f355]">CoTW #{sp.cotwId}</span>
                     </div>
                     <div className="mt-2 flex items-center justify-between text-[10px]">
                       <a
@@ -140,17 +131,17 @@ export function CoralFactSheetsPage() {
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={e => e.stopPropagation()}
-                        data-testid={`link-factsheet-external-${taxon.id}`}
+                        data-testid={`link-factsheet-external-${sp.cotwId}`}
                         className="text-[#83eef0] hover:underline no-underline"
                       >
-                        Open on coralsoftheworld.org ↗
+                        Open fact sheet ↗
                       </a>
                       <button
                         onClick={e => { e.stopPropagation(); setActiveSlug(slug); }}
-                        data-testid={`button-factsheet-preview-${taxon.id}`}
+                        data-testid={`button-factsheet-preview-${sp.cotwId}`}
                         className="px-2 py-0.5 rounded border border-[#83eef033] text-[#83eef0] hover:bg-[#83eef00f]"
                       >
-                        Preview
+                        Details
                       </button>
                     </div>
                   </article>
@@ -171,7 +162,7 @@ export function CoralFactSheetsPage() {
             ) : (() => {
               const active = cards.find(c => c.slug === activeSlug);
               if (!active) return null;
-              const t = active.taxon;
+              const t = active.sp;
               return (
                 <div className="p-5 md:p-6 flex flex-col gap-4">
                   <div className="flex items-start justify-between gap-3">
@@ -179,7 +170,7 @@ export function CoralFactSheetsPage() {
                       <h2 className="italic font-bold text-xl text-[#d4e9f3] leading-tight" data-testid="text-preview-name">
                         {t.scientificName}
                       </h2>
-                      {t.authority && <div className="text-[11px] text-[#d4e9f377] mt-1">{t.authority}</div>}
+                      <div className="text-[11px] text-[#d4e9f377] mt-1">Corals of the World species #{t.cotwId}</div>
                     </div>
                     <button
                       onClick={() => setActiveSlug(null)}
@@ -190,10 +181,9 @@ export function CoralFactSheetsPage() {
                     </button>
                   </div>
                   <div className="flex flex-wrap gap-1.5 text-[10px]">
-                    {t.family && <span className="px-2 py-0.5 rounded-full border border-[#83eef033] bg-[#83eef00f] text-[#83eef0]">Family: {t.family}</span>}
                     {t.genus && <span className="px-2 py-0.5 rounded-full border border-[#a6ce3933] bg-[#a6ce390f] text-[#a6ce39]">Genus: {t.genus}</span>}
-                    {t.iucnStatus && <span className="px-2 py-0.5 rounded-full border border-[#f9ca2433] bg-[#f9ca240f] text-[#f9ca24]">IUCN: {t.iucnStatus}</span>}
-                    {t.sampleCount > 0 && <span className="px-2 py-0.5 rounded-full border border-[#ffffff14] bg-[#ffffff05] text-[#d4e9f399]">{t.sampleCount} trait observations</span>}
+                    {t.speciesEpithet && <span className="px-2 py-0.5 rounded-full border border-[#83eef033] bg-[#83eef00f] text-[#83eef0]">Species: {t.speciesEpithet}</span>}
+                    <span className="px-2 py-0.5 rounded-full border border-[#ffffff14] bg-[#ffffff05] text-[#d4e9f399]">Family: under review (CoTW)</span>
                   </div>
 
                   <a

@@ -177,6 +177,24 @@ export const insertCoralTaxonSchema = createInsertSchema(coralTaxa).omit({ id: t
 export type InsertCoralTaxon = z.infer<typeof insertCoralTaxonSchema>;
 export type CoralTaxon = typeof coralTaxa.$inferSelect;
 
+// ─── Corals of the World species catalog (full 831-species fact-sheet index) ──
+// One row per species in coralsoftheworld.org/species_factsheets/ - sourced from
+// the public <select> on that page (cotw_id + binomial + genus). Family is left
+// blank because CoTW currently lists "All families are currently under review".
+// Seeder is idempotent (onConflictDoNothing on cotw_id + slug).
+export const cotwSpecies = pgTable("cotw_species", {
+  id:             serial("id").primaryKey(),
+  cotwId:         integer("cotw_id").notNull().unique(),
+  scientificName: text("scientific_name").notNull().unique(),
+  genus:          text("genus").notNull().default(""),
+  speciesEpithet: text("species_epithet").notNull().default(""),
+  slug:           text("slug").notNull().unique(),
+  factsheetUrl:   text("factsheet_url").notNull().default(""),
+});
+export const insertCotwSpeciesSchema = createInsertSchema(cotwSpecies).omit({ id: true });
+export type InsertCotwSpecies = z.infer<typeof insertCotwSpeciesSchema>;
+export type CotwSpecies = typeof cotwSpecies.$inferSelect;
+
 export const coralTraits = pgTable("coral_traits", {
   id:           integer("id").primaryKey(),                 // upstream trait id
   name:         text("name").notNull().unique(),
