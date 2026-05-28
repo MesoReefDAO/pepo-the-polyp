@@ -185,11 +185,12 @@ app.use((req, res, next) => {
     try {
       const { seedCotwSpecies } = await import("./seedCotwSpecies");
       const r = await seedCotwSpecies();
-      if (r.inserted > 0 || r.fetched > 0) {
-        log(`CoTW species seed: fetched=${r.fetched} inserted=${r.inserted} total=${r.total}`);
-      } else {
+      if (r.skipped) {
         log(`CoTW species seed: already populated (${r.total} species)`);
+      } else {
+        log(`CoTW species seed: fetched=${r.fetched} inserted=${r.inserted} total=${r.total}`);
       }
+      if (r.warning) console.warn(`[cotw-seed] ${r.warning}`);
     } catch (err) {
       console.error("[cotw-seed] startup seed failed:", err);
     }
