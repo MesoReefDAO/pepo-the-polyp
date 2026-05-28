@@ -56,6 +56,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "connect-pg-simple": "^10.0.0",
+    "csv-parse": "^6.2.1",
     "datastore-fs": "^11.0.4",
     "date-fns": "^3.6.0",
     "did-session": "^4.0.0",

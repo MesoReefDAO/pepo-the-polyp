@@ -255,3 +255,132 @@ export interface LeaderboardEntry {
   location: string;
   website: string;
 }
+
+// ─── Coral Trait Database (jmadinlab/coraltraits2) ────────────────────────────
+// Imported from https://github.com/jmadinlab/coraltraits2 (database_v_1_july).
+// Source IDs (s1, l3, r5, integers) are preserved as primary keys for stable
+// cross-reference with the upstream dataset.
+
+export const ctSpecies = pgTable("ct_species", {
+  id: text("id").primaryKey(),
+  masterSpecies: text("master_species").notNull().default(""),
+  familyMolecules: text("family_molecules").notNull().default(""),
+  synonymSpecies: text("synonym_species").notNull().default(""),
+  aphiaId: integer("aphia_id"),
+});
+export type CtSpecies = typeof ctSpecies.$inferSelect;
+
+export const ctLocations = pgTable("ct_locations", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull().default(""),
+  latitude: real("latitude"),
+  longitude: real("longitude"),
+});
+export type CtLocation = typeof ctLocations.$inferSelect;
+
+export const ctResources = pgTable("ct_resources", {
+  id: text("id").primaryKey(),
+  primarySecondary: text("primary_secondary").notNull().default(""),
+  author: text("author").notNull().default(""),
+  year: integer("year"),
+  title: text("title").notNull().default(""),
+  resourceType: text("resource_type").notNull().default(""),
+  doiIsbn: text("doi_isbn").notNull().default(""),
+  journal: text("journal").notNull().default(""),
+  volumePages: text("volume_pages").notNull().default(""),
+});
+export type CtResource = typeof ctResources.$inferSelect;
+
+export const ctStandards = pgTable("ct_standards", {
+  id: integer("id").primaryKey(),
+  name: text("name").notNull().default(""),
+  units: text("units").notNull().default(""),
+  standardClass: text("standard_class").notNull().default(""),
+  description: text("description").notNull().default(""),
+});
+export type CtStandard = typeof ctStandards.$inferSelect;
+
+export const ctMethodologies = pgTable("ct_methodologies", {
+  id: integer("id").primaryKey(),
+  name: text("name").notNull().default(""),
+  description: text("description").notNull().default(""),
+  userId: integer("user_id"),
+});
+export type CtMethodology = typeof ctMethodologies.$inferSelect;
+
+export const ctTraits = pgTable("ct_traits", {
+  id: integer("id").primaryKey(),
+  name: text("name").notNull().default(""),
+  standardId: integer("standard_id"),
+  traitClassId: text("trait_class_id").notNull().default(""),
+  description: text("description").notNull().default(""),
+  userId: integer("user_id"),
+  editor: text("editor").notNull().default(""),
+  traitEditorId: integer("trait_editor_id"),
+});
+export type CtTrait = typeof ctTraits.$inferSelect;
+
+export const ctValueTypes = pgTable("ct_value_types", {
+  id: integer("id").primaryKey(),
+  name: text("name").notNull().default(""),
+});
+export type CtValueType = typeof ctValueTypes.$inferSelect;
+
+export const ctPrecisionTypes = pgTable("ct_precision_types", {
+  id: integer("id").primaryKey(),
+  name: text("name").notNull().default(""),
+});
+export type CtPrecisionType = typeof ctPrecisionTypes.$inferSelect;
+
+export const ctTraitEditors = pgTable("ct_trait_editors", {
+  id: integer("id").primaryKey(),
+  name: text("name").notNull().default(""),
+});
+export type CtTraitEditor = typeof ctTraitEditors.$inferSelect;
+
+export const ctContributors = pgTable("ct_contributors", {
+  id: integer("id").primaryKey(),
+  name: text("name").notNull().default(""),
+});
+export type CtContributor = typeof ctContributors.$inferSelect;
+
+// Denormalised measurement-level rows: one row per (observation × trait).
+// Matches the shipped database_v_1_july.csv structure so a single SELECT
+// can answer "give me trait X for species Y at location Z" without joins,
+// while all *_id columns remain joinable to the lookup tables above.
+export const ctMeasurements = pgTable("ct_measurements", {
+  id: serial("id").primaryKey(),
+  observationId: integer("observation_id"),
+  measurementId: integer("measurement_id"),
+  access: text("access").notNull().default(""),
+  userId: integer("user_id"),
+  speciesId: text("species_id"),
+  speciesName: text("species_name").notNull().default(""),
+  familyMolecules: text("family_molecules").notNull().default(""),
+  locationId: text("location_id"),
+  locationName: text("location_name").notNull().default(""),
+  latitude: real("latitude"),
+  longitude: real("longitude"),
+  resourceId: text("resource_id"),
+  resourceSecondaryId: text("resource_secondary_id").notNull().default(""),
+  traitId: integer("trait_id"),
+  traitName: text("trait_name").notNull().default(""),
+  traitCategory: text("trait_category").notNull().default(""),
+  standardId: integer("standard_id"),
+  standardUnit: text("standard_unit").notNull().default(""),
+  methodologyId: integer("methodology_id"),
+  methodologyName: text("methodology_name").notNull().default(""),
+  value: text("value").notNull().default(""),
+  valueTypeId: integer("value_type_id"),
+  valueType: text("value_type").notNull().default(""),
+  precision: text("precision").notNull().default(""),
+  precisionTypeId: integer("precision_type_id"),
+  precisionType: text("precision_type").notNull().default(""),
+  precisionUpper: text("precision_upper").notNull().default(""),
+  replicates: text("replicates").notNull().default(""),
+  notes: text("notes").notNull().default(""),
+  originalTaxa: text("original_taxa").notNull().default(""),
+  originalTaxaStatus: text("original_taxa_status").notNull().default(""),
+  originalAphiaId: integer("original_aphia_id"),
+});
+export type CtMeasurement = typeof ctMeasurements.$inferSelect;

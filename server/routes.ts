@@ -3081,6 +3081,121 @@ hr, [class*="divider"], [class*="separator"] {
     }
   });
 
+  // ─── Coral Trait Database (jmadinlab/coraltraits2) ──────────────────────────
+  // Read-only endpoints over the ct_* tables seeded from
+  // https://github.com/jmadinlab/coraltraits2
+  {
+    const { db } = await import("./db");
+    const {
+      ctSpecies, ctLocations, ctResources, ctTraits, ctStandards,
+      ctMethodologies, ctMeasurements,
+    } = await import("../shared/schema");
+    const { sql: dsql, and, eq, ilike } = await import("drizzle-orm");
+
+    const clampLimit = (v: unknown, def: number, max: number) => {
+      const n = parseInt(String(v ?? ""), 10);
+      if (!Number.isFinite(n) || n <= 0) return def;
+      return Math.min(n, max);
+    };
+    const offsetOf = (v: unknown) => {
+      const n = parseInt(String(v ?? ""), 10);
+      return Number.isFinite(n) && n > 0 ? n : 0;
+    };
+
+    app.get("/api/coraltraits/summary", async (_req, res) => {
+      try {
+        const r: any = await db.execute(dsql`
+          SELECT
+            (SELECT COUNT(*)::int FROM ct_species)        AS species,
+            (SELECT COUNT(*)::int FROM ct_locations)      AS locations,
+            (SELECT COUNT(*)::int FROM ct_resources)      AS resources,
+            (SELECT COUNT(*)::int FROM ct_traits)         AS traits,
+            (SELECT COUNT(*)::int FROM ct_standards)      AS standards,
+            (SELECT COUNT(*)::int FROM ct_methodologies)  AS methodologies,
+            (SELECT COUNT(*)::int FROM ct_measurements)   AS measurements`);
+        return res.json(r.rows?.[0] ?? r[0] ?? {});
+      } catch (err) {
+        console.error("[coraltraits] summary failed:", err);
+        return res.status(500).json({ error: "ct summary failed" });
+      }
+    });
+
+    app.get("/api/coraltraits/species", async (req, res) => {
+      try {
+        const q = String(req.query.q ?? "").trim();
+        const limit = clampLimit(req.query.limit, 50, 500);
+        const offset = offsetOf(req.query.offset);
+        const where = q ? ilike(ctSpecies.masterSpecies, `%${q}%`) : undefined;
+        const rows = await db.select().from(ctSpecies).where(where as any).limit(limit).offset(offset);
+        return res.json(rows);
+      } catch (err) {
+        console.error("[coraltraits] species failed:", err);
+        return res.status(500).json({ error: "ct species failed" });
+      }
+    });
+
+    app.get("/api/coraltraits/traits", async (_req, res) => {
+      try { return res.json(await db.select().from(ctTraits)); }
+      catch (err) { console.error("[coraltraits] traits failed:", err); return res.status(500).json({ error: "ct traits failed" }); }
+    });
+
+    app.get("/api/coraltraits/standards", async (_req, res) => {
+      try { return res.json(await db.select().from(ctStandards)); }
+      catch (err) { console.error("[coraltraits] standards failed:", err); return res.status(500).json({ error: "ct standards failed" }); }
+    });
+
+    app.get("/api/coraltraits/methodologies", async (_req, res) => {
+      try { return res.json(await db.select().from(ctMethodologies)); }
+      catch (err) { console.error("[coraltraits] methodologies failed:", err); return res.status(500).json({ error: "ct methodologies failed" }); }
+    });
+
+    app.get("/api/coraltraits/locations", async (req, res) => {
+      try {
+        const limit = clampLimit(req.query.limit, 500, 2000);
+        const offset = offsetOf(req.query.offset);
+        const rows = await db.select().from(ctLocations).limit(limit).offset(offset);
+        return res.json(rows);
+      } catch (err) {
+        console.error("[coraltraits] locations failed:", err);
+        return res.status(500).json({ error: "ct locations failed" });
+      }
+    });
+
+    app.get("/api/coraltraits/resources", async (req, res) => {
+      try {
+        const limit = clampLimit(req.query.limit, 100, 500);
+        const offset = offsetOf(req.query.offset);
+        const rows = await db.select().from(ctResources).limit(limit).offset(offset);
+        return res.json(rows);
+      } catch (err) {
+        console.error("[coraltraits] resources failed:", err);
+        return res.status(500).json({ error: "ct resources failed" });
+      }
+    });
+
+    // Denormalised measurement rows. Filter by species_id, trait_id and/or
+    // location_id to slice the dataset; otherwise paginate.
+    app.get("/api/coraltraits/measurements", async (req, res) => {
+      try {
+        const limit = clampLimit(req.query.limit, 100, 1000);
+        const offset = offsetOf(req.query.offset);
+        const speciesId = req.query.species_id ? String(req.query.species_id) : null;
+        const traitId = req.query.trait_id ? parseInt(String(req.query.trait_id), 10) : null;
+        const locationId = req.query.location_id ? String(req.query.location_id) : null;
+        const filters: any[] = [];
+        if (speciesId) filters.push(eq(ctMeasurements.speciesId, speciesId));
+        if (traitId && Number.isFinite(traitId)) filters.push(eq(ctMeasurements.traitId, traitId));
+        if (locationId) filters.push(eq(ctMeasurements.locationId, locationId));
+        const where = filters.length ? and(...filters) : undefined;
+        const rows = await db.select().from(ctMeasurements).where(where as any).limit(limit).offset(offset);
+        return res.json(rows);
+      } catch (err) {
+        console.error("[coraltraits] measurements failed:", err);
+        return res.status(500).json({ error: "ct measurements failed" });
+      }
+    });
+  }
+
   return httpServer;
 }
 
