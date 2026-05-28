@@ -43,10 +43,13 @@ const GCRMN_LONG: Record<string, string> = {
   "WIO":         "Western Indian Ocean",
 };
 
-// ─── NOAA Coral Reef Watch (CRW) v3.1 - 5 km daily products ──────────────────
-// WMS via PacIOOS ERDDAP mirror (redirected from coastwatch.pfeg.noaa.gov): dhw_5km dataset
-// Docs: https://coralreefwatch.noaa.gov/product/5km/
-// Procedures: https://coastwatch.noaa.gov/cw_html/cwViewer.html
+// ─── NOAA Coral Reef Watch - Coral Degree Heating Weeks (CDHW) ───────────────
+// Single CDHW layer with three time-window views (7-day / Monthly / Yearly).
+// Palette and value range match NOAA NNVL CDHW product:
+//   https://www.nnvl.noaa.gov/view/globaldata.html#CDHW
+//   https://coralreefwatch.noaa.gov/product/5km/methodology.php
+// Data source: PacIOOS ERDDAP mirror of NOAA CRW v3.1 dhw_5km dataset
+// (CRW_DHW variable is the canonical 12-week rolling DHW accumulation).
 const CRW_WMS_BASE = "https://pae-paha.pacioos.hawaii.edu/erddap/wms/dhw_5km/request";
 const CRW_DATASET  = "dhw_5km";
 
@@ -55,91 +58,45 @@ interface CrwLayer {
   unit: string; color: string; desc: string;
   colorscalerange?: string;
   min?: number; max?: number;
-  // NOAA-aligned gradient stops left-to-right for the color-scale bar.
-  // Categorical layers (BAA) get discrete stops; continuous layers get smooth ramps.
   palette?: string[];
   ticks?: string[];
   externalUrl?: string;
   unavailable?: boolean;
 }
-// Colors aligned with NOAA CRW v3.1 standard palette - see:
-//   https://coralreefwatch.noaa.gov/product/5km/methodology.php
-//   https://coastwatch.noaa.gov/cw_html/cwViewer.html
-//   https://www.nnvl.noaa.gov/view/globaldata.html
-// NOAA-aligned palettes (left = min, right = max). Matched to the CoastWatch
-// Data Viewer (cwViewer.html) and CRW methodology pages.
-const PAL_SST       = ["#0d47a1","#1976d2","#4dd0e1","#a7ffeb","#fff59d","#ffb300","#e64a19","#7b0000"];
-const PAL_ANOMALY   = ["#2166ac","#67a9cf","#d1e5f0","#f7f7f7","#fddbc7","#ef8a62","#b2182b"];
-const PAL_HOTSPOT   = ["#ffffff","#fff59d","#ffb300","#e64a19","#b71c1c","#6a1b9a"];
-const PAL_DHW       = ["#ffffff","#fff59d","#ffb300","#e64a19","#b71c1c","#6a1b9a","#311b92"];
-const PAL_BAA       = ["#1e88e5","#fff176","#ffb300","#ef5350","#b71c1c","#6a1b9a"];
+// NOAA CDHW palette (white -> yellow -> orange -> red -> dark red -> purple ->
+// indigo), aligned with the NNVL CDHW global map. 0 -> 16+ deg C-weeks.
+const PAL_DHW = ["#ffffff","#fff59d","#ffb300","#e64a19","#b71c1c","#6a1b9a","#311b92"];
 
 const CRW_LAYERS: CrwLayer[] = [
   {
-    id: "CRW_BAA_7D_MAX", label: "Bleaching Alerts (7-day max)", short: "Alerts",
-    unit: "Level 0-5", color: "#FF0000",
-    colorscalerange: "0,5", min: 0, max: 5, palette: PAL_BAA,
-    ticks: ["None","Watch","Warn","A1","A2","A3+"],
-    desc: "Rolling 7-day maximum Bleaching Alert Area. Levels 1-5 indicate escalating coral thermal stress (Dec 2023+: new Levels 3-5 for extreme events). Level 1 = Bleaching Watch; 2 = Warning; 3 = Alert 1; 4 = Alert 2; 5 = Alert 3+.",
-  },
-  {
-    id: "CRW_DHW", label: "Degree Heating Weeks", short: "DHW",
+    id: "CRW_DHW", label: "Coral DHW (CDHW)", short: "CDHW",
     unit: "deg C-weeks", color: "#FF6600",
     colorscalerange: "0,16", min: 0, max: 16, palette: PAL_DHW,
-    desc: "Accumulated thermal stress above bleaching threshold over a 12-week rolling window. DHW > 4 deg C-weeks = significant bleaching risk; DHW > 8 deg C-weeks = widespread bleaching and mortality risk.",
-  },
-  {
-    id: "CRW_HOTSPOT", label: "HotSpot", short: "HotSpot",
-    unit: "deg C above MMM", color: "#FFAA00",
-    colorscalerange: "0,5", min: 0, max: 5, palette: PAL_HOTSPOT,
-    desc: "SST minus the Maximum Monthly Mean (MMM) climatology. HotSpot >= 1 deg C triggers coral bleaching thermal stress. Used to compute DHW accumulation.",
-  },
-  {
-    id: "CRW_SST", label: "Sea Surface Temperature", short: "SST",
-    unit: "deg C", color: "#FF4500",
-    colorscalerange: "15,32", min: 15, max: 32, palette: PAL_SST,
-    desc: "CoralTemp nighttime SST - daily 5 km blended multi-sensor satellite product (1985-present). Foundation variable for all CRW bleaching stress products. NOAA thermal palette: cool blue to hot red.",
-  },
-  {
-    id: "CRW_SSTANOMALY", label: "SST Anomaly", short: "Anomaly",
-    unit: "deg C", color: "#D62728",
-    colorscalerange: "-3,3", min: -3, max: 3, palette: PAL_ANOMALY,
-    desc: "SST departure from the long-term climatological mean. Diverging palette: blue = cooler than climatology, red = warmer. Based on CRW daily 5-km satellite SST climatology.",
-  },
-  {
-    id: "SST_TREND_7D", label: "SST Trend (7-day)", short: "SST Trend",
-    unit: "deg C / week", color: "#16A085",
-    externalUrl: "https://coralreefwatch.noaa.gov/product/5km/index_5km_sst-trend.php",
-    desc: "Rate of SST change over the past 7 days (warming vs cooling). Diverging palette: red = warming, blue = cooling. NOAA publishes this only as a static product image - click to open NOAA's daily global map in a new tab.",
-  },
-  {
-    id: "CRW_BAA", label: "Outlook (single-day)", short: "Outlook",
-    unit: "Level 0-5", color: "#990099",
-    colorscalerange: "0,5", min: 0, max: 5, palette: PAL_BAA,
-    ticks: ["None","Watch","Warn","A1","A2","A3+"],
-    desc: "Single-day Bleaching Alert Area - immediate pixel-level thermal stress condition. Complements the 7-day max layer to show the current day's alert status without temporal smoothing. Same categorical palette as Alerts.",
+    desc: "NOAA Coral Reef Watch Coral Degree Heating Weeks - accumulated thermal stress above the local bleaching threshold over a rolling 12-week window. DHW > 4 = significant bleaching risk; DHW > 8 = widespread bleaching and mortality risk. Three time windows snapshot the same CDHW field at different lookback intervals so the latest week can be compared with a month ago and a year ago.",
   },
 ];
 
-// Default = 2 days ago UTC. CRW daily 5km products are released ~13:30 ET, so
-// going back two days guarantees the slice is published on PacIOOS ERDDAP.
-function getDefaultCrwDate(): string {
+// CDHW time-window views shown in the layer panel. Each window picks a
+// historical date so the user can compare the latest 7-day snapshot with
+// month-ago and year-ago CDHW accumulations using the same palette.
+export type CdhwWindow = "7d" | "monthly" | "yearly";
+export const CDHW_WINDOWS: { id: CdhwWindow; label: string; sub: string; days: number }[] = [
+  { id: "7d",      label: "7-day",   sub: "Latest week",  days: 2   },
+  { id: "monthly", label: "Monthly", sub: "~30 days ago", days: 30  },
+  { id: "yearly",  label: "Yearly",  sub: "~1 year ago",  days: 365 },
+];
+// Convert a CDHW window to the YYYY-MM-DD ERDDAP needs. CRW 5km is released
+// ~13:30 ET each day, so even the "latest" window backs off 2 days to be
+// safely on the published slice.
+export function cdhwWindowDate(w: CdhwWindow): string {
+  const cfg = CDHW_WINDOWS.find(c => c.id === w) ?? CDHW_WINDOWS[0];
   const d = new Date();
-  d.setUTCDate(d.getUTCDate() - 2);
+  d.setUTCDate(d.getUTCDate() - cfg.days);
   return d.toISOString().slice(0, 10);
 }
 // Convert YYYY-MM-DD to the ISO timestamp ERDDAP WMS expects.
-function getCrwTime(dateStr?: string): string {
-  return (dateStr ?? getDefaultCrwDate()) + "T12:00:00Z";
-}
-// Clamp a YYYY-MM-DD string to [1985-01-01, latest-available]. Returns the
-// fallback when the input is empty or malformed.
-function clampCrwDate(s: string, fallback: string): string {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return fallback;
-  const latest = getDefaultCrwDate();
-  if (s < "1985-01-01") return "1985-01-01";
-  if (s > latest) return latest;
-  return s;
+function getCrwTime(dateStr: string): string {
+  return dateStr + "T12:00:00Z";
 }
 
 // Builds a CSS linear-gradient from a palette array. Discrete=true renders
@@ -1027,18 +984,9 @@ function ExpandedMapModal({
   const [showCotwEcoregions, setShowCotwEcoregions] = useState(false);
   const [activeCrwLayer,     setActiveCrwLayer]     = useState<string | null>(null);
   const [crwLoading,         setCrwLoading]         = useState(false);
-  const [crwDate,            setCrwDate]            = useState<string>(getDefaultCrwDate());
+  const [cdhwWindow,         setCdhwWindow]         = useState<CdhwWindow>("7d");
   const [crwOpacity,         setCrwOpacity]         = useState<number>(0.85);
-  // Once an hour, clamp the selected date back into [1985-01-01, latest]. This
-  // catches a tab left open across midnight (date silently goes stale) as well
-  // as any out-of-range value that may have been injected. We never override a
-  // user-selected historical date.
-  useEffect(() => {
-    const t = setInterval(() => {
-      setCrwDate(prev => clampCrwDate(prev, getDefaultCrwDate()));
-    }, 60 * 60 * 1000);
-    return () => clearInterval(t);
-  }, []);
+  const crwDate = cdhwWindowDate(cdhwWindow);
   const [activeCmsVar,       setActiveCmsVar]       = useState<CmsVar | null>(null);
   const [cmsYYYYMM,          setCmsYYYYMM]          = useState(CMS_MAX_YM);
   const [showToolbox,        setShowToolbox]        = useState<'cms'|'live'|null>(null);
@@ -1357,7 +1305,7 @@ function ExpandedMapModal({
               const cfg = CRW_LAYERS.find(l => l.id === activeCrwLayer);
               return cfg && !cfg.externalUrl ? (
                 <WMSTileLayer
-                  key={`crw-expanded-${activeCrwLayer}-${crwDate}-${cfg.colorscalerange ?? ""}`}
+                  key={`crw-expanded-${activeCrwLayer}-${cdhwWindow}-${crwDate}-${cfg.colorscalerange ?? ""}`}
                   url={CRW_WMS_BASE}
                   layers={`${CRW_DATASET}:${activeCrwLayer}`}
                   format="image/png"
@@ -2759,7 +2707,7 @@ function ExpandedMapModal({
 
             {/* ── NOAA Coral Reef Watch ── */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "10px 0 2px" }}>
-              <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#d4e9f340" }}>NOAA Coral Reef Watch</span>
+              <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#d4e9f340" }}>NOAA CRW - Coral DHW (CDHW)</span>
               {activeCrwLayer && (
                 <button
                   onClick={() => setActiveCrwLayer(null)}
@@ -2768,7 +2716,7 @@ function ExpandedMapModal({
               )}
             </div>
             <div style={{ fontSize: 7.5, color: "#d4e9f328", marginBottom: 5, lineHeight: 1.5 }}>
-              Real-time global satellite coral bleaching heat stress - 5 km daily. Select one layer at a time. Updated ~13:30 ET daily via NOAA ERDDAP.
+              Coral Degree Heating Weeks - cumulative thermal stress driving coral bleaching. Toggle the layer, then pick a 7-day / Monthly / Yearly window. Palette and value range match the <a href="https://www.nnvl.noaa.gov/view/globaldata.html#CDHW" target="_blank" rel="noopener noreferrer" style={{ color: "#FF6600bb", textDecoration: "none" }}>NOAA NNVL CDHW</a> global map.
             </div>
             {CRW_LAYERS.map(layer => (
               <div
@@ -2821,41 +2769,47 @@ function ExpandedMapModal({
                 </div>
               ) : null;
             })()}
-            {/* ── cwViewer-style controls: date scrub + opacity + color-scale legend ── */}
+            {/* ── CDHW window selector + opacity + color-scale legend ── */}
             {activeCrwLayer && (() => {
               const layer = CRW_LAYERS.find(l => l.id === activeCrwLayer);
               if (!layer || layer.externalUrl) return null;
-              const today = getDefaultCrwDate();
-              const stepDate = (days: number) => {
-                const d = new Date(crwDate + "T12:00:00Z");
-                d.setUTCDate(d.getUTCDate() + days);
-                const s = d.toISOString().slice(0, 10);
-                if (s > today) return;
-                if (s < "1985-01-01") return;
-                setCrwDate(s);
-              };
-              const isLatest = crwDate === today;
               return (
                 <div data-testid="crw-controls-expanded" style={{ marginTop: 6, marginBottom: 6, padding: "7px 7px 8px", background: "rgba(0,19,28,0.45)", border: `1px solid ${layer.color}33`, borderRadius: 6, fontFamily: "Inter,sans-serif" }}>
-                  {/* Date scrubber */}
-                  <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 6 }}>
-                    <span style={{ fontSize: 8, color: "#d4e9f366", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", flexShrink: 0 }}>Date</span>
-                    <button data-testid="crw-date-prev" onClick={() => stepDate(-1)} aria-label="Previous day" title="Previous day"
-                      style={{ fontSize: 9, padding: "1px 5px", background: "rgba(255,255,255,0.04)", border: `1px solid ${layer.color}44`, borderRadius: 3, color: "#d4e9f3aa", cursor: "pointer", fontFamily: "Inter,sans-serif", fontWeight: 600 }}>‹</button>
-                    <input
-                      data-testid="crw-date-input"
-                      type="date"
-                      aria-label={`Coral Reef Watch data date for ${layer.label}`}
-                      value={crwDate}
-                      min="1985-01-01"
-                      max={today}
-                      onChange={e => setCrwDate(clampCrwDate(e.target.value, today))}
-                      style={{ flex: 1, minWidth: 0, fontSize: 9.5, padding: "2px 4px", background: "rgba(255,255,255,0.03)", border: `1px solid ${layer.color}33`, borderRadius: 3, color: "#d4e9f3", fontFamily: "Inter,sans-serif", colorScheme: "dark" }}
-                    />
-                    <button data-testid="crw-date-next" onClick={() => stepDate(1)} disabled={isLatest} aria-label="Next day" title="Next day"
-                      style={{ fontSize: 9, padding: "1px 5px", background: "rgba(255,255,255,0.04)", border: `1px solid ${layer.color}44`, borderRadius: 3, color: isLatest ? "#d4e9f322" : "#d4e9f3aa", cursor: isLatest ? "not-allowed" : "pointer", fontFamily: "Inter,sans-serif", fontWeight: 600 }}>›</button>
-                    <button data-testid="crw-date-latest" onClick={() => setCrwDate(today)} disabled={isLatest} aria-label="Jump to latest available date" title="Jump to latest available"
-                      style={{ fontSize: 8, padding: "2px 6px", background: isLatest ? "rgba(255,255,255,0.02)" : `${layer.color}22`, border: `1px solid ${isLatest ? "rgba(255,255,255,0.06)" : `${layer.color}66`}`, borderRadius: 3, color: isLatest ? "#d4e9f344" : layer.color, cursor: isLatest ? "default" : "pointer", fontFamily: "Inter,sans-serif", fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase" }}>Latest</button>
+                  {/* CDHW time-window selector */}
+                  <div style={{ marginBottom: 7 }}>
+                    <div style={{ fontSize: 8, color: "#d4e9f366", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 4 }}>Time window</div>
+                    <div role="radiogroup" aria-label="CDHW time window" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4 }}>
+                      {CDHW_WINDOWS.map(w => {
+                        const active = cdhwWindow === w.id;
+                        return (
+                          <button
+                            key={w.id}
+                            role="radio"
+                            aria-checked={active}
+                            data-testid={`crw-window-${w.id}`}
+                            onClick={() => { setCrwLoading(true); setCdhwWindow(w.id); }}
+                            style={{
+                              padding: "5px 4px",
+                              background: active ? `${layer.color}22` : "rgba(255,255,255,0.03)",
+                              border: `1px solid ${active ? `${layer.color}88` : "rgba(255,255,255,0.06)"}`,
+                              borderRadius: 4,
+                              color: active ? layer.color : "#d4e9f388",
+                              cursor: "pointer",
+                              fontFamily: "Inter,sans-serif",
+                              fontWeight: active ? 700 : 500,
+                              fontSize: 9.5,
+                              letterSpacing: "0.04em",
+                              textAlign: "center",
+                              lineHeight: 1.15,
+                              transition: "all 0.12s",
+                            }}
+                          >
+                            <div>{w.label}</div>
+                            <div style={{ fontSize: 7.5, fontWeight: 500, color: active ? `${layer.color}aa` : "#d4e9f344", marginTop: 1, letterSpacing: "0.02em" }}>{w.sub}</div>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
 
                   {/* Opacity slider */}
@@ -2895,16 +2849,16 @@ function ExpandedMapModal({
                     </div>
                   )}
 
-                  {/* Data-as-of footer */}
+                  {/* Snapshot date + source footer */}
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 7, paddingTop: 5, borderTop: "1px solid rgba(255,255,255,0.05)", fontSize: 7.5, color: "#d4e9f355", letterSpacing: "0.03em" }}>
-                    <span data-testid="crw-data-as-of">Data as of <strong style={{ color: layer.color, fontWeight: 700 }}>{crwDate}</strong> UTC</span>
+                    <span data-testid="crw-data-as-of">Snapshot <strong style={{ color: layer.color, fontWeight: 700 }}>{crwDate}</strong> UTC</span>
                     <span>NOAA CoralTemp 5km</span>
                   </div>
                 </div>
               );
             })()}
             <div style={{ fontSize: 7.5, color: "#d4e9f322", marginTop: 3, marginBottom: 4, lineHeight: 1.4 }}>
-              Data: NOAA CRW v3.1 - CoralTemp 5km - ERDDAP dataset dhw_5km (PacIOOS) - CRS EPSG:4326 - WMS 1.3.0 - daily refresh ~13:30 ET
+              Data: NOAA CRW v3.1 CDHW - CoralTemp 5km - ERDDAP dataset dhw_5km (PacIOOS) - CRS EPSG:4326 - WMS 1.3.0 - daily refresh ~13:30 ET
             </div>
 
             {/* ── Community ── */}
@@ -3630,11 +3584,13 @@ export function ReefMap({
   const [showCoralTraitsC,  setShowCoralTraitsC]  = useState(false);
   const [activeCrwLayerC,   setActiveCrwLayerC]   = useState<string | null>(null);
   const [crwLoadingC,       setCrwLoadingC]       = useState(false);
-  const [crwDateC,          setCrwDateC]          = useState<string>(getDefaultCrwDate());
+  const [cdhwWindowC,       setCdhwWindowC]       = useState<CdhwWindow>("7d");
   const [crwOpacityC,       setCrwOpacityC]       = useState<number>(0.82);
+  const crwDateC = cdhwWindowDate(cdhwWindowC);
   useEffect(() => {
+    // Re-render hourly so the derived crwDate advances if the tab is left open.
     const t = setInterval(() => {
-      setCrwDateC(prev => clampCrwDate(prev, getDefaultCrwDate()));
+      setCdhwWindowC(w => w);
     }, 60 * 60 * 1000);
     return () => clearInterval(t);
   }, []);
@@ -3798,7 +3754,7 @@ export function ReefMap({
             const cfg = CRW_LAYERS.find(l => l.id === activeCrwLayerC);
             return cfg && !cfg.externalUrl ? (
               <WMSTileLayer
-                key={`crw-compact-${activeCrwLayerC}-${crwDateC}-${cfg.colorscalerange ?? ""}`}
+                key={`crw-compact-${activeCrwLayerC}-${cdhwWindowC}-${crwDateC}-${cfg.colorscalerange ?? ""}`}
                 url={CRW_WMS_BASE}
                 layers={`${CRW_DATASET}:${activeCrwLayerC}`}
                 format="image/png"
@@ -4212,17 +4168,17 @@ export function ReefMap({
                 <div style={{ marginBottom: 4 }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "5px 10px 3px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                      <span style={{ fontSize: 8, color: "#e8404066" }}>🌡</span>
-                      <span style={{ fontSize: 8, fontFamily: "Inter,sans-serif", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#e8404066" }}>NOAA CRW Heat Stress</span>
+                      <span style={{ fontSize: 8, color: "#FF660088" }}>🌡</span>
+                      <span style={{ fontSize: 8, fontFamily: "Inter,sans-serif", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#FF660088" }}>NOAA CRW - CDHW</span>
                     </div>
                     {activeCrwLayerC && (
                       <button onClick={() => setActiveCrwLayerC(null)}
-                        style={{ fontSize: 8, background: "none", border: "none", color: "#e8404066", cursor: "pointer", fontFamily: "Inter,sans-serif", fontWeight: 600, padding: "1px 5px" }}>
+                        style={{ fontSize: 8, background: "none", border: "none", color: "#FF660088", cursor: "pointer", fontFamily: "Inter,sans-serif", fontWeight: 600, padding: "1px 5px" }}>
                         off
                       </button>
                     )}
                   </div>
-                  <div style={{ fontSize: 7.5, color: "#d4e9f328", padding: "0 10px 4px", lineHeight: 1.4, fontFamily: "Inter,sans-serif" }}>Real-time satellite. Select one layer.</div>
+                  <div style={{ fontSize: 7.5, color: "#d4e9f328", padding: "0 10px 4px", lineHeight: 1.4, fontFamily: "Inter,sans-serif" }}>Coral Degree Heating Weeks. Toggle, then pick a window.</div>
                   {CRW_LAYERS.map(layer => (
                     <div
                       key={layer.id}
@@ -4290,8 +4246,35 @@ export function ReefMap({
                             </div>
                           </>
                         )}
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 3, marginTop: 5 }}>
+                          {CDHW_WINDOWS.map(w => {
+                            const active = cdhwWindowC === w.id;
+                            return (
+                              <button
+                                key={w.id}
+                                role="radio"
+                                aria-checked={active}
+                                data-testid={`crw-window-c-${w.id}`}
+                                onClick={() => { setCrwLoadingC(true); setCdhwWindowC(w.id); }}
+                                style={{
+                                  padding: "3px 2px",
+                                  background: active ? `${layer.color}28` : "rgba(255,255,255,0.02)",
+                                  border: `1px solid ${active ? `${layer.color}88` : "rgba(255,255,255,0.06)"}`,
+                                  borderRadius: 3,
+                                  color: active ? layer.color : "#d4e9f388",
+                                  fontFamily: "Inter,sans-serif",
+                                  fontWeight: active ? 700 : 500,
+                                  fontSize: 8.5,
+                                  letterSpacing: "0.03em",
+                                  cursor: "pointer",
+                                  transition: "all 0.12s",
+                                }}
+                              >{w.label}</button>
+                            );
+                          })}
+                        </div>
                         <div data-testid="crw-data-as-of-c" style={{ fontSize: 7, color: "#d4e9f355", marginTop: 4, letterSpacing: "0.03em" }}>
-                          Data as of <strong style={{ color: layer.color, fontWeight: 700 }}>{crwDateC}</strong> UTC - daily refresh
+                          Snapshot <strong style={{ color: layer.color, fontWeight: 700 }}>{crwDateC}</strong> UTC
                         </div>
                       </div>
                     );
