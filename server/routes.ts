@@ -3180,11 +3180,11 @@ hr, [class*="divider"], [class*="separator"] {
         const limit = clampLimit(req.query.limit, 100, 1000);
         const offset = offsetOf(req.query.offset);
         const speciesId = req.query.species_id ? String(req.query.species_id) : null;
-        const traitId = req.query.trait_id ? parseInt(String(req.query.trait_id), 10) : null;
+        const traitId = req.query.trait_id ? String(req.query.trait_id) : null;
         const locationId = req.query.location_id ? String(req.query.location_id) : null;
         const filters: any[] = [];
         if (speciesId) filters.push(eq(ctMeasurements.speciesId, speciesId));
-        if (traitId && Number.isFinite(traitId)) filters.push(eq(ctMeasurements.traitId, traitId));
+        if (traitId) filters.push(eq(ctMeasurements.traitId, traitId));
         if (locationId) filters.push(eq(ctMeasurements.locationId, locationId));
         const where = filters.length ? and(...filters) : undefined;
         const rows = await db.select().from(ctMeasurements).where(where as any).limit(limit).offset(offset);
