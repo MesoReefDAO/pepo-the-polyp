@@ -139,9 +139,6 @@ function GuestView({ onLogin, error }: { onLogin: () => void; error?: string | n
           <div className="w-24 h-24 rounded-full bg-[#06232c] border-2 border-[#83eef04c] flex items-center justify-center overflow-hidden">
             <img src="/figmaAssets/pepo-the-polyp-mascot.png" alt="Pepo" className="w-full h-full object-cover" />
           </div>
-          <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-[#83eef0] flex items-center justify-center shadow-lg">
-            <span className="text-[#00585a] font-bold text-sm">?</span>
-          </div>
         </div>
         <div className="flex flex-col items-center gap-2 text-center">
           <h2 className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-bold text-[#d4e9f3] text-2xl">
@@ -156,7 +153,7 @@ function GuestView({ onLogin, error }: { onLogin: () => void; error?: string | n
         <button
           onClick={onLogin}
           data-testid="button-guest-login"
-          className="w-full px-8 py-3 rounded-xl bg-[linear-gradient(170deg,rgba(131,238,240,1)_0%,rgba(63,176,179,1)_100%)] hover:opacity-90 transition-opacity [font-family:'Inter',Helvetica] font-semibold text-[#00585a] text-sm shadow-lg"
+          className="w-full px-8 py-3 rounded-xl bg-[#83eef0] hover:opacity-90 transition-opacity [font-family:'Inter',Helvetica] font-semibold text-[#00585a] text-sm"
         >
           Log in / Sign up
         </button>
@@ -172,12 +169,11 @@ function GuestView({ onLogin, error }: { onLogin: () => void; error?: string | n
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-lg w-full mt-4">
         {[
-          { icon: "🪸", title: "Reef Score", desc: "Track your conservation contributions" },
-          { icon: "🔬", title: "Research ID", desc: "Link your ORCID and publications" },
-          { icon: "🗳️", title: "DAO Voting", desc: "Participate in governance decisions" },
+          { title: "Reef Score", desc: "Track your conservation contributions" },
+          { title: "Research ID", desc: "Link your ORCID and publications" },
+          { title: "DAO Voting", desc: "Participate in governance decisions" },
         ].map((f) => (
-          <div key={f.title} className="flex flex-col gap-2 p-4 rounded-2xl bg-[#ffffff06] border border-[#83eef015] text-center">
-            <span className="text-2xl">{f.icon}</span>
+          <div key={f.title} className="flex flex-col gap-1.5 p-4 rounded-2xl bg-[#ffffff04] border border-[#ffffff0d] text-center">
             <span className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-semibold text-[#d4e9f3] text-xs">{f.title}</span>
             <span className="[font-family:'Inter',Helvetica] text-[#d4e9f350] text-[10px] leading-4">{f.desc}</span>
           </div>
@@ -233,7 +229,7 @@ function AvatarIPFSUpload({
         onClick={() => !uploading && inputRef.current?.click()}
         data-testid="input-avatar-ipfs-upload"
       >
-        <div className="w-28 h-28 rounded-full overflow-hidden border-2 border-[#83eef04c] group-hover:border-[#83eef099] bg-[#06232c] shadow-[0_0_24px_rgba(131,238,240,0.15)] transition-colors">
+        <div className="w-28 h-28 rounded-full overflow-hidden border-2 border-[#83eef04c] group-hover:border-[#83eef099] bg-[#06232c] transition-colors">
           {uploading ? (
             <div className="w-full h-full flex items-center justify-center bg-[#00080c80]">
               <div className="w-8 h-8 rounded-full border-2 border-[#83eef0] border-t-transparent animate-spin" />
@@ -955,14 +951,10 @@ export function UserProfileDashboard() {
 
   return (
     <div className="flex flex-col items-start relative bg-[#00080c] min-h-screen w-full">
-      {/* Background */}
-      <img className="absolute w-full h-full top-0 left-0 object-cover pointer-events-none" alt="" src="/figmaAssets/coral-microbiome-bg.jpg" />
-      <div className="absolute w-full h-full top-0 left-0 pointer-events-none bg-[#00080c]/80" />
-
       <div className="relative z-10 w-full flex flex-col min-h-screen">
 
         {/* Top bar */}
-        <div className="flex items-center justify-between px-4 md:px-8 py-4 border-b border-[#ffffff0d] backdrop-blur-md bg-[#00080c50]">
+        <div className="flex items-center justify-between px-4 md:px-8 py-4 border-b border-[#ffffff0d] bg-[#000d12]">
           <Link href="/" data-testid="link-back-home" className="flex items-center gap-2 text-[#83eef0b2] hover:text-[#83eef0] transition-colors no-underline">
             <BackIcon />
             <span className="[font-family:'Inter',Helvetica] text-sm">Back</span>
@@ -978,7 +970,7 @@ export function UserProfileDashboard() {
             <button
               onClick={login}
               data-testid="button-login-header"
-              className="px-4 py-2 rounded-full bg-[linear-gradient(170deg,rgba(131,238,240,1)_0%,rgba(63,176,179,1)_100%)] text-[#00585a] [font-family:'Inter',Helvetica] text-sm font-medium hover:opacity-90 transition-opacity"
+              className="px-4 py-2 rounded-full bg-[#83eef0] text-[#00585a] [font-family:'Inter',Helvetica] text-sm font-medium hover:opacity-90 transition-opacity"
             >Log in</button>
           )}
         </div>
@@ -1010,8 +1002,8 @@ export function UserProfileDashboard() {
                 {/* LEFT - Preview card */}
                 <div className="flex flex-col gap-5">
                   {/* Profile card preview */}
-                  <div className="flex flex-col items-center gap-4 p-6 rounded-3xl bg-[#ffffff08] border border-[#83eef01a] backdrop-blur-sm text-center">
-                    <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-[#83eef04c] bg-[#06232c] shadow-[0_0_20px_rgba(131,238,240,0.2)]">
+                  <div className="flex flex-col items-center gap-4 p-6 rounded-2xl bg-[#0b1519] border border-[#ffffff0d] text-center">
+                    <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-[#83eef04c] bg-[#06232c]">
                       {profileImage ? (
                         <img src={profileImage} alt="Preview" className="w-full h-full object-cover" />
                       ) : (
@@ -1066,7 +1058,7 @@ export function UserProfileDashboard() {
                   </div>
 
                   {/* Reef Score widget */}
-                  <div className="flex flex-col gap-3 p-5 rounded-3xl bg-[#ffffff08] border border-[#83eef01a] backdrop-blur-sm" data-testid="card-reef-score">
+                  <div className="flex flex-col gap-3 p-5 rounded-2xl bg-[#0b1519] border border-[#ffffff0d]" data-testid="card-reef-score">
                     <div className="flex items-center justify-between">
                       <span className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-semibold text-[#d4e9f3b2] text-xs uppercase tracking-wider">Reef Score</span>
                       <span className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-bold text-[#83eef0] text-lg" data-testid="text-total-points">
@@ -1079,7 +1071,7 @@ export function UserProfileDashboard() {
                       {[
                         { label: "First login", pts: "+50", note: "one-time", color: "#83eef0" },
                         { label: "Daily sign-in", pts: "+10", note: "per day", color: "#83eef0" },
-                        { label: "🪸 Clean a Coral", pts: "+10", note: "per day", color: "#83eef0" },
+                        { label: "Clean a Coral", pts: "+10", note: "per day", color: "#83eef0" },
                         { label: "Ask Pepo a question", pts: "+10", note: "per day", color: "#83eef0" },
                         { label: "ORCID verification", pts: "+25", note: "one-time", color: "#a6ce39" },
                         { label: "Link ORCID to profile", pts: "+25", note: "one-time", color: "#a6ce39" },
@@ -1108,7 +1100,7 @@ export function UserProfileDashboard() {
                 <div className="lg:col-span-2 flex flex-col gap-5">
 
                   {/* Photo + Name section */}
-                  <div className="flex flex-col gap-5 p-5 md:p-6 rounded-3xl bg-[#ffffff08] border border-[#83eef01a] backdrop-blur-sm">
+                  <div className="flex flex-col gap-5 p-5 md:p-6 rounded-2xl bg-[#0b1519] border border-[#ffffff0d]">
                     <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center">
                       {/* Avatar - unified IPFS upload */}
                       <AvatarIPFSUpload
@@ -1149,7 +1141,7 @@ export function UserProfileDashboard() {
                   </div>
 
                   {/* About / Bio */}
-                  <div className="flex flex-col gap-4 p-5 md:p-6 rounded-3xl bg-[#ffffff08] border border-[#83eef01a] backdrop-blur-sm">
+                  <div className="flex flex-col gap-4 p-5 md:p-6 rounded-2xl bg-[#0b1519] border border-[#ffffff0d]">
                     <Field label="About / Bio" hint={`${bio.length}/500`}>
                       <textarea
                         value={bio}
@@ -1180,7 +1172,7 @@ export function UserProfileDashboard() {
                   </div>
 
                   {/* Social Links */}
-                  <div className="flex flex-col gap-4 p-5 md:p-6 rounded-3xl bg-[#ffffff08] border border-[#83eef01a] backdrop-blur-sm">
+                  <div className="flex flex-col gap-4 p-5 md:p-6 rounded-2xl bg-[#0b1519] border border-[#ffffff0d]">
                     <div className="flex items-center gap-2 pb-1 border-b border-[#ffffff08]">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" stroke="#83eef0aa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" stroke="#83eef0aa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                       <span className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-semibold text-[#d4e9f3b2] text-xs uppercase tracking-wider">Social Links</span>
@@ -1261,7 +1253,7 @@ export function UserProfileDashboard() {
                   </div>
 
                   {/* Specializations */}
-                  <div className="flex flex-col gap-4 p-5 md:p-6 rounded-3xl bg-[#ffffff08] border border-[#83eef01a] backdrop-blur-sm">
+                  <div className="flex flex-col gap-4 p-5 md:p-6 rounded-2xl bg-[#0b1519] border border-[#ffffff0d]">
                     <Field label="Specializations" hint="Pick up to 5">
                       <div className="flex flex-wrap gap-2">
                         {SPECIALIZATIONS.map((tag) => {
@@ -1290,7 +1282,7 @@ export function UserProfileDashboard() {
                   </div>
 
                   {/* Linked accounts + Wallets */}
-                  <div className="flex flex-col gap-5 p-5 md:p-6 rounded-3xl bg-[#ffffff08] border border-[#83eef01a] backdrop-blur-sm">
+                  <div className="flex flex-col gap-5 p-5 md:p-6 rounded-2xl bg-[#0b1519] border border-[#ffffff0d]">
                     <div className="flex items-center gap-2 text-[#d4e9f3b2] mb-1">
                       <ShieldIcon />
                       <span className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-semibold text-sm">Identity & Accounts</span>
@@ -1410,7 +1402,7 @@ export function UserProfileDashboard() {
                   </div>
 
                   {/* IPFS Reef Photo Archive */}
-                  <div className="flex flex-col gap-4 p-5 md:p-6 rounded-3xl bg-[#ffffff08] border border-[#83eef01a] backdrop-blur-sm">
+                  <div className="flex flex-col gap-4 p-5 md:p-6 rounded-2xl bg-[#0b1519] border border-[#ffffff0d]">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
@@ -1486,7 +1478,7 @@ export function UserProfileDashboard() {
                       className={`flex items-center gap-2 px-8 py-3 rounded-full [font-family:'Inter',Helvetica] font-semibold text-sm transition-all ${
                         saved
                           ? "bg-[#83eef030] border border-[#83eef066] text-[#83eef0]"
-                          : "bg-[linear-gradient(170deg,rgba(131,238,240,1)_0%,rgba(63,176,179,1)_100%)] text-[#00585a] hover:opacity-90 shadow-[0_4px_20px_rgba(131,238,240,0.25)]"
+                          : "bg-[#83eef0] text-[#00585a] hover:opacity-90"
                       }`}
                     >
                       {saved ? <><CheckIcon />Saved!</> : "Save Profile"}

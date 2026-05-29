@@ -8,7 +8,6 @@ import { SiX, SiGithub, SiLinkedin, SiInstagram } from "react-icons/si";
 import { extractHandle, buildSocialHref } from "@/lib/social";
 import type { LeaderboardEntry } from "@shared/schema";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
-import coralDnaBg from "@assets/coral_micro_1777060394505.jpg";
 import { ipfsPublicUrl } from "@/lib/ipfs";
 
 // ─── ORCID badge ──────────────────────────────────────────────────────────────
@@ -46,10 +45,8 @@ function useMemberNav() {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function rankBadge(rank: number) {
-  if (rank === 1) return { emoji: "🥇", color: "#FFD700" };
-  if (rank === 2) return { emoji: "🥈", color: "#C0C0C0" };
-  if (rank === 3) return { emoji: "🥉", color: "#CD7F32" };
-  return { emoji: `#${rank}`, color: "#d4e9f366" };
+  const colors: Record<number, string> = { 1: "#FFD700", 2: "#C0C0C0", 3: "#CD7F32" };
+  return { emoji: `#${rank}`, color: colors[rank] ?? "#d4e9f366" };
 }
 
 function Avatar({ url, cid, name, size = 40 }: { url?: string; cid?: string; name: string; size?: number }) {
@@ -108,9 +105,8 @@ function LeaderboardPanel({ entries, currentUserId }: { entries: LeaderboardEntr
               className={`flex items-center gap-3 px-4 py-3 rounded-2xl border transition-colors cursor-pointer ${
                 isMe
                   ? "bg-[#83eef010] border-[#83eef033] hover:border-[#83eef055]"
-                  : "bg-[#00080c80] border-[#ffffff08] hover:border-[#83eef025] hover:bg-[#83eef008]"
+                  : "bg-[#0b1519] border-[#ffffff0d] hover:border-[#83eef025] hover:bg-[#83eef008]"
               }`}
-              style={isMe ? { boxShadow: "inset 0 2px 6px rgba(0,0,0,0.4)" } : {}}
             >
               {/* Rank */}
               <span
@@ -276,7 +272,7 @@ function ProfileCard({ entry, rank }: { entry: LeaderboardEntry; rank: number })
     <div
       data-testid={`profile-card-${entry.id}`}
       onClick={(e) => navigate(entry.id, e)}
-      className="flex flex-col gap-3 p-5 rounded-3xl border border-[#ffffff08] bg-[#00080c80] hover:border-[#83eef025] hover:bg-[#83eef005] transition-colors cursor-pointer group"
+      className="flex flex-col gap-3 p-5 rounded-2xl border border-[#ffffff0d] bg-[#0b1519] hover:border-[#83eef025] hover:bg-[#83eef005] transition-colors cursor-pointer group"
     >
       {/* Header */}
       <div className="flex items-start gap-3">
@@ -412,26 +408,8 @@ export function CommunityLeaderboard() {
   const currentUserId = user?.id;
 
   return (
-    <div
-      className="min-h-screen w-full"
-      style={{
-        backgroundImage: `url(${coralDnaBg})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundAttachment: "fixed",
-        position: "relative",
-      }}
-    >
-      {/* Dark overlay */}
-      <div style={{
-        position: "fixed",
-        inset: 0,
-        background: "linear-gradient(180deg, rgba(0,8,12,0.84) 0%, rgba(0,19,28,0.76) 40%, rgba(0,8,12,0.90) 100%)",
-        zIndex: 0,
-        pointerEvents: "none",
-      }} />
-      {/* Page content above overlay */}
-      <div style={{ position: "relative", zIndex: 1 }}>
+    <div className="min-h-screen w-full bg-[#00080c]">
+      <div>
       {/* Top bar */}
       <div className="flex items-center gap-4 px-4 md:px-6 py-3 md:py-4 border-b border-[#ffffff08]">
         <Link
