@@ -3221,7 +3221,9 @@ hr, [class*="divider"], [class*="separator"] {
         if (traitId) filters.push(eq(ctMeasurements.traitId, traitId));
         if (locationId) filters.push(eq(ctMeasurements.locationId, locationId));
         const where = filters.length ? and(...filters) : undefined;
-        const rows = await db.select().from(ctMeasurements).where(where as any).limit(limit).offset(offset);
+        const rows = await db.select().from(ctMeasurements).where(where as any)
+          .orderBy(ctMeasurements.traitName, ctMeasurements.locationName, ctMeasurements.value)
+          .limit(limit).offset(offset);
         return res.json(rows);
       } catch (err) {
         console.error("[coraltraits] measurements failed:", err);

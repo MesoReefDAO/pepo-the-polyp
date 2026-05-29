@@ -377,7 +377,7 @@ export function CoralTraitsPage() {
             </p>
             <div className="space-y-3">
               {Object.entries(traitsByClass)
-                .sort((a, b) => b[1].length - a[1].length)
+                .sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true }))
                 .map(([cls, list]) => (
                   <details key={cls} className="text-xs">
                     <summary className="cursor-pointer text-[#d4e9f3] font-semibold py-1 hover:text-[#83eef0]" data-testid={`summary-trait-class-${cls}`}>
