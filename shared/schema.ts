@@ -265,7 +265,10 @@ export const ctSpecies = pgTable("ct_species", {
   id: text("id").primaryKey(),
   masterSpecies: text("master_species").notNull().default(""),
   familyMolecules: text("family_molecules").notNull().default(""),
+  familyMorphology: text("family_morphology").notNull().default(""),
+  speciesClass: text("species_class").notNull().default(""),
   synonymSpecies: text("synonym_species").notNull().default(""),
+  description: text("description").notNull().default(""),
   aphiaId: integer("aphia_id"),
 });
 export type CtSpecies = typeof ctSpecies.$inferSelect;
@@ -275,6 +278,7 @@ export const ctLocations = pgTable("ct_locations", {
   name: text("name").notNull().default(""),
   latitude: real("latitude"),
   longitude: real("longitude"),
+  description: text("description").notNull().default(""),
 });
 export type CtLocation = typeof ctLocations.$inferSelect;
 

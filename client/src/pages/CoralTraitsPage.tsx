@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { ExplorerNavigationSidebarSection } from "@/pages/sections/ExplorerNavigationSidebarSection";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
@@ -27,25 +27,51 @@ export function CoralTraitsPage() {
     staleTime: 60 * 60 * 1000,
   });
 
-  const speciesKey = useMemo(() => ["/api/coraltraits/species", { q: search }], [search]);
-  const { data: species, isLoading: speciesLoading } = useQuery<CtSpecies[]>({
-    queryKey: speciesKey,
-    queryFn: async () => {
+  const PAGE_SIZE = 200;
+  const {
+    data: speciesPages,
+    isLoading: speciesLoading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery<CtSpecies[]>({
+    queryKey: ["/api/coraltraits/species", { q: search, family }],
+    initialPageParam: 0,
+    queryFn: async ({ pageParam }) => {
       const params = new URLSearchParams();
       if (search) params.set("q", search);
-      params.set("limit", "500");
+      if (family) params.set("family", family);
+      params.set("limit", String(PAGE_SIZE));
+      params.set("offset", String(pageParam));
       const res = await fetch(`/api/coraltraits/species?${params.toString()}`);
       if (!res.ok) throw new Error("species fetch failed");
       return res.json();
     },
+    getNextPageParam: (lastPage, allPages) =>
+      lastPage.length === PAGE_SIZE ? allPages.length * PAGE_SIZE : undefined,
     staleTime: 5 * 60 * 1000,
   });
 
+  const species = useMemo(
+    () => (speciesPages?.pages ?? []).flat(),
+    [speciesPages]
+  );
+
+  const { data: familyOptions } = useQuery<string[]>({
+    queryKey: ["/api/coraltraits/families"],
+    staleTime: 60 * 60 * 1000,
+  });
+
+  const selectedName = useMemo(
+    () => (species ?? []).find(s => s.id === selectedId)?.masterSpecies ?? null,
+    [species, selectedId]
+  );
+
   const { data: measurements, isLoading: measLoading } = useQuery<CtMeasurement[]>({
-    queryKey: ["/api/coraltraits/measurements", { species_id: selectedId }],
-    enabled: selectedId != null,
+    queryKey: ["/api/coraltraits/measurements", { species_name: selectedName }],
+    enabled: selectedName != null && selectedName !== "",
     queryFn: async () => {
-      const res = await fetch(`/api/coraltraits/measurements?species_id=${encodeURIComponent(selectedId!)}&limit=1000`);
+      const res = await fetch(`/api/coraltraits/measurements?species_name=${encodeURIComponent(selectedName!)}&limit=1000`);
       if (!res.ok) throw new Error("measurements fetch failed");
       return res.json();
     },
@@ -57,16 +83,10 @@ export function CoralTraitsPage() {
     staleTime: 60 * 60 * 1000,
   });
 
-  const families = useMemo(() => {
-    const set = new Set<string>();
-    (species ?? []).forEach(s => { if (s.familyMolecules) set.add(s.familyMolecules); });
-    return Array.from(set).sort();
-  }, [species]);
+  const families = familyOptions ?? [];
 
-  const filteredSpecies = useMemo(() => {
-    if (!family) return species ?? [];
-    return (species ?? []).filter(s => s.familyMolecules === family);
-  }, [species, family]);
+  // Family filtering happens server-side, so the loaded pages are already scoped.
+  const filteredSpecies = species ?? [];
 
   const selected = useMemo(
     () => (species ?? []).find(s => s.id === selectedId) ?? null,
@@ -129,18 +149,19 @@ export function CoralTraitsPage() {
                   Coral Traits
                 </h1>
                 <a
-                  href="https://github.com/jmadinlab/coraltraits2"
+                  href="https://coraltraits.org"
                   target="_blank" rel="noopener noreferrer"
-                  data-testid="link-coraltraits2-repo"
+                  data-testid="link-coraltraits-repo"
                   className="text-[10px] uppercase tracking-widest px-2 py-0.5 rounded-full border border-[#a6ce3933] text-[#a6ce39] hover:bg-[#a6ce390f] no-underline"
                 >
-                  coraltraits2
+                  coraltraits.org
                 </a>
               </div>
               <p className="text-xs md:text-sm text-[#d4e9f380] max-w-2xl leading-relaxed">
-                The Coral Trait Database from <a href="https://github.com/jmadinlab/coraltraits2" target="_blank" rel="noopener noreferrer" className="text-[#83eef0] no-underline hover:underline">jmadinlab/coraltraits2</a> -
-                {" "}{(summary?.measurements ?? 0).toLocaleString()} trait measurements across {(summary?.species ?? 0).toLocaleString()} species,
-                geolocated on the <Link href="/reef-map" data-testid="link-reef-map-inline" className="text-[#83eef0] no-underline hover:underline">Reef Map</Link>.
+                The Coral Trait Database - <a href="https://coraltraits.org" target="_blank" rel="noopener noreferrer" className="text-[#83eef0] no-underline hover:underline">coraltraits.org</a> full
+                {" "}{(summary?.species ?? 0).toLocaleString()}-species catalogue (Octocorallia and Hexacorallia), with
+                {" "}{(summary?.measurements ?? 0).toLocaleString()} trait measurements geolocated on the{" "}
+                <Link href="/reef-map" data-testid="link-reef-map-inline" className="text-[#83eef0] no-underline hover:underline">Reef Map</Link>.
               </p>
             </div>
             <div className="flex gap-2 flex-wrap items-center">
@@ -216,6 +237,18 @@ export function CoralTraitsPage() {
                 );
               })}
             </ul>
+            {hasNextPage && (
+              <div className="px-4 py-3">
+                <button
+                  onClick={() => fetchNextPage()}
+                  disabled={isFetchingNextPage}
+                  data-testid="button-load-more-species"
+                  className="w-full px-3 py-2 text-xs rounded-lg bg-[#83eef012] border border-[#83eef033] text-[#83eef0] hover:bg-[#83eef01f] disabled:opacity-50"
+                >
+                  {isFetchingNextPage ? "Loading..." : `Load more species (${filteredSpecies.length} of ${(summary?.species ?? 0).toLocaleString()})`}
+                </button>
+              </div>
+            )}
           </aside>
 
           {/* Pane 2: Selected species detail (measurements) */}
@@ -231,10 +264,13 @@ export function CoralTraitsPage() {
                 <h2 className="italic font-bold text-lg md:text-xl text-[#d4e9f3]" data-testid="text-taxon-name">
                   {selected.masterSpecies || selected.id}
                 </h2>
-                <div className="flex flex-wrap gap-2 mt-2 mb-4 text-[10px]">
+                <div className="flex flex-wrap gap-2 mt-2 mb-3 text-[10px]">
+                  {selected.speciesClass && <Tag label={selected.speciesClass} color="#f9ca24" />}
                   {selected.familyMolecules && <Tag label={`Family: ${selected.familyMolecules}`} color="#83eef0" />}
+                  {selected.familyMorphology && selected.familyMorphology !== selected.familyMolecules && (
+                    <Tag label={`Morphology: ${selected.familyMorphology}`} color="#26de81" />
+                  )}
                   {selected.synonymSpecies && <Tag label={`Syn: ${selected.synonymSpecies}`} color="#d4e9f366" />}
-                  {selected.aphiaId != null && <Tag label={`AphiaID: ${selected.aphiaId}`} color="#a6ce39" />}
                   <a
                     href={`https://coraltraits.org/species/${encodeURIComponent(selected.masterSpecies || "")}`}
                     target="_blank" rel="noopener noreferrer"
@@ -252,6 +288,12 @@ export function CoralTraitsPage() {
                     Corals of the World
                   </a>
                 </div>
+
+                {selected.description && (
+                  <p className="text-xs md:text-sm text-[#d4e9f3aa] leading-relaxed mb-2 max-w-3xl" data-testid="text-species-description">
+                    {selected.description}
+                  </p>
+                )}
 
                 {/* Trait filter + count */}
                 <div className="flex items-center gap-2 mt-4 mb-2 flex-wrap">

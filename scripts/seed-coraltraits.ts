@@ -8,6 +8,9 @@
  */
 import { parse } from "csv-parse";
 import { Readable } from "node:stream";
+import { readFileSync } from "node:fs";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import { sql } from "drizzle-orm";
 import { db, pool } from "../server/db";
 import {
@@ -43,6 +46,21 @@ async function fetchCsv(name: string): Promise<any[]> {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`${url} -> HTTP ${res.status}`);
   const text = await res.text();
+  return parseCsvText(text);
+}
+
+// The full coraltraits.org export (species, locations, traits, standards) is
+// committed under scripts/data/coraltraits/ because it is small (~460 KB) and
+// supersedes the coraltraits2 lookups (5,112 species incl. Hexacorallia, with
+// descriptions/family-morphology/class that the GitHub export lacks).
+const DATA_DIR = join(dirname(fileURLToPath(import.meta.url)), "data", "coraltraits");
+
+function readLocalCsv(name: string): any[] {
+  console.log(`  reading local ${name}…`);
+  return parseCsvText(readFileSync(join(DATA_DIR, name), "utf8"));
+}
+
+function parseCsvText(text: string): Promise<any[]> {
   return new Promise((resolve, reject) => {
     parse(text, { columns: true, skip_empty_lines: true, relax_column_count: true, trim: true, bom: true }, (err, records) => {
       if (err) return reject(err);
@@ -86,24 +104,31 @@ async function main() {
   // ─── Lookups ──────────────────────────────────────────────────────────────
   console.log("Lookups:");
 
-  const speciesRows = await fetchCsv("species_id.csv");
+  // Species + locations come from the full coraltraits.org export (local CSVs),
+  // not the coraltraits2 GitHub lookups. Native numeric IDs are kept as the
+  // primary key; measurements link back to species by NAME (species_name).
+  const speciesRows = await readLocalCsv("species.csv");
   await batchInsert(ctSpecies, speciesRows.map(r => ({
-    id: s(r.specie_id),
-    masterSpecies: s(r.master_species),
+    id: s(r.species_id),
+    masterSpecies: s(r.specie_name),
     familyMolecules: s(r.family_molecules),
+    familyMorphology: s(r.family_morphology),
+    speciesClass: s(r.class),
     synonymSpecies: s(r.synonym_species),
-    aphiaId: toInt(r.aphia_ID),
-  })).filter(r => r.id));
-  console.log(`  ct_species: ${speciesRows.length}`);
+    description: s(r.specie_description),
+    aphiaId: null,
+  })).filter(r => r.id && r.masterSpecies));
+  console.log(`  ct_species: ${speciesRows.length} (coraltraits.org export)`);
 
-  const locationRows = await fetchCsv("location_id.csv");
+  const locationRows = await readLocalCsv("locations.csv");
   await batchInsert(ctLocations, locationRows.map(r => ({
-    id: s(r.location_id),
+    id: s(r.id),
     name: s(r.location_name),
     latitude: toFloat(r.latitude),
     longitude: toFloat(r.longitude),
+    description: s(r.location_description),
   })).filter(r => r.id));
-  console.log(`  ct_locations: ${locationRows.length}`);
+  console.log(`  ct_locations: ${locationRows.length} (coraltraits.org export)`);
 
   const resourceRows = await fetchCsv("resource_id.csv");
   await batchInsert(ctResources, resourceRows.map(r => ({

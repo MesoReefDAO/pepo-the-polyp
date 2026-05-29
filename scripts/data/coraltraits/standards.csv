@@ -1,0 +1,26 @@
+id,user_id,standard_name,standard_unit,standard_class,standard_description,approved,created_at,updated_at
+6,1,Count,units,Base unit,"",true,2014-12-04 23:39:28 UTC,2014-12-04 23:39:28 UTC
+52,1,Degrees Celsius,ºC,Base unit,"",true,2014-12-04 23:39:28 UTC,2014-12-04 23:39:28 UTC
+32,1,Duration,hours,Base unit,"",true,2014-12-04 23:39:28 UTC,2014-12-04 23:39:28 UTC
+27,1,Duration,days,Base unit,"",true,2014-12-04 23:39:28 UTC,2014-12-04 23:39:28 UTC
+26,1,Duration,months,Base unit,"",true,2014-12-04 23:39:28 UTC,2014-12-04 23:39:28 UTC
+33,1,Duration,years,Base unit,"",true,2014-12-04 23:39:28 UTC,2014-12-04 23:39:28 UTC
+3,1,Latitude,deg,Base unit,"",true,2014-12-04 23:39:28 UTC,2014-12-04 23:39:28 UTC
+29,1,Length,cm,Base unit,"",true,2014-12-04 23:39:28 UTC,2014-12-04 23:39:28 UTC
+28,1,Length,mm,Base unit,"",true,2014-12-04 23:39:28 UTC,2014-12-04 23:39:28 UTC
+37,1,Length,km,Base unit,"",true,2014-12-04 23:39:28 UTC,2014-12-04 23:39:28 UTC
+39,1,Length,µm,Base unit,Micrometer,true,2014-12-04 23:39:28 UTC,2014-12-04 23:39:28 UTC
+9,1,Length,m,Base unit,"",true,2014-12-04 23:39:28 UTC,2014-12-04 23:39:28 UTC
+4,1,Longitude,deg,Base unit,"",true,2014-12-04 23:39:28 UTC,2014-12-04 23:39:28 UTC
+76,1,Million years ago,mya,Base unit,Million years ago,true,2015-09-01 21:06:07 UTC,2015-09-16 06:38:11 UTC
+44,1,Presence,pa,Base unit,"",true,2014-12-04 23:39:28 UTC,2014-12-04 23:39:28 UTC
+36,1,Years ago,kya,Base unit,"",true,2014-12-04 23:39:28 UTC,2014-12-04 23:39:28 UTC
+50,1,Calcification rate,µm cm^-2 h^-1,Complex derived unit,"",true,2014-12-04 23:39:28 UTC,2014-12-04 23:39:28 UTC
+45,1,Density,mg cm^-2,Complex derived unit,Weight per unit area.,true,2014-12-04 23:39:28 UTC,2015-09-10 21:42:18 UTC
+47,1,Density,units cm^-2,Complex derived unit,"",true,2014-12-04 23:39:28 UTC,2014-12-04 23:39:28 UTC
+110,21,Density,µM kg-1,Complex derived unit,,true,,
+34,1,Density,g cm-3,Complex derived unit,"",true,2014-12-04 23:39:28 UTC,2014-12-04 23:39:28 UTC
+51,1,Density,µg cm^-2,Complex derived unit,"",true,2014-12-04 23:39:28 UTC,2014-12-04 23:39:28 UTC
+68,1,Density,mg l^-1,Complex derived unit,"",true,2015-07-28 06:03:49 UTC,2015-07-28 06:03:49 UTC
+71,1,Density,mg m^-2,Complex derived unit,"",true,2015-07-28 10:38:34 UTC,2015-07-28 10:38:34 UTC
+49,1,Extension rate (diameter),mm yr^-1,Complex derived unit,"",true,2014-12-04 23:39:28 UTC,2014-12-04 23:39:28 UTC

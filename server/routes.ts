@@ -3090,7 +3090,7 @@ hr, [class*="divider"], [class*="separator"] {
       ctSpecies, ctLocations, ctResources, ctTraits, ctStandards,
       ctMethodologies, ctMeasurements,
     } = await import("../shared/schema");
-    const { sql: dsql, and, eq, ilike } = await import("drizzle-orm");
+    const { sql: dsql, and, or, eq, ilike } = await import("drizzle-orm");
 
     const clampLimit = (v: unknown, def: number, max: number) => {
       const n = parseInt(String(v ?? ""), 10);
@@ -3123,14 +3123,44 @@ hr, [class*="divider"], [class*="separator"] {
     app.get("/api/coraltraits/species", async (req, res) => {
       try {
         const q = String(req.query.q ?? "").trim();
-        const limit = clampLimit(req.query.limit, 50, 500);
+        const family = String(req.query.family ?? "").trim();
+        const speciesClass = String(req.query.class ?? "").trim();
+        const limit = clampLimit(req.query.limit, 200, 500);
         const offset = offsetOf(req.query.offset);
-        const where = q ? ilike(ctSpecies.masterSpecies, `%${q}%`) : undefined;
-        const rows = await db.select().from(ctSpecies).where(where as any).limit(limit).offset(offset);
+        const conds: any[] = [];
+        if (q) conds.push(or(
+          ilike(ctSpecies.masterSpecies, `%${q}%`),
+          ilike(ctSpecies.familyMolecules, `%${q}%`),
+          ilike(ctSpecies.familyMorphology, `%${q}%`),
+          ilike(ctSpecies.speciesClass, `%${q}%`),
+          ilike(ctSpecies.synonymSpecies, `%${q}%`),
+        ));
+        if (family) conds.push(eq(ctSpecies.familyMolecules, family));
+        if (speciesClass) conds.push(eq(ctSpecies.speciesClass, speciesClass));
+        const where = conds.length ? and(...conds) : undefined;
+        const rows = await db.select().from(ctSpecies).where(where as any)
+          .orderBy(ctSpecies.masterSpecies).limit(limit).offset(offset);
         return res.json(rows);
       } catch (err) {
         console.error("[coraltraits] species failed:", err);
         return res.status(500).json({ error: "ct species failed" });
+      }
+    });
+
+    // Distinct families across the whole catalogue (for the filter dropdown),
+    // not just the currently loaded species page.
+    app.get("/api/coraltraits/families", async (_req, res) => {
+      try {
+        const r: any = await db.execute(dsql`
+          SELECT DISTINCT family_molecules AS family
+          FROM ct_species
+          WHERE family_molecules <> ''
+          ORDER BY family_molecules`);
+        const rows = r.rows ?? r ?? [];
+        return res.json(rows.map((x: any) => x.family).filter(Boolean));
+      } catch (err) {
+        console.error("[coraltraits] families failed:", err);
+        return res.status(500).json({ error: "ct families failed" });
       }
     });
 
@@ -3180,9 +3210,13 @@ hr, [class*="divider"], [class*="separator"] {
         const limit = clampLimit(req.query.limit, 100, 1000);
         const offset = offsetOf(req.query.offset);
         const speciesId = req.query.species_id ? String(req.query.species_id) : null;
+        const speciesName = req.query.species_name ? String(req.query.species_name) : null;
         const traitId = req.query.trait_id ? String(req.query.trait_id) : null;
         const locationId = req.query.location_id ? String(req.query.location_id) : null;
         const filters: any[] = [];
+        // Measurements link to the species catalog by NAME (the catalog uses the
+        // coraltraits.org numeric IDs, the measurements use coraltraits2 IDs).
+        if (speciesName) filters.push(eq(ctMeasurements.speciesName, speciesName));
         if (speciesId) filters.push(eq(ctMeasurements.speciesId, speciesId));
         if (traitId) filters.push(eq(ctMeasurements.traitId, traitId));
         if (locationId) filters.push(eq(ctMeasurements.locationId, locationId));

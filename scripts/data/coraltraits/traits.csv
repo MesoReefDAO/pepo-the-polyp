@@ -1,0 +1,26 @@
+id,user_id,trait_name,trait_description,traitclass_id,standard_id,log_data,approved,released,hide,created_at,updated_at
+583,26,Axis presence,Whether a species has an axis or not. The presence or absence of an internal axis determines one of the most important features of octocorals skeletons,1,2,false,true,true,false,,
+614,21,CaCO3 concentration in sclerites,The concentration of CaCO3 in sclerites,1,30,false,true,true,false,,
+616,21,CaCO3 concentration in the axis,For species with axis only. The concentration of CaCO3 in the axis,1,,false,true,true,false,,
+511,26,Calcareous sclerites presence,Whether species have calcareous sclerites or not. The presence or absence of calcareous sclerites determines some of the most important features of octocorals skeletons,1,2,false,true,true,false,,
+615,21,Ca/Mg ratio in sclerites,The Ca/Mg ratio in sclerites,1,182,false,true,true,false,,
+137,1,Colony shape factor,"A dimensionless measure of mechanical vulnerability to hydrodynamic disturbance (see Madin and Connolly 2006).  Colony shape factor is a function of colony size, and therefore each observation should also include a colony size measurement. Currently published data is only available for three species. ",1,48,true,true,true,false,2014-12-04 23:29:48 UTC,2015-09-16 21:51:20 UTC
+169,2,Larval swimming speed,"The swimming speed, typically the maximum, of coral larvae.",1,58,false,true,true,false,2014-12-04 23:29:48 UTC,2015-09-11 05:24:31 UTC
+619,21,Main non-scleritic skeletal component,"The CaCO3 polymorph found in the skeleton, without considering sclerites",1,10,false,true,true,false,,
+598,21,Main skeletal component of sclerites,The CaCO3 polymorph present in sclerites (mostly calcite but Aragonite and Vaterite in some species),1,10,false,true,true,false,,
+618,21,Mg/Ca ratio in sclerites,The Mg/Ca ratio in sclerites,1,182,false,true,true,false,,
+622,21,MgCO3 concentration in axis,For species with axis only. The concentration of MgCO3 in axis,1,192,false,true,true,false,,
+510,21,MgCO3 concentration in sclerites,The concentration of MgCO3 in sclerites ,1,102,false,true,true,false,,
+620,21,Mg concentration in axis,For species with axis only. The concentration of Mg in axis,1,,false,true,true,false,,
+61,1,Skeletal density,The material density of coral skeleton. Porosity measurements can be converted to density by multiplying the reciprocal of porosity by the maximum density of aragonite (2.94 g cm^-3).,1,34,false,true,true,false,2014-12-04 23:29:48 UTC,2015-09-15 04:58:18 UTC
+179,1,Skeletal micro-density,"The fine-scale specific gravity of the material from which coral skeleton is constructed (Bucher et al. 1998, following terminology from Barnes & Devereux 1988). Micro-density should be closer to the density of solid aragonite (~2.96 g cm^-3) than to typical bulk densities, because it does not capture corallite voids (i.e., porosity).",1,34,false,true,true,false,2015-04-07 07:00:00 UTC,2015-09-16 21:52:28 UTC
+632,26,Skeletal rigidity,"The rigidity of a coral colony or individual, based on the type of skeleton. Allowed values are:  Soft (i.e., species with just a hydrostatic skeleton in which the whole colony is capable of retracting or deflating or greatly changing its volume), Semi-rigid (i.e., species with an axis in which the colony itself is not capable of retraction/deflation) and rigid (i.e., species with a totally hard skeleton that is heavily calcified). ",1,10,false,true,true,false,,
+617,21,Stiffness_Young's_modulus,A mechanical property of materials that measures the  stiffness when the force is applied lengthwise,1,189,false,true,true,false,,
+103,8,Substrate attachment,"Whether or not individuals attach to substrates, including reef, rock and wood. ",1,10,false,true,true,false,2014-12-04 23:29:48 UTC,2015-09-15 05:00:44 UTC
+561,26,Type of skeleton,The type of skeleton present in a given octocoral species. Categories were selected based on McFadden et al. 2022,1,10,false,true,true,false,,
+77,14,IUCN Red List category,Red list categories as specified by the IUCN Red list of Threatened Species.,2,10,false,true,true,false,2014-12-04 23:29:48 UTC,2015-09-22 21:30:09 UTC
+159,1,Axial corallite part,The specific part of an axial corallite measured.  Add to value range as needed.,3,10,false,true,true,false,2014-12-04 23:29:48 UTC,2017-04-12 23:06:43 UTC
+207,1,Bleaching event,The measurement was taken during a bleaching event irrespective of if the colony is bleached or not.,3,10,,true,true,false,2015-09-10 22:02:28 UTC,2015-09-10 22:02:28 UTC
+519,21,Branch age class,"In organisms with determinate modular growth, the age of branches may influence their growth",3,10,false,true,true,false,,
+508,21,Branch order,The order of the branch may affect growth rate,3,10,false,true,true,false,,
+203,1,Colony bleached,If measurements were taken of a bleached colony,3,2,,true,true,false,2015-08-25 06:43:30 UTC,2015-08-25 06:43:30 UTC
