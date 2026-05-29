@@ -2896,7 +2896,7 @@ function ExpandedMapModal({
               );
             })()}
             <div style={{ fontSize: 7.5, color: "#d4e9f322", marginTop: 3, marginBottom: 4, lineHeight: 1.4 }}>
-              Data: NOAA CRW v3.1 CDHW - CoralTemp 5km - ERDDAP dataset dhw_5km (PacIOOS) - CRS EPSG:4326 - WMS 1.3.0 - daily refresh ~13:30 ET
+              Data: NOAA Coral Reef Watch v3.1 thermal-stress suite (SST, SST Anomaly, HotSpot, DHW, Bleaching Alert Area) - CoralTemp 5km - ERDDAP dataset dhw_5km (PacIOOS) - CRS EPSG:4326 - WMS 1.3.0 - daily refresh ~13:30 ET
             </div>
 
             {/* ── Community ── */}
@@ -4280,10 +4280,18 @@ export function ReefMap({
                         {layer.palette && layer.min !== undefined && layer.max !== undefined && (
                           <>
                             <div style={{ height: 6, borderRadius: 2, background: paletteGradient(layer.palette, layer.discrete ?? !!layer.ticks), border: "1px solid rgba(255,255,255,0.1)" }} />
-                            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 1, fontSize: 7, color: "#d4e9f377", fontVariantNumeric: "tabular-nums" }}>
-                              <span>{layer.ticks ? layer.ticks[0] : layer.min}</span>
-                              <span>{layer.ticks ? layer.ticks[layer.ticks.length - 1] : layer.max}</span>
-                            </div>
+                            {layer.ticks ? (
+                              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 1, fontSize: 6.5, color: "#d4e9f377", fontVariantNumeric: "tabular-nums" }}>
+                                {layer.ticks.map((t, i) => (
+                                  <span key={i} style={{ flex: 1, textAlign: i === 0 ? "left" : i === layer.ticks!.length - 1 ? "right" : "center" }}>{t}</span>
+                                ))}
+                              </div>
+                            ) : (
+                              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 1, fontSize: 7, color: "#d4e9f377", fontVariantNumeric: "tabular-nums" }}>
+                                <span>{layer.min}</span>
+                                <span>{layer.max}</span>
+                              </div>
+                            )}
                           </>
                         )}
                         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 3, marginTop: 5 }}>
