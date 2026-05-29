@@ -12,6 +12,7 @@ import { IPFSImageUpload } from "@/components/IPFSImageUpload";
 import { ipfsImageUrl } from "@/lib/ipfs";
 import { JourneySection } from "@/components/JourneySection";
 import { MetaMaskIcon } from "@/components/icons";
+import coralCover from "@assets/coral_polmicro_1780089271795.jpg";
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -951,6 +952,12 @@ export function UserProfileDashboard() {
 
   return (
     <div className="flex flex-col items-start relative bg-[#00080c] min-h-screen w-full">
+      <div
+        className="fixed inset-0 z-0 pointer-events-none"
+        style={{ backgroundImage: `url(${coralCover})`, backgroundSize: "cover", backgroundPosition: "center" }}
+        aria-hidden="true"
+      />
+      <div className="fixed inset-0 z-0 pointer-events-none bg-[#00080c]/85" aria-hidden="true" />
       <div className="relative z-10 w-full flex flex-col min-h-screen">
 
         {/* Top bar */}

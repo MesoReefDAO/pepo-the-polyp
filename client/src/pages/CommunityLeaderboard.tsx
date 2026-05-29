@@ -9,6 +9,7 @@ import { extractHandle, buildSocialHref } from "@/lib/social";
 import type { LeaderboardEntry } from "@shared/schema";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { ipfsPublicUrl } from "@/lib/ipfs";
+import coralCover from "@assets/coral_polmicro_1780089271795.jpg";
 
 // ─── ORCID badge ──────────────────────────────────────────────────────────────
 function OrcidBadge({ orcidId }: { orcidId: string }) {
@@ -408,8 +409,14 @@ export function CommunityLeaderboard() {
   const currentUserId = user?.id;
 
   return (
-    <div className="min-h-screen w-full bg-[#00080c]">
-      <div>
+    <div className="min-h-screen w-full bg-[#00080c] relative">
+      <div
+        className="fixed inset-0 z-0 pointer-events-none"
+        style={{ backgroundImage: `url(${coralCover})`, backgroundSize: "cover", backgroundPosition: "center" }}
+        aria-hidden="true"
+      />
+      <div className="fixed inset-0 z-0 pointer-events-none bg-[#00080c]/85" aria-hidden="true" />
+      <div className="relative z-10">
       {/* Top bar */}
       <div className="flex items-center gap-4 px-4 md:px-6 py-3 md:py-4 border-b border-[#ffffff08]">
         <Link
