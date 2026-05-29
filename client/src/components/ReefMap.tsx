@@ -1666,11 +1666,11 @@ function ExpandedMapModal({
                       radius, color: "#f9ca24", weight: 1.2,
                       fillColor: "#f9ca24", fillOpacity: 0.5, opacity: 0.92,
                     });
-                    const species: string[] = Array.isArray(p.top_species) ? p.top_species : [];
-                    const cats: string[] = Array.isArray(p.categories) ? p.categories : [];
+                    const species: string[] = (Array.isArray(p.top_species) ? p.top_species : []).map(cotwEsc);
+                    const cats: string[] = (Array.isArray(p.categories) ? p.categories : []).map(cotwEsc);
                     m.bindPopup(
                       `<div style="font-family:Inter,sans-serif;font-size:11px;min-width:210px;max-width:270px;color:#d4e9f3">
-                        <div style="font-weight:700;color:#f9ca24;font-size:12px;margin-bottom:5px;line-height:1.3">🪸 ${p.location ? p.location : "Coral trait observations"}</div>
+                        <div style="font-weight:700;color:#f9ca24;font-size:12px;margin-bottom:5px;line-height:1.3">🪸 ${p.location ? cotwEsc(p.location) : "Coral trait observations"}</div>
                         <div style="display:flex;gap:10px;margin-bottom:6px;flex-wrap:wrap">
                           <span><b style="color:#ffd32a">${obs.toLocaleString()}</b> <span style="color:#d4e9f366;font-size:9px">observations</span></span>
                           <span><b style="color:#ffd32a">${Number(p.species_count) || 0}</b> <span style="color:#d4e9f366;font-size:9px">species</span></span>
@@ -1691,17 +1691,17 @@ function ExpandedMapModal({
                     fillColor: "#f9ca24", fillOpacity: 0.72, opacity: 0.92,
                   });
                   const isGbif = (p.source || "").startsWith("gbif");
-                  const valueStr = p.value ? (p.unit ? `${p.value} <span style="color:#d4e9f344;font-size:8px">${p.unit}</span>` : p.value) : "";
-                  const doiHref = p.doi ? `https://doi.org/${p.doi.replace(/^https?:\/\/doi\.org\//,"")}` : "";
+                  const valueStr = p.value ? (p.unit ? `${cotwEsc(p.value)} <span style="color:#d4e9f344;font-size:8px">${cotwEsc(p.unit)}</span>` : cotwEsc(p.value)) : "";
+                  const doiHref = p.doi ? `https://doi.org/${encodeURIComponent(String(p.doi).replace(/^https?:\/\/doi\.org\//,""))}` : "";
                   m.bindPopup(
                     `<div style="font-family:Inter,sans-serif;font-size:11px;min-width:200px;max-width:260px;color:#d4e9f3">
-                      <div style="font-weight:700;color:#f9ca24;font-size:12px;margin-bottom:5px;line-height:1.3">🪸 ${p.species ? `<em style="font-style:italic">${p.species}</em>` : "Coral species"}</div>
-                      ${p.trait      ? `<div style="margin-bottom:3px"><span style="color:#d4e9f355;font-size:9px;text-transform:uppercase;letter-spacing:.05em">Trait</span><br/><span style="font-weight:600;color:#ffd32a">${p.trait}</span></div>` : ""}
+                      <div style="font-weight:700;color:#f9ca24;font-size:12px;margin-bottom:5px;line-height:1.3">🪸 ${p.species ? `<em style="font-style:italic">${cotwEsc(p.species)}</em>` : "Coral species"}</div>
+                      ${p.trait      ? `<div style="margin-bottom:3px"><span style="color:#d4e9f355;font-size:9px;text-transform:uppercase;letter-spacing:.05em">Trait</span><br/><span style="font-weight:600;color:#ffd32a">${cotwEsc(p.trait)}</span></div>` : ""}
                       ${valueStr     ? `<div style="margin-bottom:3px"><span style="color:#d4e9f355;font-size:9px;text-transform:uppercase;letter-spacing:.05em">Value</span><br/>${valueStr}</div>` : ""}
-                      ${p.value_type ? `<div style="margin-bottom:3px"><span style="color:#d4e9f355;font-size:9px;text-transform:uppercase;letter-spacing:.05em">Value type</span> <span style="color:#d4e9f377;font-size:9px">${p.value_type}</span></div>` : ""}
-                      ${p.location   ? `<div style="margin-bottom:2px"><span style="color:#d4e9f355;font-size:9px;text-transform:uppercase;letter-spacing:.05em">Location</span> <span style="color:#d4e9f388">${p.location}${p.country ? ` · ${p.country}` : ""}</span></div>` : (p.country ? `<div style="margin-bottom:2px"><span style="color:#d4e9f355;font-size:9px">Country:</span> ${p.country}</div>` : "")}
-                      ${p.notes      ? `<div style="margin-bottom:3px;font-size:9px;color:#d4e9f355;font-style:italic">${p.notes}</div>` : ""}
-                      ${p.resource && !isGbif ? `<div style="font-size:8.5px;color:#d4e9f344;margin-bottom:3px">${p.resource}</div>` : ""}
+                      ${p.value_type ? `<div style="margin-bottom:3px"><span style="color:#d4e9f355;font-size:9px;text-transform:uppercase;letter-spacing:.05em">Value type</span> <span style="color:#d4e9f377;font-size:9px">${cotwEsc(p.value_type)}</span></div>` : ""}
+                      ${p.location   ? `<div style="margin-bottom:2px"><span style="color:#d4e9f355;font-size:9px;text-transform:uppercase;letter-spacing:.05em">Location</span> <span style="color:#d4e9f388">${cotwEsc(p.location)}${p.country ? ` · ${cotwEsc(p.country)}` : ""}</span></div>` : (p.country ? `<div style="margin-bottom:2px"><span style="color:#d4e9f355;font-size:9px">Country:</span> ${cotwEsc(p.country)}</div>` : "")}
+                      ${p.notes      ? `<div style="margin-bottom:3px;font-size:9px;color:#d4e9f355;font-style:italic">${cotwEsc(p.notes)}</div>` : ""}
+                      ${p.resource && !isGbif ? `<div style="font-size:8.5px;color:#d4e9f344;margin-bottom:3px">${cotwEsc(p.resource)}</div>` : ""}
                       <div style="border-top:1px solid rgba(249,202,36,0.15);padding-top:5px;margin-top:4px;display:flex;align-items:center;justify-content:space-between">
                         ${doiHref ? `<a href="${doiHref}" target="_blank" rel="noopener noreferrer" style="color:#d4e9f355;font-size:8px;text-decoration:none">↗ DOI</a>` : `<span></span>`}
                         <a href="https://coraltraits.org" target="_blank" rel="noopener noreferrer" style="color:#f9ca24;font-size:9px;font-weight:600;text-decoration:none">${isGbif ? "↗ GBIF · Scleractinia" : "↗ CoralTraits.org"}</a>
@@ -4024,10 +4024,10 @@ export function ReefMap({
                   const obs = Number(p.obs_count) || 0;
                   const radius = Math.min(3.5 + Math.sqrt(obs) * 0.6, 13);
                   const m = L.circleMarker(ll, { radius, color: "#f9ca24", weight: 1, fillColor: "#f9ca24", fillOpacity: 0.45, opacity: 0.9 });
-                  const species: string[] = Array.isArray(p.top_species) ? p.top_species : [];
+                  const species: string[] = (Array.isArray(p.top_species) ? p.top_species : []).map(cotwEsc);
                   m.bindPopup(
                     `<div style="font-family:Inter,sans-serif;font-size:11px;min-width:180px;max-width:240px;color:#d4e9f3">
-                      <div style="font-weight:700;color:#f9ca24;font-size:12px;margin-bottom:4px;line-height:1.3">🪸 ${p.location ? p.location : "Coral trait observations"}</div>
+                      <div style="font-weight:700;color:#f9ca24;font-size:12px;margin-bottom:4px;line-height:1.3">🪸 ${p.location ? cotwEsc(p.location) : "Coral trait observations"}</div>
                       <div style="display:flex;gap:8px;margin-bottom:5px;flex-wrap:wrap;font-size:9.5px">
                         <span><b style="color:#ffd32a">${obs.toLocaleString()}</b> obs</span>
                         <span><b style="color:#ffd32a">${Number(p.species_count) || 0}</b> spp.</span>
@@ -4042,14 +4042,14 @@ export function ReefMap({
                 }
                 const m = L.circleMarker(ll, { radius: 3.5, color: "#f9ca24", weight: 1, fillColor: "#f9ca24", fillOpacity: 0.65, opacity: 0.9 });
                 const isGbifC = (p.source || "").startsWith("gbif");
-                const valStr = p.value ? (p.unit ? `${p.value} ${p.unit}` : p.value) : "";
+                const valStr = p.value ? (p.unit ? `${cotwEsc(p.value)} ${cotwEsc(p.unit)}` : cotwEsc(p.value)) : "";
                 m.bindPopup(
                   `<div style="font-family:Inter,sans-serif;font-size:11px;min-width:180px;max-width:240px;color:#d4e9f3">
-                    <div style="font-weight:700;color:#f9ca24;font-size:12px;margin-bottom:4px;line-height:1.3">🪸 ${p.species ? `<em style="font-style:italic">${p.species}</em>` : "Coral species"}</div>
-                    ${p.trait      ? `<div style="margin-bottom:3px"><span style="font-size:8px;color:#d4e9f355;text-transform:uppercase">Trait</span><br/><b style="color:#ffd32a">${p.trait}</b></div>` : ""}
+                    <div style="font-weight:700;color:#f9ca24;font-size:12px;margin-bottom:4px;line-height:1.3">🪸 ${p.species ? `<em style="font-style:italic">${cotwEsc(p.species)}</em>` : "Coral species"}</div>
+                    ${p.trait      ? `<div style="margin-bottom:3px"><span style="font-size:8px;color:#d4e9f355;text-transform:uppercase">Trait</span><br/><b style="color:#ffd32a">${cotwEsc(p.trait)}</b></div>` : ""}
                     ${valStr       ? `<div style="font-size:9px;margin-bottom:2px"><span style="color:#d4e9f355">Value:</span> ${valStr}</div>` : ""}
-                    ${p.value_type ? `<div style="font-size:8px;color:#d4e9f344;margin-bottom:2px">${p.value_type}</div>` : ""}
-                    ${p.location   ? `<div style="font-size:8.5px;color:#d4e9f366;margin-bottom:3px">📍 ${p.location}${p.country ? ` · ${p.country}` : ""}</div>` : (p.country ? `<div style="font-size:8.5px;color:#d4e9f366;margin-bottom:3px">📍 ${p.country}</div>` : "")}
+                    ${p.value_type ? `<div style="font-size:8px;color:#d4e9f344;margin-bottom:2px">${cotwEsc(p.value_type)}</div>` : ""}
+                    ${p.location   ? `<div style="font-size:8.5px;color:#d4e9f366;margin-bottom:3px">📍 ${cotwEsc(p.location)}${p.country ? ` · ${cotwEsc(p.country)}` : ""}</div>` : (p.country ? `<div style="font-size:8.5px;color:#d4e9f366;margin-bottom:3px">📍 ${cotwEsc(p.country)}</div>` : "")}
                     <a href="https://coraltraits.org" target="_blank" rel="noopener noreferrer" style="color:#f9ca24;font-size:8px;font-weight:600;text-decoration:none">${isGbifC ? "↗ GBIF · Scleractinia" : "↗ CoralTraits.org"}</a>
                   </div>`,
                   { maxWidth: 250 }

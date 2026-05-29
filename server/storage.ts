@@ -622,22 +622,45 @@ export class DbStorage implements IStorage {
     return rows as any;
   }
   // Aggregate the full geolocated CoralTraits measurement set (ct_measurements,
-  // ~28k geolocated rows) into one feature per distinct coordinate so the whole
-  // database can be mapped without rendering tens of thousands of stacked markers.
+  // ~28k geolocated rows) into one feature per distinct (latitude, longitude)
+  // coordinate so the whole database can be mapped without rendering tens of
+  // thousands of stacked markers. Grouping is by exact coordinate (intentional:
+  // CoralTraits stores discrete sampling sites, not noisy GPS tracks).
+  // top_species is the genuine top 6 by observation count at each coordinate.
   async getCoralTraitMapLocations(): Promise<CoralTraitMapLocation[]> {
     const result = await db.execute(sql`
+      WITH geo AS (
+        SELECT latitude, longitude, location_name, species_name, trait_name, trait_category
+        FROM ct_measurements
+        WHERE latitude IS NOT NULL AND longitude IS NOT NULL
+      ),
+      sp AS (
+        SELECT latitude, longitude, species_name, count(*) AS c
+        FROM geo WHERE species_name <> ''
+        GROUP BY latitude, longitude, species_name
+      ),
+      sp_ranked AS (
+        SELECT latitude, longitude, species_name,
+               row_number() OVER (PARTITION BY latitude, longitude ORDER BY c DESC, species_name) AS rn
+        FROM sp
+      ),
+      top_sp AS (
+        SELECT latitude, longitude, array_agg(species_name ORDER BY rn) AS top_species
+        FROM sp_ranked WHERE rn <= 6
+        GROUP BY latitude, longitude
+      )
       SELECT
-        latitude::float8                                                           AS latitude,
-        longitude::float8                                                          AS longitude,
-        max(location_name)                                                         AS location_name,
-        count(*)::int                                                              AS obs_count,
-        count(DISTINCT species_name)::int                                          AS species_count,
-        count(DISTINCT NULLIF(trait_name, ''))::int                               AS trait_count,
-        (array_agg(DISTINCT species_name) FILTER (WHERE species_name <> ''))[1:6] AS top_species,
-        (array_agg(DISTINCT trait_category) FILTER (WHERE trait_category <> ''))   AS categories
-      FROM ct_measurements
-      WHERE latitude IS NOT NULL AND longitude IS NOT NULL
-      GROUP BY latitude, longitude
+        g.latitude::float8                                                          AS latitude,
+        g.longitude::float8                                                         AS longitude,
+        max(g.location_name)                                                        AS location_name,
+        count(*)::int                                                               AS obs_count,
+        count(DISTINCT g.species_name)::int                                         AS species_count,
+        count(DISTINCT NULLIF(g.trait_name, ''))::int                               AS trait_count,
+        ts.top_species                                                              AS top_species,
+        (array_agg(DISTINCT g.trait_category) FILTER (WHERE g.trait_category <> '')) AS categories
+      FROM geo g
+      LEFT JOIN top_sp ts ON ts.latitude = g.latitude AND ts.longitude = g.longitude
+      GROUP BY g.latitude, g.longitude, ts.top_species
       ORDER BY count(*) DESC
     `);
     const rows = (result as any).rows ?? (result as any);
