@@ -7,6 +7,7 @@ import "leaflet/dist/leaflet.css";
 import { Maximize2, X, Users, Globe, Layers, Camera, MapPin, Ruler, Pentagon, Upload, Settings } from "lucide-react";
 import type { Feature } from "geojson";
 import { usePrivy } from "@privy-io/react-auth";
+import { useTranslation } from "react-i18next";
 import { CORAL_TRAIT_CATEGORIES, CORAL_TRAITS_TOTAL, CORAL_TRAITS_URL } from "@/data/coralTraits";
 
 // ─── Fix Leaflet default icon paths broken by Vite ────────────────────────────
@@ -1089,6 +1090,7 @@ function ExpandedMapModal({
   onClose: () => void;
   inline?: boolean;
 }) {
+  const { t } = useTranslation();
   const [showGcrmn,          setShowGcrmn]          = useState(true);
   const [showCoralMapping,   setShowCoralMapping]   = useState(false);
   const [showMarineRegions,  setShowMarineRegions]  = useState(false);
@@ -1791,7 +1793,7 @@ function ExpandedMapModal({
                     {/* ⏮ jump to start */}
                     <button
                       onClick={() => { setIsPlaying(false); setLiveDate(liveMinDateStr + "T00:00:00Z"); }}
-                      title="Jump to start"
+                      title={t("reefMap.jumpToStart")}
                       style={{ background: "none", border: "none", color: "#d4e9f355", cursor: "pointer", fontSize: 13, lineHeight: 1, padding: "2px 1px" }}
                     >⏮</button>
 
@@ -1812,7 +1814,7 @@ function ExpandedMapModal({
                     {/* ⏭ jump to end */}
                     <button
                       onClick={() => { setIsPlaying(false); setLiveDate(liveMaxDate.toISOString().slice(0, 10) + "T00:00:00Z"); }}
-                      title="Jump to end"
+                      title={t("reefMap.jumpToEnd")}
                       style={{ background: "none", border: "none", color: "#d4e9f355", cursor: "pointer", fontSize: 13, lineHeight: 1, padding: "2px 1px" }}
                     >⏭</button>
 
@@ -2046,11 +2048,11 @@ function ExpandedMapModal({
               {/* Icon-only row */}
               <div style={{ display: "flex", flexDirection: "row", gap: 6 }}>
                 {([
-                  { id: 'points',   icon: MapPin,   label: 'Points',   color: '#00b894' },
-                  { id: 'lines',    icon: Ruler,    label: 'Distance', color: '#fdcb6e' },
-                  { id: 'areas',    icon: Pentagon, label: 'Area',     color: '#74b9ff' },
-                  { id: 'import',   icon: Upload,   label: 'Import',   color: '#a29bfe' },
-                  { id: 'settings', icon: Settings, label: 'Settings', color: '#83eef0' },
+                  { id: 'points',   icon: MapPin,   label: t("reefMap.toolPoints"),   color: '#00b894' },
+                  { id: 'lines',    icon: Ruler,    label: t("reefMap.toolDistance"), color: '#fdcb6e' },
+                  { id: 'areas',    icon: Pentagon, label: t("reefMap.toolArea"),     color: '#74b9ff' },
+                  { id: 'import',   icon: Upload,   label: t("reefMap.toolImport"),   color: '#a29bfe' },
+                  { id: 'settings', icon: Settings, label: t("reefMap.toolSettings"), color: '#83eef0' },
                 ] as const).map(tool => (
                   <button
                     key={tool.id}
@@ -2110,7 +2112,7 @@ function ExpandedMapModal({
                     toolbarDragRef.current = { dx: e.clientX - toolbarPos.x, dy: e.clientY - toolbarPos.y };
                     e.preventDefault();
                   }}
-                  title="Drag to reposition"
+                  title={t("reefMap.dragToReposition")}
                   style={{
                     width: 30, height: 20, cursor: toolbarDragging ? "grabbing" : "grab",
                     display: "flex", flexDirection: "column", gap: 4,
@@ -2129,11 +2131,11 @@ function ExpandedMapModal({
 
                 {/* Tool buttons */}
                 {([
-                  { id: 'points',   icon: MapPin,   label: 'Points',   color: '#00b894' },
-                  { id: 'lines',    icon: Ruler,    label: 'Distance', color: '#fdcb6e' },
-                  { id: 'areas',    icon: Pentagon, label: 'Area',     color: '#74b9ff' },
-                  { id: 'import',   icon: Upload,   label: 'Import',   color: '#a29bfe' },
-                  { id: 'settings', icon: Settings, label: 'Settings', color: '#83eef0' },
+                  { id: 'points',   icon: MapPin,   label: t("reefMap.toolPoints"),   color: '#00b894' },
+                  { id: 'lines',    icon: Ruler,    label: t("reefMap.toolDistance"), color: '#fdcb6e' },
+                  { id: 'areas',    icon: Pentagon, label: t("reefMap.toolArea"),     color: '#74b9ff' },
+                  { id: 'import',   icon: Upload,   label: t("reefMap.toolImport"),   color: '#a29bfe' },
+                  { id: 'settings', icon: Settings, label: t("reefMap.toolSettings"), color: '#83eef0' },
                 ] as const).map(tool => (
                   <button
                     key={tool.id}
@@ -2505,7 +2507,7 @@ function ExpandedMapModal({
           display: "flex", flexDirection: "column",
           overflowY: "auto",
         }}>
-          <SideSection title="Layers">
+          <SideSection title={t("reefMap.secLayers")}>
             {/* ── Quick presets ── */}
             <div style={{ display: "flex", gap: 5, marginBottom: 10, paddingBottom: 10, borderBottom: "1px solid rgba(131,238,240,0.08)" }}>
               <button
@@ -2913,7 +2915,7 @@ function ExpandedMapModal({
                   {/* CDHW time-window selector */}
                   <div style={{ marginBottom: 7 }}>
                     <div style={{ fontSize: 8, color: "#d4e9f366", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 4 }}>Time window</div>
-                    <div role="radiogroup" aria-label="CDHW time window" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4 }}>
+                    <div role="radiogroup" aria-label={t("reefMap.cdhwWindowAria")} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 4 }}>
                       {CDHW_WINDOWS.map(w => {
                         const active = cdhwWindow === w.id;
                         return (
@@ -2939,8 +2941,8 @@ function ExpandedMapModal({
                               transition: "all 0.12s",
                             }}
                           >
-                            <div>{w.label}</div>
-                            <div style={{ fontSize: 7.5, fontWeight: 500, color: active ? `${layer.color}aa` : "#d4e9f344", marginTop: 1, letterSpacing: "0.02em" }}>{w.sub}</div>
+                            <div>{t(`reefMap.cdhw${w.id === "7d" ? "7d" : w.id === "monthly" ? "Monthly" : "Yearly"}`)}</div>
+                            <div style={{ fontSize: 7.5, fontWeight: 500, color: active ? `${layer.color}aa` : "#d4e9f344", marginTop: 1, letterSpacing: "0.02em" }}>{t(`reefMap.cdhw${w.id === "7d" ? "7d" : w.id === "monthly" ? "Monthly" : "Yearly"}Sub`)}</div>
                           </button>
                         );
                       })}
@@ -2956,7 +2958,7 @@ function ExpandedMapModal({
                       min={0} max={1} step={0.05}
                       value={crwOpacity}
                       onChange={e => setCrwOpacity(Number(e.target.value))}
-                      aria-label={`Opacity for ${layer.label}`}
+                      aria-label={t("reefMap.opacityFor", { label: layer.label })}
                       aria-valuetext={`${Math.round(crwOpacity * 100)} percent`}
                       style={{ flex: 1, accentColor: layer.color, height: 4 }}
                     />
@@ -2969,8 +2971,8 @@ function ExpandedMapModal({
                       <div data-testid="crw-legend-bar" style={{ height: 9, borderRadius: 3, background: paletteGradient(layer.palette, layer.discrete ?? !!layer.ticks), border: "1px solid rgba(255,255,255,0.12)" }} />
                       {layer.ticks ? (
                         <div style={{ display: "flex", justifyContent: "space-between", marginTop: 2, fontSize: 7.5, color: "#d4e9f377", fontVariantNumeric: "tabular-nums" }}>
-                          {layer.ticks.map((t, i) => (
-                            <span key={i} style={{ flex: 1, textAlign: i === 0 ? "left" : i === layer.ticks!.length - 1 ? "right" : "center" }}>{t}</span>
+                          {layer.ticks.map((tick, i) => (
+                            <span key={i} style={{ flex: 1, textAlign: i === 0 ? "left" : i === layer.ticks!.length - 1 ? "right" : "center" }}>{tick}</span>
                           ))}
                         </div>
                       ) : (
@@ -3007,7 +3009,7 @@ function ExpandedMapModal({
           </SideSection>
 
 
-          <SideSection title="Map Key">
+          <SideSection title={t("reefMap.secMapKey")}>
             {/* Each row only shows when its layer is active */}
             {showMarineRegions && (
               <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "3px 0" }}>
@@ -3059,43 +3061,43 @@ function ExpandedMapModal({
             {showGcrmnMonSites && (
               <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "3px 0" }}>
                 <span style={{ width:9,height:9,borderRadius:"50%",background:"rgba(38,222,129,0.45)",border:"1.5px solid #26de81",display:"inline-block",flexShrink:0 }}/>
-                <span style={{ fontSize: 10.5, color: "#d4e9f3bb" }}>GCRMN Benthic Site</span>
+                <span style={{ fontSize: 10.5, color: "#d4e9f3bb" }}>{t("reefMap.legendGcrmnBenthic")}</span>
               </div>
             )}
             {showReefCheck && (
               <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "3px 0" }}>
                 <span style={{ width:9,height:9,borderRadius:"50%",background:"rgba(253,150,68,0.45)",border:"1.5px solid #fd9644",display:"inline-block",flexShrink:0 }}/>
-                <span style={{ fontSize: 10.5, color: "#d4e9f3bb" }}>Reef Check monitoring station</span>
+                <span style={{ fontSize: 10.5, color: "#d4e9f3bb" }}>{t("reefMap.legendReefCheck")}</span>
               </div>
             )}
             {showReefLife && (
               <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "3px 0" }}>
                 <span style={{ width:9,height:9,borderRadius:"50%",background:"rgba(69,170,242,0.45)",border:"1.5px solid #45aaf2",display:"inline-block",flexShrink:0 }}/>
-                <span style={{ fontSize: 10.5, color: "#d4e9f3bb" }}>Reef Life Survey site</span>
+                <span style={{ fontSize: 10.5, color: "#d4e9f3bb" }}>{t("reefMap.legendReefLife")}</span>
               </div>
             )}
             {showWcsCcSites && (
               <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "3px 0" }}>
                 <span style={{ width:9,height:9,borderRadius:"50%",background:"rgba(255,107,157,0.45)",border:"1.5px solid #ff6b9d",display:"inline-block",flexShrink:0 }}/>
-                <span style={{ fontSize: 10.5, color: "#d4e9f3bb" }}>WCS coral cover survey site</span>
+                <span style={{ fontSize: 10.5, color: "#d4e9f3bb" }}>{t("reefMap.legendWcsCover")}</span>
               </div>
             )}
             {showWcsReefCloud && (
               <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "3px 0" }}>
                 <span style={{ width:9,height:9,borderRadius:"50%",background:"rgba(224,86,253,0.45)",border:"1.5px solid #e056fd",display:"inline-block",flexShrink:0 }}/>
-                <span style={{ fontSize: 10.5, color: "#d4e9f3bb" }}>WCS ReefCloud monitoring site</span>
+                <span style={{ fontSize: 10.5, color: "#d4e9f3bb" }}>{t("reefMap.legendWcsReefCloud")}</span>
               </div>
             )}
             {showCoralTraits && (
               <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "3px 0" }}>
                 <span style={{ width:9,height:9,borderRadius:"50%",background:"rgba(249,202,36,0.45)",border:"1.5px solid #f9ca24",display:"inline-block",flexShrink:0 }}/>
-                <span style={{ fontSize: 10.5, color: "#d4e9f3bb" }}>CoralTraits observation</span>
+                <span style={{ fontSize: 10.5, color: "#d4e9f3bb" }}>{t("reefMap.legendCoralTraitsObs")}</span>
               </div>
             )}
             {showCotwEcoregions && (
               <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "3px 0" }}>
                 <span style={{ width: 13, height: 8, borderRadius: 2, background: "rgba(131,238,240,0.18)", border: "1.5px solid #83eef0", display: "inline-block", flexShrink: 0 }}/>
-                <span style={{ fontSize: 10.5, color: "#d4e9f3bb" }}>Corals of the World ecoregion (MEOW) <span style={{ color: "#83eef088", fontSize: 9 }}>- click an area to name it</span></span>
+                <span style={{ fontSize: 10.5, color: "#d4e9f3bb" }}>{t("reefMap.legendCotwEcoregion")} <span style={{ color: "#83eef088", fontSize: 9 }}>{t("reefMap.legendCotwEcoregionHint")}</span></span>
               </div>
             )}
             {activeCrwLayer && (() => {
@@ -3108,12 +3110,12 @@ function ExpandedMapModal({
               ) : null;
             })()}
             {!showMarineRegions && !showCoralMapping && !showGcrmn && !showGcrmnSites && !showDaoMembers && !showImgs && !showGcrmnMonSites && !showReefCheck && !showReefLife && !showWcsCcSites && !showWcsReefCloud && !showCoralTraits && !showCotwEcoregions && !activeCrwLayer && (
-              <div style={{ fontSize: 9, color: "#d4e9f333", fontStyle: "italic" }}>No point or boundary layers active</div>
+              <div style={{ fontSize: 9, color: "#d4e9f333", fontStyle: "italic" }}>{t("reefMap.noLayersActive")}</div>
             )}
           </SideSection>
 
           {showGcrmnMonSites && gcrmnCountryStats.length > 0 && (
-            <SideSection title="GCRMN Sites by Country">
+            <SideSection title={t("reefMap.secGcrmnByCountry")}>
               <div style={{ fontSize: 9, color: "#26de8188", marginBottom: 7 }}>
                 Top countries · {gcrmnUniqueCountries} countries total · hover dots for details
               </div>
@@ -3135,7 +3137,7 @@ function ExpandedMapModal({
           )}
 
           {(showWcsReefCloud || showWcsCcSites || showReefCheck || showReefLife || showGcrmnMonSites) && (
-            <SideSection title="WCS Marine Datasets">
+            <SideSection title={t("reefMap.secWcsDatasets")}>
               <div style={{ fontSize: 9.5, color: "#d4e9f3aa", lineHeight: 1.5, marginBottom: 8 }}>
                 Wildlife Conservation Society (WCS) Marine Program global reef monitoring data. Includes ReefCloud stations, coral cover field records, Reef Check surveys with coral cover and bleaching metrics, and Reef Life Survey sites with full ecoregion and realm metadata, the same input datasets used by the WCS <em>global-reef-data-layers</em> analysis pipeline.
               </div>
@@ -3171,7 +3173,7 @@ function ExpandedMapModal({
             </SideSection>
           )}
 
-          <SideSection title="GCRMN Benthos Dataset">
+          <SideSection title={t("reefMap.secGcrmnBenthos")}>
             <div style={{ fontSize: 9.5, color: "#d4e9f3aa", lineHeight: 1.5, marginBottom: 8 }}>
               The GCRMN <em>gcrmndb_benthos</em> synthetic dataset integrates benthic cover surveys from contributing national and regional monitoring programs into a single harmonised record.
             </div>
@@ -3205,7 +3207,7 @@ function ExpandedMapModal({
             </a>
           </SideSection>
 
-          <SideSection title="Marine Regions · EEZ">
+          <SideSection title={t("reefMap.secEez")}>
             <div style={{ fontSize: 9.5, color: "#d4e9f3aa", lineHeight: 1.5, marginBottom: 8 }}>
               Marine Regions is a standard reference list of marine place names and geographic areas from the world's seas and oceans, maintained by VLIZ. The EEZ layer shows Exclusive Economic Zones, maritime boundaries within which coastal nations exercise sovereign rights over resources.
             </div>
@@ -3245,7 +3247,7 @@ function ExpandedMapModal({
             ))}
           </SideSection>
 
-          <SideSection title="CoralMapping Reef Regions">
+          <SideSection title={t("reefMap.secReefRegions")}>
             <div style={{ fontSize: 9.5, color: "#d4e9f3aa", lineHeight: 1.5, marginBottom: 8 }}>
               Region boundary masks from the University of Queensland's Allen Coral Atlas pipeline, defining the spatial extents used to task Planet satellite imagery and generate reef maps globally.
             </div>
@@ -3275,7 +3277,7 @@ function ExpandedMapModal({
             ))}
           </SideSection>
 
-          <SideSection title="CoralTraits">
+          <SideSection title={t("reefMap.secCoralTraits")}>
             <div style={{ fontSize: 9.5, color: "#d4e9f3aa", lineHeight: 1.5, marginBottom: 8 }}>
               The Coral Trait Database is a growing compilation of coral life history trait, phylogenetic, and biogeographic data. Built on the open-source <span style={{ color: "#f9ca24", fontWeight: 600 }}>coraltraits2</span> platform (Ruby on Rails), it brings together physiological, morphological, ecological, phylogenetic, and biogeographic measurements into a single curated repository linked to peer-reviewed literature.
             </div>
@@ -3324,7 +3326,7 @@ function ExpandedMapModal({
             </div>
           </SideSection>
 
-          <SideSection title="NOAA Coral Reef Watch">
+          <SideSection title={t("reefMap.secNoaa")}>
             <div style={{ fontSize: 9.5, color: "#d4e9f3aa", lineHeight: 1.5, marginBottom: 8 }}>
               NOAA Coral Reef Watch (CRW) provides the world's only global near-real-time coral bleaching thermal stress monitoring and outlook products. CRW v3.1 products are derived from <strong style={{ color: "#54a0ff" }}>CoralTemp</strong> - a daily 5 km blended multi-sensor SST satellite product - updated daily at ~13:30 ET. Tiles served via PacIOOS ERDDAP (<code style={{ color: "#83eef0", fontSize: 8 }}>dhw_5km</code>), 0.05 degree resolution, EPSG:4326, WMS 1.3.0.
             </div>
@@ -3403,7 +3405,7 @@ function ExpandedMapModal({
             </div>
           </SideSection>
 
-          <SideSection title="Data Sources">
+          <SideSection title={t("reefMap.secDataSources")}>
             {[
               { label: "Marine Regions · EEZ (VLIZ / mregions2)",     href: "https://www.marineregions.org",                           color: "#fdcb6e" },
               { label: "CoralMapping / GlobalMappingRegions",          href: "https://github.com/CoralMapping/GlobalMappingRegions",     color: "#fd7272" },
@@ -3465,6 +3467,7 @@ function SideSection({ title, children }: { title: string; children: React.React
 // Renders all 138 traits (10 classes) sourced from https://www.coraltraits.org/traits.
 // Each trait deep-links to coraltraits.org/traits/{id}. Categories collapse to keep the panel scannable.
 function CoralTraitsBrowser() {
+  const { t } = useTranslation();
   const [openCat, setOpenCat] = useState<string | null>(null);
   const [filter, setFilter] = useState("");
   const q = filter.trim().toLowerCase();
@@ -3472,7 +3475,7 @@ function CoralTraitsBrowser() {
   const filtered = useMemo(() => {
     if (!q) return CORAL_TRAIT_CATEGORIES;
     return CORAL_TRAIT_CATEGORIES
-      .map(c => ({ ...c, traits: c.traits.filter(t => t.name.toLowerCase().includes(q)) }))
+      .map(c => ({ ...c, traits: c.traits.filter(tr => tr.name.toLowerCase().includes(q)) }))
       .filter(c => c.traits.length > 0);
   }, [q]);
 
@@ -3493,8 +3496,8 @@ function CoralTraitsBrowser() {
         type="text"
         value={filter}
         onChange={e => setFilter(e.target.value)}
-        placeholder="Filter traits..."
-        aria-label="Filter coral traits by name"
+        placeholder={t("reefMap.filterTraits")}
+        aria-label={t("reefMap.filterTraitsAria")}
         data-testid="input-coraltraits-filter"
         style={{
           width: "100%", boxSizing: "border-box",
@@ -3693,6 +3696,7 @@ export function ReefMap({
   expanded?: boolean;
   onExpandChange?: (v: boolean) => void;
 }) {
+  const { t } = useTranslation();
   const [showGcrmn,         setShowGcrmn]         = useState(false);
   const [showCoralMapping,  setShowCoralMapping]  = useState(false);
   const [showMarineRegions, setShowMarineRegions] = useState(false);
@@ -4084,12 +4088,12 @@ export function ReefMap({
                   data-testid="toggle-all-layers"
                   onClick={() => { setShowMarineRegions(true); setShowCoralMapping(true); setShowGcrmn(true); setShowGcrmnSites(true); setShowImgs(true); setShowDaoMembers(true); setActiveCmsVar("CHL"); setActiveLiveVar(null); }}
                   style={{ flex: 1, fontSize: 9, fontFamily: "Inter,sans-serif", fontWeight: 700, background: "rgba(131,238,240,0.11)", border: "1px solid rgba(131,238,240,0.28)", borderRadius: 6, padding: "4px 0", color: "#83eef0", cursor: "pointer", transition: "background 0.15s" }}
-                >Select All</button>
+                >{t("reefMap.selectAll")}</button>
                 <button
                   data-testid="toggle-no-layers"
                   onClick={() => { setShowMarineRegions(false); setShowCoralMapping(false); setShowGcrmn(false); setShowGcrmnSites(false); setShowImgs(false); setShowDaoMembers(false); setActiveCmsVar(null); setActiveLiveVar(null); setShowToolbox(null); }}
                   style={{ flex: 1, fontSize: 9, fontFamily: "Inter,sans-serif", fontWeight: 700, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 6, padding: "4px 0", color: "#d4e9f355", cursor: "pointer", transition: "background 0.15s" }}
-                >Clear All</button>
+                >{t("reefMap.clearAll")}</button>
               </div>
 
               {/* ── Layer groups ── */}
@@ -4100,7 +4104,7 @@ export function ReefMap({
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "5px 10px 4px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                       <span style={{ fontSize: 8, color: "#d4e9f333" }}>◎</span>
-                      <span style={{ fontSize: 8, fontFamily: "Inter,sans-serif", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#d4e9f340" }}>Satellite · CMS</span>
+                      <span style={{ fontSize: 8, fontFamily: "Inter,sans-serif", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#d4e9f340" }}>{t("reefMap.groupSatelliteCms")}</span>
                     </div>
                     {activeCmsVar && (
                       <button
@@ -4151,7 +4155,7 @@ export function ReefMap({
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "5px 10px 4px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                       <span style={{ fontSize: 8, color: "#d4e9f333" }}>◎</span>
-                      <span style={{ fontSize: 8, fontFamily: "Inter,sans-serif", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#d4e9f340" }}>Ocean State · Live</span>
+                      <span style={{ fontSize: 8, fontFamily: "Inter,sans-serif", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#d4e9f340" }}>{t("reefMap.groupOceanState")}</span>
                     </div>
                     {activeLiveVar && (
                       <button
@@ -4306,7 +4310,7 @@ export function ReefMap({
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "5px 10px 3px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                       <span style={{ fontSize: 8, color: "#FF660088" }}>🌡</span>
-                      <span style={{ fontSize: 8, fontFamily: "Inter,sans-serif", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#FF660088" }}>NOAA CRW - Thermal Stress</span>
+                      <span style={{ fontSize: 8, fontFamily: "Inter,sans-serif", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#FF660088" }}>{t("reefMap.groupNoaaCrw")}</span>
                     </div>
                     {activeCrwLayerC && (
                       <button onClick={() => setActiveCrwLayerC(null)}
@@ -4346,7 +4350,7 @@ export function ReefMap({
                         <div style={{ fontSize: 9.5, fontWeight: activeCrwLayerC === layer.id ? 700 : 400, color: activeCrwLayerC === layer.id ? layer.color : "#d4e9f388", fontFamily: "Inter,sans-serif" }}>
                           {layer.short}
                           {layer.externalUrl && <span style={{ marginLeft: 5, fontSize: 7, color: layer.color, fontWeight: 600 }}>↗</span>}
-                          {layer.unavailable && !layer.externalUrl && <span style={{ marginLeft: 5, fontSize: 7, color: "#d4e9f344", fontWeight: 500 }}>SOON</span>}
+                          {layer.unavailable && !layer.externalUrl && <span style={{ marginLeft: 5, fontSize: 7, color: "#d4e9f344", fontWeight: 500 }}>{t("reefMap.soon")}</span>}
                           {activeCrwLayerC === layer.id && crwLoadingC && (
                             <span style={{ marginLeft: 5, display: "inline-block", width: 7, height: 7, borderRadius: "50%", border: `1.4px solid ${layer.color}`, borderTopColor: "transparent", animation: "spin 0.8s linear infinite", verticalAlign: "middle" }} />
                           )}
@@ -4362,13 +4366,13 @@ export function ReefMap({
                     return (
                       <div data-testid="crw-controls-compact" style={{ padding: "5px 10px 6px", marginTop: 2, borderTop: `1px solid ${layer.color}22`, background: "rgba(0,5,10,0.45)", fontFamily: "Inter,sans-serif" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 4 }}>
-                          <span style={{ fontSize: 7, color: "#d4e9f366", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>Opacity</span>
+                          <span style={{ fontSize: 7, color: "#d4e9f366", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>{t("reefMap.opacity")}</span>
                           <input
                             data-testid="crw-opacity-c"
                             type="range" min={0} max={1} step={0.05}
                             value={crwOpacityC}
                             onChange={e => setCrwOpacityC(Number(e.target.value))}
-                            aria-label={`Opacity for ${layer.label}`}
+                            aria-label={t("reefMap.opacityFor", { label: layer.label })}
                             aria-valuetext={`${Math.round(crwOpacityC * 100)} percent`}
                             style={{ flex: 1, accentColor: layer.color, height: 3 }}
                           />
@@ -4379,8 +4383,8 @@ export function ReefMap({
                             <div style={{ height: 6, borderRadius: 2, background: paletteGradient(layer.palette, layer.discrete ?? !!layer.ticks), border: "1px solid rgba(255,255,255,0.1)" }} />
                             {layer.ticks ? (
                               <div style={{ display: "flex", justifyContent: "space-between", marginTop: 1, fontSize: 6.5, color: "#d4e9f377", fontVariantNumeric: "tabular-nums" }}>
-                                {layer.ticks.map((t, i) => (
-                                  <span key={i} style={{ flex: 1, textAlign: i === 0 ? "left" : i === layer.ticks!.length - 1 ? "right" : "center" }}>{t}</span>
+                                {layer.ticks.map((tick, i) => (
+                                  <span key={i} style={{ flex: 1, textAlign: i === 0 ? "left" : i === layer.ticks!.length - 1 ? "right" : "center" }}>{tick}</span>
                                 ))}
                               </div>
                             ) : (
@@ -4414,7 +4418,7 @@ export function ReefMap({
                                   cursor: "pointer",
                                   transition: "all 0.12s",
                                 }}
-                              >{w.label}</button>
+                              >{t(`reefMap.cdhw${w.id === "7d" ? "7d" : w.id === "monthly" ? "Monthly" : "Yearly"}`)}</button>
                             );
                           })}
                         </div>
@@ -4566,25 +4570,25 @@ export function ReefMap({
             {showMarineRegions && (
               <div style={{ display:"flex", alignItems:"center", gap:5 }}>
                 <span style={{ width:10,height:6,borderRadius:2,background:"rgba(253,203,110,0.2)",border:"1.5px solid #fdcb6e",flexShrink:0,display:"inline-block" }}/>
-                <span style={{ fontSize:8,color:"#d4e9f3aa",fontFamily:"Inter,sans-serif" }}>EEZ Boundary</span>
+                <span style={{ fontSize:8,color:"#d4e9f3aa",fontFamily:"Inter,sans-serif" }}>{t("reefMap.legendEezBoundary")}</span>
               </div>
             )}
             {showCoralMapping && (
               <div style={{ display:"flex", alignItems:"center", gap:5 }}>
                 <span style={{ width:10,height:6,borderRadius:2,background:"rgba(253,114,114,0.2)",border:"1.5px solid #fd7272",flexShrink:0,display:"inline-block" }}/>
-                <span style={{ fontSize:8,color:"#d4e9f3aa",fontFamily:"Inter,sans-serif" }}>Coral Reef Region</span>
+                <span style={{ fontSize:8,color:"#d4e9f3aa",fontFamily:"Inter,sans-serif" }}>{t("reefMap.legendCoralReefRegion")}</span>
               </div>
             )}
             {showGcrmn && (
               <div style={{ display:"flex", alignItems:"center", gap:5 }}>
                 <span style={{ width:10,height:6,borderRadius:2,background:"rgba(29,209,161,0.35)",border:"1.5px solid #1dd1a1",flexShrink:0,display:"inline-block" }}/>
-                <span style={{ fontSize:8,color:"#d4e9f3aa",fontFamily:"Inter,sans-serif" }}>GCRMN Region</span>
+                <span style={{ fontSize:8,color:"#d4e9f3aa",fontFamily:"Inter,sans-serif" }}>{t("reefMap.legendGcrmnRegion")}</span>
               </div>
             )}
             {showGcrmnSites && (
               <div style={{ display:"flex", alignItems:"center", gap:5 }}>
                 <span style={{ width:8,height:8,borderRadius:"50%",background:"rgba(166,206,57,0.35)",border:"1.5px solid #A6CE39",flexShrink:0,display:"inline-block" }}/>
-                <span style={{ fontSize:8,color:"#d4e9f3aa",fontFamily:"Inter,sans-serif" }}>GCRMN Territory</span>
+                <span style={{ fontSize:8,color:"#d4e9f3aa",fontFamily:"Inter,sans-serif" }}>{t("reefMap.legendGcrmnTerritory")}</span>
               </div>
             )}
             {showDaoMembers && markers.length > 0 && (

@@ -1,11 +1,13 @@
 import { Suspense, lazy } from "react";
 import { useLocation } from "wouter";
+import { useTranslation } from "react-i18next";
 
 const ReefMapExpandedPage = lazy(() =>
   import("@/components/ReefMap").then((m) => ({ default: m.ReefMapExpandedPage }))
 );
 
 function MapLoadingScreen() {
+  const { t } = useTranslation();
   return (
     <div
       style={{
@@ -25,7 +27,7 @@ function MapLoadingScreen() {
             stroke="#83eef0" strokeWidth="1.8" strokeLinecap="round"/>
         </svg>
         <span style={{ color: "#83eef0", fontWeight: 700, fontSize: 13, letterSpacing: "0.08em", textTransform: "uppercase" }}>
-          Regen Reef Network Map
+          {t("reefMap.title")}
         </span>
       </div>
       <div style={{
