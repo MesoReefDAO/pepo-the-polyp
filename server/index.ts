@@ -196,6 +196,24 @@ app.use((req, res, next) => {
     }
   })();
 
+  // Seed the Coral Trait Database (coraltraits.org) - idempotent, skips if
+  // already populated, advisory-locked so concurrent autoscale instances don't
+  // race. Ensures production self-seeds on first deploy (~5k species, ~148k
+  // measurements). Fire-and-forget so it never blocks server startup.
+  (async () => {
+    try {
+      const { seedCoralTraits } = await import("./seedCoralTraits");
+      const r = await seedCoralTraits();
+      if (r.skipped) {
+        log(`Coral Traits seed: skipped (${r.reason}) - species=${r.species} measurements=${r.measurements}`);
+      } else {
+        log(`Coral Traits seed: seeded species=${r.species} measurements=${r.measurements}`);
+      }
+    } catch (err) {
+      console.error("[coraltraits-seed] startup seed failed:", err);
+    }
+  })();
+
   // Backfill + recalculate points for all users on every startup (idempotent)
   storage.syncAllUserPoints()
     .then(({ synced, pointsAdded }) => {
