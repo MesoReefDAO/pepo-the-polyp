@@ -1436,6 +1436,7 @@ function ExpandedMapModal({
                   transparent={true}
                   opacity={crwOpacity}
                   version="1.3.0"
+                  crs={L.CRS.EPSG4326}
                   styles=""
                   time={getCrwTime(crwDate)}
                   {...((cfg.colorscalerange ? { colorscalerange: cfg.colorscalerange } : {}) as any)}
@@ -3899,6 +3900,7 @@ export function ReefMap({
                 transparent={true}
                 opacity={crwOpacityC}
                 version="1.3.0"
+                crs={L.CRS.EPSG4326}
                 styles=""
                 time={getCrwTime(crwDateC)}
                 {...((cfg.colorscalerange ? { colorscalerange: cfg.colorscalerange } : {}) as any)}
