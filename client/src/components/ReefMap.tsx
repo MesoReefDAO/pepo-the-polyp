@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { MapContainer, TileLayer, WMSTileLayer, Marker, Popup, GeoJSON, CircleMarker, Polyline, Polygon, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { Maximize2, X, Users, Globe, Layers, Camera } from "lucide-react";
+import { Maximize2, X, Users, Globe, Layers, Camera, MapPin, Ruler, Pentagon, Upload, Settings } from "lucide-react";
 import type { Feature } from "geojson";
 import { usePrivy } from "@privy-io/react-auth";
 import { CORAL_TRAIT_CATEGORIES, CORAL_TRAITS_TOTAL, CORAL_TRAITS_URL } from "@/data/coralTraits";
@@ -1951,14 +1951,20 @@ function ExpandedMapModal({
                   )}
                 </div>
               )}
+              {/* How-to hint - shown while a drawing tool is active but nothing drawn yet */}
+              {((activeTool === 'points' && toolPoints.length === 0) || (activeTool === 'lines' && toolLine.length < 2) || (activeTool === 'areas' && toolArea.length < 3)) && (
+                <div style={{ background: "rgba(0,10,18,0.92)", border: "1px solid rgba(131,238,240,0.25)", borderRadius: 8, padding: "6px 12px", backdropFilter: "blur(8px)", fontFamily: "Inter,sans-serif", fontSize: 9.5, fontWeight: 600, color: "#d4e9f3cc", maxWidth: 210, textAlign: "center", lineHeight: 1.4 }}>
+                  {activeTool === 'points' ? 'Tap the map to drop points' : activeTool === 'lines' ? 'Tap points along your route to measure distance' : 'Tap 3+ points to outline an area'}
+                </div>
+              )}
               {/* Icon-only row */}
               <div style={{ display: "flex", flexDirection: "row", gap: 6 }}>
                 {([
-                  { id: 'points',   icon: '⊕', label: 'Points',   color: '#00b894' },
-                  { id: 'lines',    icon: '━', label: 'Lines',    color: '#fdcb6e' },
-                  { id: 'areas',    icon: '▱', label: 'Areas',    color: '#74b9ff' },
-                  { id: 'import',   icon: '↑', label: 'Import',   color: '#a29bfe' },
-                  { id: 'settings', icon: '⚙', label: 'Settings', color: '#83eef0' },
+                  { id: 'points',   icon: MapPin,   label: 'Points',   color: '#00b894' },
+                  { id: 'lines',    icon: Ruler,    label: 'Distance', color: '#fdcb6e' },
+                  { id: 'areas',    icon: Pentagon, label: 'Area',     color: '#74b9ff' },
+                  { id: 'import',   icon: Upload,   label: 'Import',   color: '#a29bfe' },
+                  { id: 'settings', icon: Settings, label: 'Settings', color: '#83eef0' },
                 ] as const).map(tool => (
                   <button
                     key={tool.id}
@@ -1977,7 +1983,7 @@ function ExpandedMapModal({
                       boxShadow: activeTool === tool.id ? `0 0 0 2px ${tool.color}33` : "none",
                     }}
                   >
-                    <span style={{ fontSize: 14, color: activeTool === tool.id ? tool.color : "#d4e9f3bb", lineHeight: 1 }}>{tool.icon}</span>
+                    <tool.icon size={17} strokeWidth={2.1} color={activeTool === tool.id ? tool.color : "#d4e9f3bb"} />
                     <span style={{ fontSize: 7.5, fontWeight: 700, color: activeTool === tool.id ? tool.color : "#d4e9f355", fontFamily: "Inter,sans-serif", letterSpacing: "0.03em" }}>{tool.label}</span>
                   </button>
                 ))}
@@ -2037,11 +2043,11 @@ function ExpandedMapModal({
 
                 {/* Tool buttons */}
                 {([
-                  { id: 'points',   icon: '⊕', label: 'Points',   color: '#00b894' },
-                  { id: 'lines',    icon: '━', label: 'Lines',    color: '#fdcb6e' },
-                  { id: 'areas',    icon: '▱', label: 'Areas',    color: '#74b9ff' },
-                  { id: 'import',   icon: '↑', label: 'Import',   color: '#a29bfe' },
-                  { id: 'settings', icon: '⚙', label: 'Settings', color: '#83eef0' },
+                  { id: 'points',   icon: MapPin,   label: 'Points',   color: '#00b894' },
+                  { id: 'lines',    icon: Ruler,    label: 'Distance', color: '#fdcb6e' },
+                  { id: 'areas',    icon: Pentagon, label: 'Area',     color: '#74b9ff' },
+                  { id: 'import',   icon: Upload,   label: 'Import',   color: '#a29bfe' },
+                  { id: 'settings', icon: Settings, label: 'Settings', color: '#83eef0' },
                 ] as const).map(tool => (
                   <button
                     key={tool.id}
@@ -2060,13 +2066,18 @@ function ExpandedMapModal({
                       boxShadow: activeTool === tool.id ? `0 0 14px ${tool.color}44, inset 0 0 10px ${tool.color}0d` : "none",
                     }}
                   >
-                    <span style={{ fontSize: 14, color: activeTool === tool.id ? tool.color : "#d4e9f355", lineHeight: 1, transition: "color 0.13s" }}>{tool.icon}</span>
-                    <span style={{ fontSize: 5.5, fontWeight: 700, fontFamily: "Inter,sans-serif", letterSpacing: "0.05em", textTransform: "uppercase", color: activeTool === tool.id ? `${tool.color}bb` : "#d4e9f31a", transition: "color 0.13s" }}>{tool.label}</span>
+                    <tool.icon size={16} strokeWidth={2.1} color={activeTool === tool.id ? tool.color : "#d4e9f355"} style={{ transition: "color 0.13s" }} />
+                    <span style={{ fontSize: 6.5, fontWeight: 700, fontFamily: "Inter,sans-serif", letterSpacing: "0.04em", textTransform: "uppercase", color: activeTool === tool.id ? `${tool.color}bb` : "#d4e9f344", transition: "color 0.13s" }}>{tool.label}</span>
                   </button>
                 ))}
               </div>
 
               {/* ── Result / settings readout - pops to the right ── */}
+              {((activeTool === 'points' && toolPoints.length === 0) || (activeTool === 'lines' && toolLine.length < 2) || (activeTool === 'areas' && toolArea.length < 3)) && (
+                <div style={{ background: "rgba(0,5,12,0.92)", border: "1px solid rgba(131,238,240,0.25)", borderRadius: 12, padding: "11px 14px", minWidth: 150, maxWidth: 188, backdropFilter: "blur(16px)", fontFamily: "Inter,sans-serif", fontSize: 10.5, fontWeight: 600, color: "#d4e9f3cc", lineHeight: 1.45, boxShadow: "0 6px 20px rgba(0,0,0,0.5)" }}>
+                  {activeTool === 'points' ? 'Click the map to drop points' : activeTool === 'lines' ? 'Click points along your route to measure distance' : 'Click 3+ points to outline an area'}
+                </div>
+              )}
               {activeTool === 'points' && toolPoints.length > 0 && (
                 <div style={{
                   background: "rgba(0,5,12,0.92)", border: "1px solid rgba(0,184,148,0.3)",
