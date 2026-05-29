@@ -627,6 +627,91 @@ function WdparClickHandler({ active }: { active: boolean }) {
   return null;
 }
 
+// ─── Corals of the World ecoregion click handler ─────────────────────────────
+// Calls the VLIZ GeoServer WMS GetFeatureInfo on click to name the Marine
+// Ecoregion (MEOW) under the cursor - the geographic basis Corals of the World
+// uses for coral species distributions. Falls back silently on network error.
+function cotwEsc(s: unknown): string {
+  return String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] as string));
+}
+
+function CotwEcoregionClickHandler({ active }: { active: boolean }) {
+  const map = useMap();
+  const activeRef = useRef(active);
+  activeRef.current = active;
+
+  useMapEvents({
+    click: async (e) => {
+      if (!activeRef.current) return;
+
+      const bounds = map.getBounds();
+      const size   = map.getSize();
+      const point  = map.latLngToContainerPoint(e.latlng);
+
+      const params = new URLSearchParams({
+        SERVICE:      "WMS",
+        VERSION:      "1.1.1",
+        REQUEST:      "GetFeatureInfo",
+        LAYERS:       "Ecoregions:ecoregions",
+        QUERY_LAYERS: "Ecoregions:ecoregions",
+        INFO_FORMAT:  "application/json",
+        FEATURE_COUNT:"1",
+        X:            String(Math.round(point.x)),
+        Y:            String(Math.round(point.y)),
+        WIDTH:        String(size.x),
+        HEIGHT:       String(size.y),
+        BBOX:         [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()].join(","),
+        SRS:          "EPSG:4326",
+      });
+
+      try {
+        const res = await fetch(
+          `https://geo.vliz.be/geoserver/wms?${params}`,
+          { signal: AbortSignal.timeout(6000) }
+        );
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!activeRef.current) return;
+        const feature = data?.features?.[0];
+
+        if (!feature) {
+          L.popup({ maxWidth: 220, className: "cotw-popup" })
+            .setLatLng(e.latlng)
+            .setContent(`<div style="font-family:Inter,sans-serif;font-size:11px;color:#d4e9f3aa">No Corals of the World ecoregion here. Click within a highlighted area.</div>`)
+            .openOn(map);
+          return;
+        }
+
+        const p       = feature.properties ?? {};
+        const name    = cotwEsc(p.ecoregion || "Marine Ecoregion");
+        const ecoCode = p.eco_code != null ? cotwEsc(p.eco_code) : "-";
+        const mrgid   = p.mrgid != null ? cotwEsc(p.mrgid) : null;
+
+        const html = `
+          <div style="font-family:Inter,sans-serif;font-size:11.5px;min-width:170px;max-width:240px;color:#d4e9f3">
+            <div style="font-weight:800;color:#83eef0;font-size:12.5px;margin-bottom:5px;line-height:1.3">${name}</div>
+            <table style="border-collapse:collapse;width:100%">
+              <tr><td style="color:#888;padding:1px 6px 1px 0;font-size:10px">Type</td><td style="font-size:10px">Marine Ecoregion (MEOW)</td></tr>
+              <tr><td style="color:#888;padding:1px 6px 1px 0;font-size:10px">Eco code</td><td style="font-weight:700;color:#83eef0">${ecoCode}</td></tr>
+            </table>
+            <div style="margin-top:5px;font-size:8.5px;color:#666;border-top:1px solid rgba(131,238,240,0.12);padding-top:4px">
+              ${mrgid ? `MRGID ${mrgid} · ` : ""}Geographic basis for <a href="https://www.coralsoftheworld.org/coral_geographic/interactive_map/" target="_blank" rel="noopener noreferrer" style="color:#83eef0aa;text-decoration:none">Corals of the World</a> · MEOW / VLIZ
+            </div>
+          </div>`;
+
+        L.popup({ maxWidth: 260, className: "cotw-popup" })
+          .setLatLng(e.latlng)
+          .setContent(html)
+          .openOn(map);
+      } catch {
+        // CORS or network error - silent fail, WMS tiles continue to render
+      }
+    },
+  });
+
+  return null;
+}
+
 // ─── Copernicus Marine layer config ──────────────────────────────────────────
 const CMS_DATASET = "cmems_obs-oc_glo_bgc-plankton_my_l4-multi-4km_P1M_202603";
 const CMS_PRODUCT = "OCEANCOLOUR_GLO_BGC_L4_MY_009_104";
@@ -1337,6 +1422,7 @@ function ExpandedMapModal({
                 attribution='Marine Ecoregions of the World (MEOW) - basemap for <a href="https://www.coralsoftheworld.org/coral_geographic/interactive_map/" target="_blank" rel="noopener noreferrer">Corals of the World</a> · VLIZ'
               />
             )}
+            <CotwEcoregionClickHandler active={showCotwEcoregions && activeTool !== 'points' && activeTool !== 'lines' && activeTool !== 'areas'} />
             {activeCrwLayer && (() => {
               const cfg = CRW_LAYERS.find(l => l.id === activeCrwLayer);
               return cfg && !cfg.externalUrl ? (
@@ -3009,7 +3095,7 @@ function ExpandedMapModal({
             {showCotwEcoregions && (
               <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "3px 0" }}>
                 <span style={{ width: 13, height: 8, borderRadius: 2, background: "rgba(131,238,240,0.18)", border: "1.5px solid #83eef0", display: "inline-block", flexShrink: 0 }}/>
-                <span style={{ fontSize: 10.5, color: "#d4e9f3bb" }}>Corals of the World ecoregion (MEOW)</span>
+                <span style={{ fontSize: 10.5, color: "#d4e9f3bb" }}>Corals of the World ecoregion (MEOW) <span style={{ color: "#83eef088", fontSize: 9 }}>- click an area to name it</span></span>
               </div>
             )}
             {activeCrwLayer && (() => {
