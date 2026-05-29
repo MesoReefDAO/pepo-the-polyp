@@ -1658,11 +1658,38 @@ function ExpandedMapModal({
                 key="coral-traits-expanded"
                 data={coralTraitsGeoJson}
                 pointToLayer={(feature, latlng) => {
+                  const p = feature.properties ?? {};
+                  if (p.aggregated) {
+                    const obs = Number(p.obs_count) || 0;
+                    const radius = Math.min(4 + Math.sqrt(obs) * 0.7, 16);
+                    const m = L.circleMarker(latlng, {
+                      radius, color: "#f9ca24", weight: 1.2,
+                      fillColor: "#f9ca24", fillOpacity: 0.5, opacity: 0.92,
+                    });
+                    const species: string[] = Array.isArray(p.top_species) ? p.top_species : [];
+                    const cats: string[] = Array.isArray(p.categories) ? p.categories : [];
+                    m.bindPopup(
+                      `<div style="font-family:Inter,sans-serif;font-size:11px;min-width:210px;max-width:270px;color:#d4e9f3">
+                        <div style="font-weight:700;color:#f9ca24;font-size:12px;margin-bottom:5px;line-height:1.3">🪸 ${p.location ? p.location : "Coral trait observations"}</div>
+                        <div style="display:flex;gap:10px;margin-bottom:6px;flex-wrap:wrap">
+                          <span><b style="color:#ffd32a">${obs.toLocaleString()}</b> <span style="color:#d4e9f366;font-size:9px">observations</span></span>
+                          <span><b style="color:#ffd32a">${Number(p.species_count) || 0}</b> <span style="color:#d4e9f366;font-size:9px">species</span></span>
+                          <span><b style="color:#ffd32a">${Number(p.trait_count) || 0}</b> <span style="color:#d4e9f366;font-size:9px">traits</span></span>
+                        </div>
+                        ${species.length ? `<div style="margin-bottom:4px"><span style="color:#d4e9f355;font-size:9px;text-transform:uppercase;letter-spacing:.05em">Species</span><br/><span style="font-size:10px"><em style="font-style:italic">${species.join("</em>, <em style=\"font-style:italic\">")}</em></span></div>` : ""}
+                        ${cats.length ? `<div style="margin-bottom:3px"><span style="color:#d4e9f355;font-size:9px;text-transform:uppercase;letter-spacing:.05em">Trait categories</span><br/><span style="font-size:9.5px;color:#d4e9f399">${cats.join(" · ")}</span></div>` : ""}
+                        <div style="border-top:1px solid rgba(249,202,36,0.15);padding-top:5px;margin-top:4px;text-align:right">
+                          <a href="https://coraltraits.org" target="_blank" rel="noopener noreferrer" style="color:#f9ca24;font-size:9px;font-weight:600;text-decoration:none">↗ CoralTraits.org</a>
+                        </div>
+                      </div>`,
+                      { maxWidth: 280 }
+                    );
+                    return m;
+                  }
                   const m = L.circleMarker(latlng, {
                     radius: 4, color: "#f9ca24", weight: 1.2,
                     fillColor: "#f9ca24", fillOpacity: 0.72, opacity: 0.92,
                   });
-                  const p = feature.properties ?? {};
                   const isGbif = (p.source || "").startsWith("gbif");
                   const valueStr = p.value ? (p.unit ? `${p.value} <span style="color:#d4e9f344;font-size:8px">${p.unit}</span>` : p.value) : "";
                   const doiHref = p.doi ? `https://doi.org/${p.doi.replace(/^https?:\/\/doi\.org\//,"")}` : "";
@@ -3992,8 +4019,28 @@ export function ReefMap({
           {showCoralTraitsC && compactCoralTraitsGeoJson && (
             <GeoJSON key="coral-traits-c" data={compactCoralTraitsGeoJson}
               pointToLayer={(feature, ll) => {
-                const m = L.circleMarker(ll, { radius: 3.5, color: "#f9ca24", weight: 1, fillColor: "#f9ca24", fillOpacity: 0.65, opacity: 0.9 });
                 const p = feature.properties ?? {};
+                if (p.aggregated) {
+                  const obs = Number(p.obs_count) || 0;
+                  const radius = Math.min(3.5 + Math.sqrt(obs) * 0.6, 13);
+                  const m = L.circleMarker(ll, { radius, color: "#f9ca24", weight: 1, fillColor: "#f9ca24", fillOpacity: 0.45, opacity: 0.9 });
+                  const species: string[] = Array.isArray(p.top_species) ? p.top_species : [];
+                  m.bindPopup(
+                    `<div style="font-family:Inter,sans-serif;font-size:11px;min-width:180px;max-width:240px;color:#d4e9f3">
+                      <div style="font-weight:700;color:#f9ca24;font-size:12px;margin-bottom:4px;line-height:1.3">🪸 ${p.location ? p.location : "Coral trait observations"}</div>
+                      <div style="display:flex;gap:8px;margin-bottom:5px;flex-wrap:wrap;font-size:9.5px">
+                        <span><b style="color:#ffd32a">${obs.toLocaleString()}</b> obs</span>
+                        <span><b style="color:#ffd32a">${Number(p.species_count) || 0}</b> spp.</span>
+                        <span><b style="color:#ffd32a">${Number(p.trait_count) || 0}</b> traits</span>
+                      </div>
+                      ${species.length ? `<div style="font-size:9px;margin-bottom:3px;color:#d4e9f399"><em style="font-style:italic">${species.slice(0,4).join("</em>, <em style=\"font-style:italic\">")}</em></div>` : ""}
+                      <a href="https://coraltraits.org" target="_blank" rel="noopener noreferrer" style="color:#f9ca24;font-size:8px;font-weight:600;text-decoration:none">↗ CoralTraits.org</a>
+                    </div>`,
+                    { maxWidth: 250 }
+                  );
+                  return m;
+                }
+                const m = L.circleMarker(ll, { radius: 3.5, color: "#f9ca24", weight: 1, fillColor: "#f9ca24", fillOpacity: 0.65, opacity: 0.9 });
                 const isGbifC = (p.source || "").startsWith("gbif");
                 const valStr = p.value ? (p.unit ? `${p.value} ${p.unit}` : p.value) : "";
                 m.bindPopup(

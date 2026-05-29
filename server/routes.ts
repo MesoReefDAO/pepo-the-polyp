@@ -227,6 +227,36 @@ async function fetchCoralTraitsData(): Promise<object> {
   const now = Date.now();
   if (_coralTraitsCache && now < _coralTraitsCache.expiresAt) return _coralTraitsCache.geojson;
 
+  // Primary source: the full CoralTraits database (ct_measurements, ~28k
+  // geolocated observations) aggregated into one feature per coordinate so the
+  // whole dataset can be mapped at once. This is the canonical, complete layer.
+  try {
+    const { storage } = await import("./storage");
+    const locations = await storage.getCoralTraitMapLocations();
+    if (locations.length > 0) {
+      const features = locations.map(l => ({
+        type: "Feature",
+        geometry: { type: "Point", coordinates: [l.longitude, l.latitude] },
+        properties: {
+          location: l.locationName,
+          obs_count: l.obsCount,
+          species_count: l.speciesCount,
+          trait_count: l.traitCount,
+          top_species: l.topSpecies,
+          categories: l.categories,
+          aggregated: true,
+          source: "coraltraits-db",
+        },
+      }));
+      const geojson = { type: "FeatureCollection", features };
+      _coralTraitsCache = { geojson, expiresAt: now + 24 * 60 * 60 * 1000 };
+      console.log(`[coralTraits] Mapping ${features.length} geolocated locations from ct_measurements`);
+      return geojson;
+    }
+  } catch (e) {
+    console.warn("[coralTraits] ct_measurements aggregation failed, falling back:", (e as Error).message);
+  }
+
   // Fast path: if DB already has geolocated samples, serve them directly.
   try {
     const { storage } = await import("./storage");

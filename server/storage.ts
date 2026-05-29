@@ -18,6 +18,20 @@ import {
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
+// Aggregated geolocated coral-trait observations for the reef-map layer: one
+// row per distinct coordinate, summarising every CoralTraits.org measurement
+// recorded there (full ct_measurements dataset, not the GBIF fallback).
+export interface CoralTraitMapLocation {
+  latitude: number;
+  longitude: number;
+  locationName: string;
+  obsCount: number;
+  speciesCount: number;
+  traitCount: number;
+  topSpecies: string[];
+  categories: string[];
+}
+
 // ─── Interface ─────────────────────────────────────────────────────────────────
 export interface IStorage {
   // legacy
@@ -85,6 +99,7 @@ export interface IStorage {
   listCoralTraitDefs(): Promise<CoralTraitDef[]>;
   getCoralSamplesForTaxon(taxonId: number, limit?: number): Promise<CoralTraitSample[]>;
   getGeolocatedCoralSamples(limit?: number): Promise<(CoralTraitSample & { scientificName: string })[]>;
+  getCoralTraitMapLocations(): Promise<CoralTraitMapLocation[]>;
   bulkInsertCoralTaxa(rows: InsertCoralTaxon[]): Promise<void>;
   bulkInsertCoralTraitDefs(rows: InsertCoralTrait[]): Promise<void>;
   bulkInsertCoralTraitSamples(rows: InsertCoralTraitSample[]): Promise<void>;
@@ -605,6 +620,37 @@ export class DbStorage implements IStorage {
       .where(sql`${coralTraitSamples.latitude} is not null and ${coralTraitSamples.longitude} is not null`)
       .limit(limit);
     return rows as any;
+  }
+  // Aggregate the full geolocated CoralTraits measurement set (ct_measurements,
+  // ~28k geolocated rows) into one feature per distinct coordinate so the whole
+  // database can be mapped without rendering tens of thousands of stacked markers.
+  async getCoralTraitMapLocations(): Promise<CoralTraitMapLocation[]> {
+    const result = await db.execute(sql`
+      SELECT
+        latitude::float8                                                           AS latitude,
+        longitude::float8                                                          AS longitude,
+        max(location_name)                                                         AS location_name,
+        count(*)::int                                                              AS obs_count,
+        count(DISTINCT species_name)::int                                          AS species_count,
+        count(DISTINCT NULLIF(trait_name, ''))::int                               AS trait_count,
+        (array_agg(DISTINCT species_name) FILTER (WHERE species_name <> ''))[1:6] AS top_species,
+        (array_agg(DISTINCT trait_category) FILTER (WHERE trait_category <> ''))   AS categories
+      FROM ct_measurements
+      WHERE latitude IS NOT NULL AND longitude IS NOT NULL
+      GROUP BY latitude, longitude
+      ORDER BY count(*) DESC
+    `);
+    const rows = (result as any).rows ?? (result as any);
+    return (rows as any[]).map(r => ({
+      latitude: Number(r.latitude),
+      longitude: Number(r.longitude),
+      locationName: r.location_name ?? "",
+      obsCount: Number(r.obs_count),
+      speciesCount: Number(r.species_count),
+      traitCount: Number(r.trait_count),
+      topSpecies: (r.top_species ?? []) as string[],
+      categories: (r.categories ?? []) as string[],
+    }));
   }
   async bulkInsertCoralTaxa(rows: InsertCoralTaxon[]): Promise<void> {
     if (!rows.length) return;
