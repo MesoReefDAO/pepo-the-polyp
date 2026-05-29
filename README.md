@@ -18,7 +18,7 @@ Pepo is a full-stack DeSci and marine conservation web app that fuses six parall
 | **🧬 ORCID Login** | Primary standalone auth for researchers - no wallet required |
 | **🔐 Privy Auth** | Wallet + email + Google + Twitter + LinkedIn login |
 | **🗳️ Governance** | On-chain DAO voting via Vocdoni - Standard, Approval, and Quadratic voting |
-| **🗺️ Reef Network Map** | Multi-layered Leaflet map with 15+ data overlays across 6 category groups |
+| **🗺️ Reef Network Map** | Multi-layered Leaflet map with 16+ data overlays across 6 category groups, plus point/distance/area measurement tools and click-to-identify ecoregions |
 | **🌡️ NOAA CRW Heat Stress** | 7 real-time satellite coral bleaching layers via NOAA ERDDAP WMS |
 | **⏱️ CMS Timelapse** | Full-width Copernicus Marine Service timelapse bar with slider and year/quarter ticks |
 | **🌐 Reef Knowledge Graph** | Live Bonfires.ai graph visualization - interactive on all screen sizes |
@@ -85,6 +85,7 @@ The interactive map (`/reef-map`) combines live satellite products, global monit
 | **Allen Coral Atlas** | Planet Labs / UH | 5 m resolution benthic habitat WMS tiles |
 | **Coral Mapping Regions** | CoralMapping.org | Global reef mapping region polygons |
 | **Marine Regions EEZ** | VLIZ MarineRegions | Exclusive Economic Zone boundary polygons |
+| **Corals of the World** | VLIZ / MEOW | 232 Marine Ecoregions of the World - the geographic basis Corals of the World uses for coral distributions; click any area to name the ecoregion (name, eco code, MRGID) |
 
 ### Scientific Monitoring
 
@@ -110,6 +111,18 @@ The interactive map (`/reef-map`) combines live satellite products, global monit
 | **Member Pins** | Pepo DB | Opted-in member locations |
 | **Reef Images** | Pepo DB | Community-submitted and curated reef photographs |
 | **Reef Videos** | Pepo DB | Community-submitted underwater video transects |
+
+### Map Tools
+
+A floating, draggable tools palette (icon-labelled on desktop, a centred strip on mobile) lets users measure and annotate directly on the map. A contextual hint appears while a tool is active so it is clear where to click or tap.
+
+| Tool | Action |
+|------|--------|
+| **Points** | Drop coordinate markers; readout lists the latest lat/lng points |
+| **Distance** | Click/tap along a route to measure cumulative great-circle distance (km) |
+| **Area** | Outline 3+ points to measure the enclosed area (km²) |
+| **Import** | Load a local GeoJSON file as an overlay |
+| **Settings** | Adjust active layer opacity and remove imported overlays |
 
 ---
 
@@ -352,7 +365,7 @@ client/src/
     SplashScreen.tsx                       - Animated intro screen (session-gated)
     OnboardingWizard.tsx                   - 5-step guided tour overlay (localStorage-gated)
     JourneySection.tsx                     - Collapsible profile completeness bar + points
-    ReefMap.tsx                            - Leaflet map: 15+ data layers, timelapse bar, member pins
+    ReefMap.tsx                            - Leaflet map: 16+ data layers, measurement tools, timelapse bar, member pins
     PrivyLoginButton.tsx                   - Privy login modal trigger
     OrcidLoginButton.tsx                   - ORCID OAuth redirect button
     IPFSImageUpload.tsx                    - Drag-and-drop IPFS upload widget (Pinata)
@@ -407,6 +420,7 @@ The server bundle uses ESM. CJS packages are bundled inline by esbuild; ESM-only
 | 📡 NOAA CoastWatch Viewer | https://coastwatch.noaa.gov/cw_html/cwViewer.html |
 | 🌍 NNVL Global Data | https://www.nnvl.noaa.gov/view/globaldata.html |
 | 🐠 CoralTraits | https://coraltraits.org |
+| 🪸 Corals of the World | https://www.coralsoftheworld.org |
 | 🌊 WCS Marine | https://marine.wcs.org |
 | 🐟 Reef Check | https://reefcheck.org |
 | 🐡 Reef Life Survey | https://reeflifesurvey.com |
