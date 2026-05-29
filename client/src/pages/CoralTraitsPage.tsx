@@ -270,7 +270,14 @@ export function CoralTraitsPage() {
                   {selected.familyMorphology && selected.familyMorphology !== selected.familyMolecules && (
                     <Tag label={`Morphology: ${selected.familyMorphology}`} color="#26de81" />
                   )}
-                  {selected.synonymSpecies && <Tag label={`Syn: ${selected.synonymSpecies}`} color="#d4e9f366" />}
+                  {selected.synonymSpecies && (
+                    <span
+                      className="px-2 py-0.5 rounded-full border [font-family:'Inter',Helvetica]"
+                      style={{ borderColor: "#d4e9f36633", color: "#d4e9f366", background: "#d4e9f3660a" }}
+                    >
+                      Syn: <span className="italic">{selected.synonymSpecies}</span>
+                    </span>
+                  )}
                   <a
                     href={`https://coraltraits.org/species/${encodeURIComponent(selected.masterSpecies || "")}`}
                     target="_blank" rel="noopener noreferrer"
