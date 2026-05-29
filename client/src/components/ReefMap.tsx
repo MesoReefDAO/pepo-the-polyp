@@ -60,19 +60,55 @@ interface CrwLayer {
   min?: number; max?: number;
   palette?: string[];
   ticks?: string[];
+  discrete?: boolean;          // render the legend as hard category bands
+  erddapPalette?: string;      // ERDDAP WMS palette name applied to the tiles
   externalUrl?: string;
   unavailable?: boolean;
 }
-// NOAA CDHW palette (white -> yellow -> orange -> red -> dark red -> purple ->
-// indigo), aligned with the NNVL CDHW global map. 0 -> 16+ deg C-weeks.
+// ── NOAA Coral Reef Watch official palettes ──────────────────────────────────
+// Sea Surface Temperature - NOAA CoralTemp rainbow ramp (cool blue -> warm red).
+const PAL_SST = ["#3d0080","#0000ce","#0068ff","#00c4ff","#00ffc8","#7bff45","#fff000","#ff8c00","#ff1e00","#8b0000"];
+// SST Anomaly - diverging blue-white-red about the climatology (cooler <-> warmer).
+const PAL_SSTANOM = ["#053061","#2166ac","#4393c3","#92c5de","#d1e5f0","#f7f7f7","#fddbc7","#f4a582","#d6604d","#b2182b","#67001f"];
+// Coral Bleaching HotSpot - white below threshold, warming to purple above it.
+const PAL_HOTSPOT = ["#ffffff","#ffe082","#ffb300","#fb8c00","#e53935","#b71c1c","#6a1b9a"];
+// Degree Heating Weeks - white -> yellow -> orange -> red -> dark red -> indigo,
+// aligned with the NNVL CDHW global map. 0 -> 16+ deg C-weeks.
 const PAL_DHW = ["#ffffff","#fff59d","#ffb300","#e64a19","#b71c1c","#6a1b9a","#311b92"];
+// Bleaching Alert Area - the 5 official CRW alert levels (No Stress -> Alert 2).
+const PAL_BAA = ["#9fd4f0","#fff200","#ff9900","#ff0000","#990000"];
 
 const CRW_LAYERS: CrwLayer[] = [
   {
-    id: "CRW_DHW", label: "Coral DHW (CDHW)", short: "CDHW",
+    id: "CRW_SST", label: "Sea Surface Temp.", short: "SST",
+    unit: "deg C", color: "#00c4ff",
+    colorscalerange: "0,35", min: 0, max: 35, palette: PAL_SST, erddapPalette: "Rainbow",
+    desc: "NOAA Coral Reef Watch Sea Surface Temperature (CoralTemp) - the daily global 5km SST analysis that underpins every CRW thermal-stress product. The same field is differenced against the long-term climatology to derive the SST Anomaly, HotSpot, DHW and Bleaching Alert Area layers below.",
+  },
+  {
+    id: "CRW_SSTANOMALY", label: "SST Anomaly", short: "SSTA",
+    unit: "deg C", color: "#d6604d",
+    colorscalerange: "-5,5", min: -5, max: 5, palette: PAL_SSTANOM, erddapPalette: "BlueWhiteRed",
+    desc: "NOAA Coral Reef Watch SST Anomaly - the difference between today's SST and the long-term climatological mean for the same date. Positive (red) anomalies indicate warmer-than-normal water; sustained positive anomalies over reefs are the precursor to accumulated bleaching-level heat stress.",
+  },
+  {
+    id: "CRW_HOTSPOT", label: "Coral Bleaching HotSpot", short: "HotSpot",
+    unit: "deg C", color: "#fb8c00",
+    colorscalerange: "0,5", min: 0, max: 5, palette: PAL_HOTSPOT,
+    desc: "NOAA Coral Reef Watch Coral Bleaching HotSpot - SST above the local Maximum Monthly Mean (MMM) climatology. HotSpot values of 1 deg C or more mark water hot enough to start accumulating coral heat stress; HotSpots are integrated over 12 weeks to produce Degree Heating Weeks.",
+  },
+  {
+    id: "CRW_DHW", label: "Degree Heating Weeks", short: "DHW",
     unit: "deg C-weeks", color: "#FF6600",
     colorscalerange: "0,16", min: 0, max: 16, palette: PAL_DHW,
-    desc: "NOAA Coral Reef Watch Coral Degree Heating Weeks - accumulated thermal stress above the local bleaching threshold over a rolling 12-week window. DHW > 4 = significant bleaching risk; DHW > 8 = widespread bleaching and mortality risk. Three time windows snapshot the same CDHW field at different lookback intervals so the latest week can be compared with a month ago and a year ago.",
+    desc: "NOAA Coral Reef Watch Degree Heating Weeks - accumulated thermal stress above the local bleaching threshold over a rolling 12-week window. DHW > 4 = significant bleaching risk; DHW > 8 = widespread bleaching and mortality risk. Three time windows snapshot the same field at different lookback intervals so the latest week can be compared with a month ago and a year ago.",
+  },
+  {
+    id: "CRW_BAA", label: "Bleaching Alert Area", short: "Alert Area",
+    unit: "alert level", color: "#ff0000",
+    colorscalerange: "0,4", min: 0, max: 4, palette: PAL_BAA, discrete: true,
+    ticks: ["No Stress", "Watch", "Warning", "Alert 1", "Alert 2"],
+    desc: "NOAA Coral Reef Watch Bleaching Alert Area - the headline 5-level thermal-stress nomenclature: No Stress, Bleaching Watch, Bleaching Warning, Alert Level 1 (significant bleaching likely) and Alert Level 2 (severe bleaching and mortality likely). Levels combine HotSpot and DHW thresholds into a single reef-management alert.",
   },
 ];
 
@@ -1305,7 +1341,7 @@ function ExpandedMapModal({
               const cfg = CRW_LAYERS.find(l => l.id === activeCrwLayer);
               return cfg && !cfg.externalUrl ? (
                 <WMSTileLayer
-                  key={`crw-expanded-${activeCrwLayer}-${cdhwWindow}-${crwDate}-${cfg.colorscalerange ?? ""}`}
+                  key={`crw-expanded-${activeCrwLayer}-${cdhwWindow}-${crwDate}-${cfg.colorscalerange ?? ""}-${cfg.erddapPalette ?? ""}`}
                   url={CRW_WMS_BASE}
                   layers={`${CRW_DATASET}:${activeCrwLayer}`}
                   format="image/png"
@@ -1315,7 +1351,8 @@ function ExpandedMapModal({
                   styles=""
                   crs={L.CRS.EPSG4326}
                   time={getCrwTime(crwDate)}
-                  {...(cfg.colorscalerange ? { colorscalerange: cfg.colorscalerange } : {})}
+                  {...((cfg.colorscalerange ? { colorscalerange: cfg.colorscalerange } : {}) as any)}
+                  {...((cfg.erddapPalette ? { palette: cfg.erddapPalette } : {}) as any)}
                   eventHandlers={{
                     loading: () => setCrwLoading(true),
                     load:    () => setCrwLoading(false),
@@ -2708,7 +2745,7 @@ function ExpandedMapModal({
 
             {/* ── NOAA Coral Reef Watch ── */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "10px 0 2px" }}>
-              <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#d4e9f340" }}>NOAA CRW - Coral DHW (CDHW)</span>
+              <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#d4e9f340" }}>NOAA CRW - Thermal Stress</span>
               {activeCrwLayer && (
                 <button
                   onClick={() => setActiveCrwLayer(null)}
@@ -2717,7 +2754,7 @@ function ExpandedMapModal({
               )}
             </div>
             <div style={{ fontSize: 7.5, color: "#d4e9f328", marginBottom: 5, lineHeight: 1.5 }}>
-              Coral Degree Heating Weeks - cumulative thermal stress driving coral bleaching. Toggle the layer, then pick a 7-day / Monthly / Yearly window. Palette and value range match the <a href="https://www.nnvl.noaa.gov/view/globaldata.html#CDHW" target="_blank" rel="noopener noreferrer" style={{ color: "#FF6600bb", textDecoration: "none" }}>NOAA NNVL CDHW</a> global map.
+              NOAA Coral Reef Watch 5km thermal-stress suite - Sea Surface Temperature, SST Anomaly, Coral Bleaching HotSpot, Degree Heating Weeks and the 5-level Bleaching Alert Area. Pick a layer, then a 7-day / Monthly / Yearly window. Colours and nomenclature match the <a href="https://coralreefwatch.noaa.gov/product/5km/index.php" target="_blank" rel="noopener noreferrer" style={{ color: "#FF6600bb", textDecoration: "none" }}>NOAA Coral Reef Watch</a> products.
             </div>
             {CRW_LAYERS.map(layer => (
               <div
@@ -2832,7 +2869,7 @@ function ExpandedMapModal({
                   {/* Color-scale legend */}
                   {layer.palette && layer.min !== undefined && layer.max !== undefined && (
                     <div>
-                      <div data-testid="crw-legend-bar" style={{ height: 9, borderRadius: 3, background: paletteGradient(layer.palette, !!layer.ticks), border: "1px solid rgba(255,255,255,0.12)" }} />
+                      <div data-testid="crw-legend-bar" style={{ height: 9, borderRadius: 3, background: paletteGradient(layer.palette, layer.discrete ?? !!layer.ticks), border: "1px solid rgba(255,255,255,0.12)" }} />
                       {layer.ticks ? (
                         <div style={{ display: "flex", justifyContent: "space-between", marginTop: 2, fontSize: 7.5, color: "#d4e9f377", fontVariantNumeric: "tabular-nums" }}>
                           {layer.ticks.map((t, i) => (
@@ -3755,7 +3792,7 @@ export function ReefMap({
             const cfg = CRW_LAYERS.find(l => l.id === activeCrwLayerC);
             return cfg && !cfg.externalUrl ? (
               <WMSTileLayer
-                key={`crw-compact-${activeCrwLayerC}-${cdhwWindowC}-${crwDateC}-${cfg.colorscalerange ?? ""}`}
+                key={`crw-compact-${activeCrwLayerC}-${cdhwWindowC}-${crwDateC}-${cfg.colorscalerange ?? ""}-${cfg.erddapPalette ?? ""}`}
                 url={CRW_WMS_BASE}
                 layers={`${CRW_DATASET}:${activeCrwLayerC}`}
                 format="image/png"
@@ -3765,7 +3802,8 @@ export function ReefMap({
                 styles=""
                 crs={L.CRS.EPSG4326}
                 time={getCrwTime(crwDateC)}
-                {...(cfg.colorscalerange ? { colorscalerange: cfg.colorscalerange } : {})}
+                {...((cfg.colorscalerange ? { colorscalerange: cfg.colorscalerange } : {}) as any)}
+                {...((cfg.erddapPalette ? { palette: cfg.erddapPalette } : {}) as any)}
                 eventHandlers={{
                   loading: () => setCrwLoadingC(true),
                   load:    () => setCrwLoadingC(false),
@@ -4171,7 +4209,7 @@ export function ReefMap({
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "5px 10px 3px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                       <span style={{ fontSize: 8, color: "#FF660088" }}>🌡</span>
-                      <span style={{ fontSize: 8, fontFamily: "Inter,sans-serif", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#FF660088" }}>NOAA CRW - CDHW</span>
+                      <span style={{ fontSize: 8, fontFamily: "Inter,sans-serif", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#FF660088" }}>NOAA CRW - Thermal Stress</span>
                     </div>
                     {activeCrwLayerC && (
                       <button onClick={() => setActiveCrwLayerC(null)}
@@ -4180,7 +4218,7 @@ export function ReefMap({
                       </button>
                     )}
                   </div>
-                  <div style={{ fontSize: 7.5, color: "#d4e9f328", padding: "0 10px 4px", lineHeight: 1.4, fontFamily: "Inter,sans-serif" }}>Coral Degree Heating Weeks. Toggle, then pick a window.</div>
+                  <div style={{ fontSize: 7.5, color: "#d4e9f328", padding: "0 10px 4px", lineHeight: 1.4, fontFamily: "Inter,sans-serif" }}>SST, Anomaly, HotSpot, DHW and Bleaching Alert Area. Toggle, then pick a window.</div>
                   {CRW_LAYERS.map(layer => (
                     <div
                       key={layer.id}
@@ -4241,7 +4279,7 @@ export function ReefMap({
                         </div>
                         {layer.palette && layer.min !== undefined && layer.max !== undefined && (
                           <>
-                            <div style={{ height: 6, borderRadius: 2, background: paletteGradient(layer.palette, !!layer.ticks), border: "1px solid rgba(255,255,255,0.1)" }} />
+                            <div style={{ height: 6, borderRadius: 2, background: paletteGradient(layer.palette, layer.discrete ?? !!layer.ticks), border: "1px solid rgba(255,255,255,0.1)" }} />
                             <div style={{ display: "flex", justifyContent: "space-between", marginTop: 1, fontSize: 7, color: "#d4e9f377", fontVariantNumeric: "tabular-nums" }}>
                               <span>{layer.ticks ? layer.ticks[0] : layer.min}</span>
                               <span>{layer.ticks ? layer.ticks[layer.ticks.length - 1] : layer.max}</span>
