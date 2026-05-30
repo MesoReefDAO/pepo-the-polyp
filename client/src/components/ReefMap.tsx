@@ -70,24 +70,29 @@ interface CrwLayer {
   externalUrl?: string;
   unavailable?: boolean;
 }
-// ── NOAA Coral Reef Watch official palettes ──────────────────────────────────
-// Sea Surface Temperature - NOAA CoralTemp rainbow ramp (cool blue -> warm red).
-const PAL_SST = ["#3d0080","#0000ce","#0068ff","#00c4ff","#00ffc8","#7bff45","#fff000","#ff8c00","#ff1e00","#8b0000"];
-// SST Anomaly - diverging blue-white-red about the climatology (cooler <-> warmer).
-const PAL_SSTANOM = ["#053061","#2166ac","#4393c3","#92c5de","#d1e5f0","#f7f7f7","#fddbc7","#f4a582","#d6604d","#b2182b","#67001f"];
-// Coral Bleaching HotSpot - white below threshold, warming to purple above it.
-const PAL_HOTSPOT = ["#ffffff","#ffe082","#ffb300","#fb8c00","#e53935","#b71c1c","#6a1b9a"];
-// Degree Heating Weeks - white -> yellow -> orange -> red -> dark red -> indigo,
-// aligned with the NNVL CDHW global map. 0 -> 16+ deg C-weeks.
-const PAL_DHW = ["#ffffff","#fff59d","#ffb300","#e64a19","#b71c1c","#6a1b9a","#311b92"];
-// Bleaching Alert Area - the 5 official CRW alert levels (No Stress -> Alert 2).
-const PAL_BAA = ["#9fd4f0","#fff200","#ff9900","#ff0000","#990000"];
+// ── NOAA Coral Reef Watch palettes ───────────────────────────────────────────
+// IMPORTANT: the map tiles are painted server-side by the PacIOOS ncWMS using the
+// named boxfill palette in each layer's `ncStyle` (this server ignores custom/inline
+// palettes). To keep the in-app legend identical to what the map actually shows,
+// every PAL_* below is sampled (low -> high) directly from that server's
+// GetLegendGraphic colorbar for the exact boxfill palette the layer renders with.
+// Sea Surface Temperature - ncWMS `sst_36` (blue -> green -> yellow -> red).
+const PAL_SST = ["#0019a7","#0048c2","#0077dd","#07a7e8","#6ecc6e","#d0e203","#e0ba00","#ed9600","#fa6f00","#ff2700","#ca0000"];
+// SST Anomaly - ncWMS `redblue` diverging (blue -> white -> red about climatology).
+const PAL_SSTANOM = ["#1818ff","#4646ff","#7474ff","#a1a1ff","#cfcfff","#fdfdff","#ffd0d0","#ffa4a4","#ff7575","#ff4747","#ff1818"];
+// Coral Bleaching HotSpot - ncWMS `reds` (white -> deep red as stress builds).
+const PAL_HOTSPOT = ["#ffede5","#fedbcc","#fcc1a8","#fca588","#fc8666","#fb694a","#f24633","#dd2a25","#c3161b","#a81016","#7a0510"];
+// Degree Heating Weeks - ncWMS `ylorrd` (yellow -> orange -> red -> dark red).
+const PAL_DHW = ["#fff8bb","#ffea9b","#fedc7c","#fec45f","#fea747","#fd8c3c","#fc5d2e","#f03523","#db141e","#c00225","#930026"];
+// Bleaching Alert Area - ncWMS `ylorrd` banded into the 5 CRW alert levels
+// (No Stress -> Watch -> Warning -> Alert 1 -> Alert 2).
+const PAL_BAA = ["#ffffcc","#fed976","#fd8c3c","#e2191c","#800026"];
 
 const CRW_LAYERS: CrwLayer[] = [
   {
     id: "CRW_SST", label: "Sea Surface Temp.", short: "SST",
     unit: "deg C", color: "#00c4ff",
-    colorscalerange: "0,35", min: 0, max: 35, palette: PAL_SST, ncStyle: "boxfill/rainbow",
+    colorscalerange: "0,35", min: 0, max: 35, palette: PAL_SST, ncStyle: "boxfill/sst_36",
     desc: "NOAA Coral Reef Watch Sea Surface Temperature (CoralTemp) - the daily global 5km SST analysis that underpins every CRW thermal-stress product. The same field is differenced against the long-term climatology to derive the SST Anomaly, HotSpot, DHW and Bleaching Alert Area layers below.",
   },
   {
@@ -105,13 +110,13 @@ const CRW_LAYERS: CrwLayer[] = [
   {
     id: "CRW_DHW", label: "Degree Heating Weeks", short: "DHW",
     unit: "deg C-weeks", color: "#FF6600",
-    colorscalerange: "0,16", min: 0, max: 16, palette: PAL_DHW, ncStyle: "boxfill/ylorbr",
+    colorscalerange: "0,16", min: 0, max: 16, palette: PAL_DHW, ncStyle: "boxfill/ylorrd",
     desc: "NOAA Coral Reef Watch Degree Heating Weeks - accumulated thermal stress above the local bleaching threshold over a rolling 12-week window. DHW > 4 = significant bleaching risk; DHW > 8 = widespread bleaching and mortality risk. Three time windows snapshot the same field at different lookback intervals so the latest week can be compared with a month ago and a year ago.",
   },
   {
     id: "CRW_BAA", label: "Bleaching Alert Area", short: "Alert Area",
     unit: "alert level", color: "#ff0000",
-    colorscalerange: "0,4", min: 0, max: 4, palette: PAL_BAA, ncStyle: "boxfill/rainbow", discrete: true,
+    colorscalerange: "0,4", min: 0, max: 4, palette: PAL_BAA, ncStyle: "boxfill/ylorrd", discrete: true,
     ticks: ["No Stress", "Watch", "Warning", "Alert 1", "Alert 2"],
     desc: "NOAA Coral Reef Watch Bleaching Alert Area - the headline 5-level thermal-stress nomenclature: No Stress, Bleaching Watch, Bleaching Warning, Alert Level 1 (significant bleaching likely) and Alert Level 2 (severe bleaching and mortality likely). Levels combine HotSpot and DHW thresholds into a single reef-management alert.",
   },
