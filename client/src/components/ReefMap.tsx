@@ -50,10 +50,13 @@ const GCRMN_LONG: Record<string, string> = {
 // Palette and value range match NOAA NNVL CDHW product:
 //   https://www.nnvl.noaa.gov/view/globaldata.html#CDHW
 //   https://coralreefwatch.noaa.gov/product/5km/methodology.php
-// Data source: PacIOOS ERDDAP mirror of NOAA CRW v3.1 dhw_5km dataset
+// Data source: PacIOOS THREDDS ncWMS mirror of NOAA CRW v3.1 dhw_5km dataset
 // (CRW_DHW variable is the canonical 12-week rolling DHW accumulation).
-const CRW_WMS_BASE = "https://pae-paha.pacioos.hawaii.edu/erddap/wms/dhw_5km/request";
-const CRW_DATASET  = "dhw_5km";
+// THREDDS ncWMS endpoint for the PacIOOS dhw_5km dataset. Unlike the ERDDAP WMS
+// (CRS:84 / EPSG:4326 only), this ncWMS advertises EPSG:3857 (Web Mercator), so
+// the thermal-stress tiles are reprojected server-side to match the base map's
+// Web Mercator projection and fit it exactly instead of warping at low zoom.
+const CRW_WMS_BASE = "https://pae-paha.pacioos.hawaii.edu/thredds/wms/dhw_5km";
 
 interface CrwLayer {
   id: string; label: string; short: string;
@@ -63,7 +66,7 @@ interface CrwLayer {
   palette?: string[];
   ticks?: string[];
   discrete?: boolean;          // render the legend as hard category bands
-  erddapPalette?: string;      // ERDDAP WMS palette name applied to the tiles
+  ncStyle?: string;            // ncWMS boxfill style applied to the tiles (e.g. "boxfill/rainbow")
   externalUrl?: string;
   unavailable?: boolean;
 }
@@ -84,31 +87,31 @@ const CRW_LAYERS: CrwLayer[] = [
   {
     id: "CRW_SST", label: "Sea Surface Temp.", short: "SST",
     unit: "deg C", color: "#00c4ff",
-    colorscalerange: "0,35", min: 0, max: 35, palette: PAL_SST, erddapPalette: "Rainbow",
+    colorscalerange: "0,35", min: 0, max: 35, palette: PAL_SST, ncStyle: "boxfill/rainbow",
     desc: "NOAA Coral Reef Watch Sea Surface Temperature (CoralTemp) - the daily global 5km SST analysis that underpins every CRW thermal-stress product. The same field is differenced against the long-term climatology to derive the SST Anomaly, HotSpot, DHW and Bleaching Alert Area layers below.",
   },
   {
     id: "CRW_SSTANOMALY", label: "SST Anomaly", short: "SSTA",
     unit: "deg C", color: "#d6604d",
-    colorscalerange: "-5,5", min: -5, max: 5, palette: PAL_SSTANOM, erddapPalette: "BlueWhiteRed",
+    colorscalerange: "-5,5", min: -5, max: 5, palette: PAL_SSTANOM, ncStyle: "boxfill/redblue",
     desc: "NOAA Coral Reef Watch SST Anomaly - the difference between today's SST and the long-term climatological mean for the same date. Positive (red) anomalies indicate warmer-than-normal water; sustained positive anomalies over reefs are the precursor to accumulated bleaching-level heat stress.",
   },
   {
     id: "CRW_HOTSPOT", label: "Coral Bleaching HotSpot", short: "HotSpot",
     unit: "deg C", color: "#fb8c00",
-    colorscalerange: "0,5", min: 0, max: 5, palette: PAL_HOTSPOT,
+    colorscalerange: "0,5", min: 0, max: 5, palette: PAL_HOTSPOT, ncStyle: "boxfill/reds",
     desc: "NOAA Coral Reef Watch Coral Bleaching HotSpot - SST above the local Maximum Monthly Mean (MMM) climatology. HotSpot values of 1 deg C or more mark water hot enough to start accumulating coral heat stress; HotSpots are integrated over 12 weeks to produce Degree Heating Weeks.",
   },
   {
     id: "CRW_DHW", label: "Degree Heating Weeks", short: "DHW",
     unit: "deg C-weeks", color: "#FF6600",
-    colorscalerange: "0,16", min: 0, max: 16, palette: PAL_DHW,
+    colorscalerange: "0,16", min: 0, max: 16, palette: PAL_DHW, ncStyle: "boxfill/ylorbr",
     desc: "NOAA Coral Reef Watch Degree Heating Weeks - accumulated thermal stress above the local bleaching threshold over a rolling 12-week window. DHW > 4 = significant bleaching risk; DHW > 8 = widespread bleaching and mortality risk. Three time windows snapshot the same field at different lookback intervals so the latest week can be compared with a month ago and a year ago.",
   },
   {
     id: "CRW_BAA", label: "Bleaching Alert Area", short: "Alert Area",
     unit: "alert level", color: "#ff0000",
-    colorscalerange: "0,4", min: 0, max: 4, palette: PAL_BAA, discrete: true,
+    colorscalerange: "0,4", min: 0, max: 4, palette: PAL_BAA, ncStyle: "boxfill/rainbow", discrete: true,
     ticks: ["No Stress", "Watch", "Warning", "Alert 1", "Alert 2"],
     desc: "NOAA Coral Reef Watch Bleaching Alert Area - the headline 5-level thermal-stress nomenclature: No Stress, Bleaching Watch, Bleaching Warning, Alert Level 1 (significant bleaching likely) and Alert Level 2 (severe bleaching and mortality likely). Levels combine HotSpot and DHW thresholds into a single reef-management alert.",
   },
@@ -123,7 +126,7 @@ export const CDHW_WINDOWS: { id: CdhwWindow; label: string; sub: string; days: n
   { id: "monthly", label: "Monthly", sub: "~30 days ago", days: 30  },
   { id: "yearly",  label: "Yearly",  sub: "~1 year ago",  days: 365 },
 ];
-// Convert a CDHW window to the YYYY-MM-DD ERDDAP needs. Each offset matches
+// Convert a CDHW window to the YYYY-MM-DD the WMS needs. Each offset matches
 // its labelled lookback (7 days, 30 days, 365 days). All three sit safely
 // past the ~2-day CRW publish lag (release ~13:30 ET).
 export function cdhwWindowDate(w: CdhwWindow): string {
@@ -132,7 +135,7 @@ export function cdhwWindowDate(w: CdhwWindow): string {
   d.setUTCDate(d.getUTCDate() - cfg.days);
   return d.toISOString().slice(0, 10);
 }
-// Convert YYYY-MM-DD to the ISO timestamp ERDDAP WMS expects.
+// Convert YYYY-MM-DD to the ISO timestamp the ncWMS expects.
 function getCrwTime(dateStr: string): string {
   return dateStr + "T12:00:00Z";
 }
@@ -1532,24 +1535,24 @@ function ExpandedMapModal({
               const cfg = CRW_LAYERS.find(l => l.id === activeCrwLayer);
               return cfg && !cfg.externalUrl ? (
                 <WMSTileLayer
-                  key={`crw-expanded-${activeCrwLayer}-${cdhwWindow}-${crwDate}-${cfg.colorscalerange ?? ""}-${cfg.erddapPalette ?? ""}`}
+                  key={`crw-expanded-${activeCrwLayer}-${cdhwWindow}-${crwDate}-${cfg.colorscalerange ?? ""}-${cfg.ncStyle ?? ""}`}
                   url={CRW_WMS_BASE}
-                  layers={`${CRW_DATASET}:${activeCrwLayer}`}
+                  layers={activeCrwLayer}
                   format="image/png"
                   transparent={true}
                   opacity={crwOpacity}
                   version="1.3.0"
-                  crs={L.CRS.EPSG4326}
-                  styles=""
+                  crs={L.CRS.EPSG3857}
+                  styles={cfg.ncStyle ?? ""}
                   time={getCrwTime(crwDate)}
                   {...((cfg.colorscalerange ? { colorscalerange: cfg.colorscalerange } : {}) as any)}
-                  {...((cfg.erddapPalette ? { palette: cfg.erddapPalette } : {}) as any)}
+                  {...((cfg.discrete && cfg.ticks ? { numcolorbands: cfg.ticks.length } : {}) as any)}
                   eventHandlers={{
                     loading: () => setCrwLoading(true),
                     load:    () => setCrwLoading(false),
                     tileerror: () => setCrwLoading(false),
                   }}
-                  attribution='<a href="https://coralreefwatch.noaa.gov" target="_blank" rel="noopener noreferrer">NOAA Coral Reef Watch v3.1</a> - PacIOOS ERDDAP'
+                  attribution='<a href="https://coralreefwatch.noaa.gov" target="_blank" rel="noopener noreferrer">NOAA Coral Reef Watch v3.1</a> - PacIOOS THREDDS ncWMS'
                 />
               ) : null;
             })()}
@@ -3125,7 +3128,7 @@ function ExpandedMapModal({
               );
             })()}
             <div style={{ fontSize: 7.5, color: "#d4e9f322", marginTop: 3, marginBottom: 4, lineHeight: 1.4 }}>
-              Data: NOAA Coral Reef Watch v3.1 thermal-stress suite (SST, SST Anomaly, HotSpot, DHW, Bleaching Alert Area) - CoralTemp 5km - ERDDAP dataset dhw_5km (PacIOOS) - CRS EPSG:4326 - WMS 1.3.0 - daily refresh ~13:30 ET
+              Data: NOAA Coral Reef Watch v3.1 thermal-stress suite (SST, SST Anomaly, HotSpot, DHW, Bleaching Alert Area) - CoralTemp 5km - ncWMS dataset dhw_5km (PacIOOS) - CRS EPSG:3857 - WMS 1.3.0 - daily refresh ~13:30 ET
             </div>
 
             {/* ── Community ── */}
@@ -3458,7 +3461,7 @@ function ExpandedMapModal({
 
           <SideSection title={t("reefMap.secNoaa")}>
             <div style={{ fontSize: 9.5, color: "#d4e9f3aa", lineHeight: 1.5, marginBottom: 8 }}>
-              NOAA Coral Reef Watch (CRW) provides the world's only global near-real-time coral bleaching thermal stress monitoring and outlook products. CRW v3.1 products are derived from <strong style={{ color: "#54a0ff" }}>CoralTemp</strong> - a daily 5 km blended multi-sensor SST satellite product - updated daily at ~13:30 ET. Tiles served via PacIOOS ERDDAP (<code style={{ color: "#83eef0", fontSize: 8 }}>dhw_5km</code>), 0.05 degree resolution, EPSG:4326, WMS 1.3.0.
+              NOAA Coral Reef Watch (CRW) provides the world's only global near-real-time coral bleaching thermal stress monitoring and outlook products. CRW v3.1 products are derived from <strong style={{ color: "#54a0ff" }}>CoralTemp</strong> - a daily 5 km blended multi-sensor SST satellite product - updated daily at ~13:30 ET. Tiles served via PacIOOS THREDDS ncWMS (<code style={{ color: "#83eef0", fontSize: 8 }}>dhw_5km</code>), 0.05 degree resolution, EPSG:3857, WMS 1.3.0.
             </div>
 
             {/* CRW layer legend */}
@@ -4023,24 +4026,24 @@ export function ReefMap({
             const cfg = CRW_LAYERS.find(l => l.id === activeCrwLayerC);
             return cfg && !cfg.externalUrl ? (
               <WMSTileLayer
-                key={`crw-compact-${activeCrwLayerC}-${cdhwWindowC}-${crwDateC}-${cfg.colorscalerange ?? ""}-${cfg.erddapPalette ?? ""}`}
+                key={`crw-compact-${activeCrwLayerC}-${cdhwWindowC}-${crwDateC}-${cfg.colorscalerange ?? ""}-${cfg.ncStyle ?? ""}`}
                 url={CRW_WMS_BASE}
-                layers={`${CRW_DATASET}:${activeCrwLayerC}`}
+                layers={activeCrwLayerC}
                 format="image/png"
                 transparent={true}
                 opacity={crwOpacityC}
                 version="1.3.0"
-                crs={L.CRS.EPSG4326}
-                styles=""
+                crs={L.CRS.EPSG3857}
+                styles={cfg.ncStyle ?? ""}
                 time={getCrwTime(crwDateC)}
                 {...((cfg.colorscalerange ? { colorscalerange: cfg.colorscalerange } : {}) as any)}
-                {...((cfg.erddapPalette ? { palette: cfg.erddapPalette } : {}) as any)}
+                {...((cfg.discrete && cfg.ticks ? { numcolorbands: cfg.ticks.length } : {}) as any)}
                 eventHandlers={{
                   loading: () => setCrwLoadingC(true),
                   load:    () => setCrwLoadingC(false),
                   tileerror: () => setCrwLoadingC(false),
                 }}
-                attribution='NOAA Coral Reef Watch v3.1 - PacIOOS ERDDAP'
+                attribution='NOAA Coral Reef Watch v3.1 - PacIOOS THREDDS ncWMS'
               />
             ) : null;
           })()}
