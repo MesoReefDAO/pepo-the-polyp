@@ -180,7 +180,6 @@ export function PublicProfile() {
   const rank = rankIndex >= 0 ? rankIndex + 1 : null;
   const badge = rank ? rankBadge(rank) : null;
   const questionCount = contributions.filter(c => c.type === "question").length;
-  const isOrcid = profileId.startsWith("orcid:");
 
   return (
     <div

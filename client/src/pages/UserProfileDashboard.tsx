@@ -1,6 +1,5 @@
 import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { Link, useSearch } from "wouter";
-import { PRIVY_ENABLED } from "@/lib/privy";
 import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
@@ -637,7 +636,7 @@ export function UserProfileDashboard() {
 
   // IPFS / Pinata
   const [ipfsCid, setIpfsCid] = useState<string | null>(null);
-  const [ipfsSynced, setIpfsSynced] = useState(false);
+  const [, setIpfsSynced] = useState(false);
 
   // The active profile ID - Privy user ID, or ORCID-prefixed ID for ORCID-only logins
   const activeProfileId = orcidAuthenticated && !privyAuthenticated
@@ -812,11 +811,6 @@ export function UserProfileDashboard() {
     setSelectedTags((prev) =>
       prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
     );
-  }
-
-  function handlePhotoChange(url: string) {
-    setProfileImage(url);
-    localStorage.setItem("pepo_profile_image", url);
   }
 
   function handleIPFSAvatarUpload(result: { cid: string; localUrl: string }) {

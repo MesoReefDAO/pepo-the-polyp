@@ -421,7 +421,6 @@ export const ReefInsightDashboardSection = (): JSX.Element => {
   const [scale, setScale] = useState(0.75);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const iframeWrapperRef = useRef<HTMLDivElement>(null);
-  const { t } = useTranslation();
 
   // Show hint overlay unless dismissed within the last 7 days
   const [showHint, setShowHint] = useState<boolean>(() => {

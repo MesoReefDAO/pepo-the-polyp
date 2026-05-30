@@ -4,8 +4,8 @@ import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { useOrcidAuth } from "@/hooks/use-orcid-auth";
 import {
   ArrowLeft, Vote, Plus, CheckCircle2, XCircle, Loader2, Users, BarChart2,
-  Calendar, ChevronDown, ChevronUp, AlertCircle, ExternalLink, Github,
-  CircleDot, CheckSquare, BarChart, Info, Search, TrendingUp, Activity,
+  Calendar, ChevronDown, AlertCircle, ExternalLink, Github,
+  CheckSquare, BarChart, Info, Search, TrendingUp, Activity,
   Clock, Hash, Shield, Zap, Eye, LayoutGrid, Globe,
 } from "lucide-react";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
@@ -125,10 +125,6 @@ function pct(results: string[][] | undefined, qi: number, ci: number): number {
 function strategyFromMeta(meta?: Record<string, any>): VotingStrategy {
   if (!meta) return "standard";
   return (meta.votingStrategy as VotingStrategy) || "standard";
-}
-function censorModeFromMeta(meta?: Record<string, any>): CensusMode {
-  if (!meta) return "open";
-  return (meta.censusMode as CensusMode) || "open";
 }
 
 const STRATEGY_META: Record<VotingStrategy, { label: string; color: string; bg: string; icon: any }> = {
@@ -989,7 +985,7 @@ function VoteModal({
 
 // ─── Create proposal modal ────────────────────────────────────────────────────
 function CreateModal({
-  onClose, orgAddress, onCreated,
+  onClose, onCreated,
 }: { onClose: () => void; orgAddress: string; onCreated: () => void }) {
   const { wallets } = useWallets();
   const [title, setTitle]       = useState("");

@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { usePrivy } from "@privy-io/react-auth";
 import { useOrcidAuth } from "@/hooks/use-orcid-auth";
-import { useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
 import pepoPng from "@assets/MesoReefDAO_Pepo_The_Polyp_1776218616437.png";
 
@@ -76,7 +75,6 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
 
   const { getAccessToken, authenticated: privyAuthenticated } = usePrivy();
   const { orcidAuthenticated } = useOrcidAuth();
-  const [, navigate] = useLocation();
 
   const stepId = STEP_IDS[stepIndex] as StepId;
 

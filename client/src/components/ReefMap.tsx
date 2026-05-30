@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "wouter";
 import { MapContainer, TileLayer, WMSTileLayer, Marker, Popup, GeoJSON, CircleMarker, Polyline, Polygon, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -65,60 +64,78 @@ interface CrwLayer {
   min?: number; max?: number;
   palette?: string[];
   ticks?: string[];
+  note?: string;               // NOAA-defined threshold annotation shown under the legend
   discrete?: boolean;          // render the legend as hard category bands
-  ncStyle?: string;            // ncWMS boxfill style applied to the tiles (e.g. "boxfill/rainbow")
+  kind?: "continuous" | "dhw" | "baa";   // how grey levels map back to palette colours
+  mode?: "single" | "trend";   // "trend" derives a 7-day SST slope client-side
+  sourceLayer?: string;         // ncWMS variable to fetch for trend (defaults to id)
+  csrMin?: number;              // value range of the fetched grey field (trend decode)
+  csrMax?: number;
+  ncStyle?: string;            // legacy ncWMS boxfill style (no longer used for tiles)
   externalUrl?: string;
   unavailable?: boolean;
 }
-// ── NOAA Coral Reef Watch palettes ───────────────────────────────────────────
-// IMPORTANT: the map tiles are painted server-side by the PacIOOS ncWMS using the
-// named boxfill palette in each layer's `ncStyle` (this server ignores custom/inline
-// palettes). To keep the in-app legend identical to what the map actually shows,
-// every PAL_* below is sampled (low -> high) directly from that server's
-// GetLegendGraphic colorbar for the exact boxfill palette the layer renders with.
-// Sea Surface Temperature - ncWMS `sst_36` (blue -> green -> yellow -> red).
-const PAL_SST = ["#0019a7","#0048c2","#0077dd","#07a7e8","#6ecc6e","#d0e203","#e0ba00","#ed9600","#fa6f00","#ff2700","#ca0000"];
-// SST Anomaly - ncWMS `redblue` diverging (blue -> white -> red about climatology).
-const PAL_SSTANOM = ["#1818ff","#4646ff","#7474ff","#a1a1ff","#cfcfff","#fdfdff","#ffd0d0","#ffa4a4","#ff7575","#ff4747","#ff1818"];
-// Coral Bleaching HotSpot - ncWMS `reds` (white -> deep red as stress builds).
-const PAL_HOTSPOT = ["#ffede5","#fedbcc","#fcc1a8","#fca588","#fc8666","#fb694a","#f24633","#dd2a25","#c3161b","#a81016","#7a0510"];
-// Degree Heating Weeks - ncWMS `ylorrd` (yellow -> orange -> red -> dark red).
-const PAL_DHW = ["#fff8bb","#ffea9b","#fedc7c","#fec45f","#fea747","#fd8c3c","#fc5d2e","#f03523","#db141e","#c00225","#930026"];
-// Bleaching Alert Area - ncWMS `ylorrd` banded into the 5 CRW alert levels
-// (No Stress -> Watch -> Warning -> Alert 1 -> Alert 2).
-const PAL_BAA = ["#ffffcc","#fed976","#fd8c3c","#e2191c","#800026"];
+// ── NOAA Coral Reef Watch palettes (exact official colours) ──────────────────
+// Each PAL_* below is sampled directly from NOAA Coral Reef Watch's own published
+// colour bars for the v3.1 products. Tiles are fetched from PacIOOS ncWMS with the
+// linear greyscale `boxfill/gray` palette and recoloured client-side through these
+// exact stops (see buildCrwLut), so the map matches NOAA pixel-for-pixel.
+// Sea Surface Temperature (CoralTemp), -2..35 degC, continuous (NOAA CRW SST chart range).
+const PAL_SST = ["#320014","#5a0014","#520048","#66005c","#7e0074","#280096","#3d1da3","#573fb5","#00006c","#000ae6","#0034ff","#005aff","#0097ff","#00c3ff","#00edff","#00e300","#00c100","#00a400","#e6d700","#e6a500","#e67600","#d73200","#b90500","#7d0000","#ab572b","#864722","#5c3017","#32190c"];
+// SST Anomaly, -5..5 degC diverging, pure white at zero (index 13).
+const PAL_SSTANOM = ["#28000a","#57004d","#730069","#8a0080","#3714a0","#553cb4","#00009d","#0010b9","#0020d5","#004aff","#0066ff","#00a5ff","#00cdff","#ffffff","#f1f500","#f7e600","#ffd200","#f0b400","#f0a000","#fd7800","#f56400","#ed5000","#f32400","#e30c00","#a02000","#911400","#7d0400","#3c0000"];
+// Coral Bleaching HotSpot, 0..5 degC, continuous.
+const PAL_HOTSPOT = ["#c8fafa","#7d5fff","#9b7dff","#edff00","#f3e700","#fbb500","#ff8700","#f97800","#f15500","#ff3200","#eb1e00","#d20a00","#a52000","#961400","#780800","#3c0000"];
+// Degree Heating Weeks, 0..20 degC-weeks, hard-binned per integer (21 NOAA bands).
+const PAL_DHW = ["#c8fafa","#463278","#645096","#826eb4","#a08cd2","#ffff00","#ffdc00","#ffb900","#ff9600","#ff0000","#d20000","#a00000","#6e0000","#e67d46","#b45a28","#7d3c1e","#552d14","#f000f0","#c800c8","#a000a0","#780078"];
+// Bleaching Alert Area, 5 CRW alert levels (No Stress -> Watch -> Warning -> Alert 1 -> Alert 2).
+const PAL_BAA = ["#c8fafa","#fff000","#faaa0a","#f00000","#960000"];
+// SST Trend (7-day), -3..+3 degC/week diverging, green at zero (index 6).
+const PAL_TREND = ["#640064","#6400fa","#0050ff","#0078ff","#00beff","#00ffff","#0ba062","#ffff00","#ffbe00","#ff5000","#dc0000","#960000","#640000"];
 
 const CRW_LAYERS: CrwLayer[] = [
   {
     id: "CRW_SST", label: "Sea Surface Temp.", short: "SST",
     unit: "deg C", color: "#00c4ff",
-    colorscalerange: "0,35", min: 0, max: 35, palette: PAL_SST, ncStyle: "boxfill/sst_36",
+    colorscalerange: "-2,35", min: -2, max: 35, palette: PAL_SST, kind: "continuous", mode: "single",
     desc: "NOAA Coral Reef Watch Sea Surface Temperature (CoralTemp) - the daily global 5km SST analysis that underpins every CRW thermal-stress product. The same field is differenced against the long-term climatology to derive the SST Anomaly, HotSpot, DHW and Bleaching Alert Area layers below.",
   },
   {
     id: "CRW_SSTANOMALY", label: "SST Anomaly", short: "SSTA",
     unit: "deg C", color: "#d6604d",
-    colorscalerange: "-5,5", min: -5, max: 5, palette: PAL_SSTANOM, ncStyle: "boxfill/redblue",
+    colorscalerange: "-5,5", min: -5, max: 5, palette: PAL_SSTANOM, kind: "continuous", mode: "single",
+    note: "0 \u00b0C = long-term climatological mean; red = warmer than normal",
     desc: "NOAA Coral Reef Watch SST Anomaly - the difference between today's SST and the long-term climatological mean for the same date. Positive (red) anomalies indicate warmer-than-normal water; sustained positive anomalies over reefs are the precursor to accumulated bleaching-level heat stress.",
   },
   {
     id: "CRW_HOTSPOT", label: "Coral Bleaching HotSpot", short: "HotSpot",
     unit: "deg C", color: "#fb8c00",
-    colorscalerange: "0,5", min: 0, max: 5, palette: PAL_HOTSPOT, ncStyle: "boxfill/reds",
+    colorscalerange: "0,5", min: 0, max: 5, palette: PAL_HOTSPOT, kind: "continuous", mode: "single",
+    note: "Heat stress begins at \u22651 \u00b0C above the Maximum Monthly Mean",
     desc: "NOAA Coral Reef Watch Coral Bleaching HotSpot - SST above the local Maximum Monthly Mean (MMM) climatology. HotSpot values of 1 deg C or more mark water hot enough to start accumulating coral heat stress; HotSpots are integrated over 12 weeks to produce Degree Heating Weeks.",
   },
   {
     id: "CRW_DHW", label: "Degree Heating Weeks", short: "DHW",
     unit: "deg C-weeks", color: "#FF6600",
-    colorscalerange: "0,16", min: 0, max: 16, palette: PAL_DHW, ncStyle: "boxfill/ylorrd",
+    colorscalerange: "0,20", min: 0, max: 20, palette: PAL_DHW, kind: "dhw", mode: "single", discrete: true,
+    note: "\u22654 = bleaching likely  \u00b7  \u22658 = widespread bleaching & mortality likely",
     desc: "NOAA Coral Reef Watch Degree Heating Weeks - accumulated thermal stress above the local bleaching threshold over a rolling 12-week window. DHW > 4 = significant bleaching risk; DHW > 8 = widespread bleaching and mortality risk. Three time windows snapshot the same field at different lookback intervals so the latest week can be compared with a month ago and a year ago.",
   },
   {
     id: "CRW_BAA", label: "Bleaching Alert Area", short: "Alert Area",
     unit: "alert level", color: "#ff0000",
-    colorscalerange: "0,4", min: 0, max: 4, palette: PAL_BAA, ncStyle: "boxfill/ylorrd", discrete: true,
+    colorscalerange: "0,4", min: 0, max: 4, palette: PAL_BAA, kind: "baa", mode: "single", discrete: true,
     ticks: ["No Stress", "Watch", "Warning", "Alert 1", "Alert 2"],
+    note: "Watch: HotSpot >0  \u00b7  Warning: DHW <4  \u00b7  Alert 1: DHW \u22654  \u00b7  Alert 2: DHW \u22658",
     desc: "NOAA Coral Reef Watch Bleaching Alert Area - the headline 5-level thermal-stress nomenclature: No Stress, Bleaching Watch, Bleaching Warning, Alert Level 1 (significant bleaching likely) and Alert Level 2 (severe bleaching and mortality likely). Levels combine HotSpot and DHW thresholds into a single reef-management alert.",
+  },
+  {
+    id: "CRW_SSTTREND", label: "SST Trend (7-day)", short: "SST Trend",
+    unit: "deg C/week", color: "#0ba062",
+    colorscalerange: "-5,5", csrMin: -5, csrMax: 5, min: -3, max: 3,
+    palette: PAL_TREND, kind: "continuous", mode: "trend", sourceLayer: "CRW_SSTANOMALY",
+    note: "Green \u2248 0 = no change  \u00b7  warm = rapid warming  \u00b7  cool = rapid cooling",
+    desc: "NOAA Coral Reef Watch SST Trend (7-day) - the rate and direction of sea-surface-temperature change over the most recent 7 days, derived as the linear-regression slope of daily CoralTemp SST in deg C per week. Green marks little change; warm colours mark rapid warming and cool colours rapid cooling, highlighting where thermal stress is building or easing.",
   },
 ];
 
@@ -140,10 +157,6 @@ export function cdhwWindowDate(w: CdhwWindow): string {
   d.setUTCDate(d.getUTCDate() - cfg.days);
   return d.toISOString().slice(0, 10);
 }
-// Convert YYYY-MM-DD to the ISO timestamp the ncWMS expects.
-function getCrwTime(dateStr: string): string {
-  return dateStr + "T12:00:00Z";
-}
 
 // Builds a CSS linear-gradient from a palette array. Discrete=true renders
 // hard color stops (categorical) instead of a smooth ramp.
@@ -153,6 +166,313 @@ function paletteGradient(palette: string[], discrete = false): string {
   const step = 100 / palette.length;
   const stops = palette.map((c, i) => `${c} ${i * step}%, ${c} ${(i + 1) * step}%`).join(",");
   return `linear-gradient(to right, ${stops})`;
+}
+
+// ── NOAA-exact client-side recolour pipeline ─────────────────────────────────
+// PacIOOS ncWMS only paints with its own named boxfill palettes, so to render NOAA
+// Coral Reef Watch's *exact* colours we request each layer with the linear
+// greyscale `boxfill/gray` palette (value -> grey, CORS `*`, served in EPSG:3857 so
+// tiles align perfectly) and map every grey level back to NOAA's published colour
+// with a per-layer lookup table. SST Trend (7-day) has no gridded WMS/ERDDAP source,
+// so it is derived exactly as NOAA defines it - the linear-regression slope of the 7
+// most recent daily SST fields (degC/week). We regress CRW_SSTANOMALY rather than
+// CRW_SST: its -5..5 range gives 4x finer 8-bit resolution and d(anomaly)/dt equals
+// d(SST)/dt over a 7-day window (climatology is ~constant), keeping it faithful.
+function hexToRgb(h: string): [number, number, number] {
+  const n = parseInt(h.slice(1), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+function buildCrwLut(cfg: CrwLayer): [number, number, number][] {
+  const pal = (cfg.palette ?? []).map(hexToRgb);
+  const N = pal.length;
+  const lut: [number, number, number][] = new Array(256);
+  const kind = cfg.kind ?? "continuous";
+  const mn = cfg.min ?? 0, mx = cfg.max ?? 1;
+  for (let g = 0; g < 256; g++) {
+    if (N === 0) { lut[g] = [0, 0, 0]; continue; }
+    if (kind === "dhw") {
+      let i = Math.floor((g / 255) * (mx - mn) + mn);
+      i = i < 0 ? 0 : i > N - 1 ? N - 1 : i;
+      lut[g] = pal[i];
+    } else if (kind === "baa") {
+      let i = Math.round((g / 255) * (mx - mn) + mn);
+      i = i < 0 ? 0 : i > N - 1 ? N - 1 : i;
+      lut[g] = pal[i];
+    } else {
+      const t = (g / 255) * (N - 1);
+      const i = Math.floor(t), f = t - i;
+      const a = pal[i], b = pal[Math.min(i + 1, N - 1)];
+      lut[g] = [
+        Math.round(a[0] + (b[0] - a[0]) * f),
+        Math.round(a[1] + (b[1] - a[1]) * f),
+        Math.round(a[2] + (b[2] - a[2]) * f),
+      ];
+    }
+  }
+  return lut;
+}
+function crwIso(dateStr: string): string { return dateStr + "T12:00:00.000Z"; }
+function crwTrendTimes(dateStr: string, n: number): string[] {
+  const out: string[] = [];
+  const base = new Date(dateStr + "T12:00:00Z");
+  for (let k = n - 1; k >= 0; k--) {
+    const d = new Date(base.getTime());
+    d.setUTCDate(d.getUTCDate() - k);
+    out.push(crwIso(d.toISOString().slice(0, 10)));
+  }
+  return out;
+}
+// Bounded in-memory cache of fetched greyscale trend tiles, keyed by request
+// URL (which encodes tile bbox + layer + date + size). Re-panning back to a
+// previously viewed area reuses these instead of re-downloading the ~7 daily
+// tiles per map tile. Oldest entries are evicted once the cap is reached.
+const CRW_GRAY_CACHE_MAX = 600;
+const crwGrayCache = new Map<string, Uint8ClampedArray>();
+const crwGrayCacheGet = (key: string): Uint8ClampedArray | undefined => {
+  const v = crwGrayCache.get(key);
+  if (v !== undefined) {
+    // Refresh recency (move to newest) for a simple LRU eviction order.
+    crwGrayCache.delete(key);
+    crwGrayCache.set(key, v);
+  }
+  return v;
+};
+const crwGrayCacheSet = (key: string, val: Uint8ClampedArray) => {
+  if (crwGrayCache.has(key)) crwGrayCache.delete(key);
+  crwGrayCache.set(key, val);
+  while (crwGrayCache.size > CRW_GRAY_CACHE_MAX) {
+    const oldest = crwGrayCache.keys().next().value;
+    if (oldest === undefined) break;
+    crwGrayCache.delete(oldest);
+  }
+};
+
+// Concurrency limiter for greyscale trend tile downloads. On a wide zoom-out
+// every visible map tile fans out into up to 7 daily image fetches, which can
+// burst into dozens of simultaneous requests and stall slow connections. This
+// caps how many uncached greyscale requests run at once; the rest queue and
+// start as earlier ones finish. Cache hits bypass the queue entirely.
+const CRW_GRAY_MAX_CONCURRENCY = 6;
+let crwGrayActive = 0;
+const crwGrayQueue: Array<() => void> = [];
+const crwGrayRelease = () => {
+  crwGrayActive--;
+  const next = crwGrayQueue.shift();
+  if (next) { crwGrayActive++; next(); }
+};
+// Acquire a download slot, honouring an AbortSignal. If the signal fires while
+// the request is still queued (tile panned off-screen before it ever started),
+// the entry removes itself from the queue and rejects, so it never consumes a
+// slot that a newly-visible tile could use. A slot is only held once the
+// returned promise resolves.
+const crwGrayAcquire = (signal: AbortSignal): Promise<void> =>
+  new Promise<void>((resolve, reject) => {
+    if (signal.aborted) {
+      reject(new DOMException("aborted", "AbortError"));
+      return;
+    }
+    if (crwGrayActive < CRW_GRAY_MAX_CONCURRENCY) {
+      crwGrayActive++;
+      resolve();
+      return;
+    }
+    // crwGrayRelease increments crwGrayActive before invoking the queued
+    // callback, so the entry must only resolve (no second increment), or the
+    // active count would drift upward and eventually stall all downloads.
+    const entry = () => { resolve(); };
+    crwGrayQueue.push(entry);
+    signal.addEventListener("abort", () => {
+      const idx = crwGrayQueue.indexOf(entry);
+      if (idx !== -1) crwGrayQueue.splice(idx, 1);
+      reject(new DOMException("aborted", "AbortError"));
+    }, { once: true });
+  });
+
+const CrwRecolorGridLayer = (L as any).GridLayer.extend({
+  createTile(this: any, coords: any, done: (err: any, tile: HTMLCanvasElement) => void) {
+    const o = this.options;
+    const size = this.getTileSize();
+    const tile = document.createElement("canvas");
+    tile.width = size.x; tile.height = size.y;
+    const ctx = tile.getContext("2d")!;
+    const tb = this._tileCoordsToBounds(coords);
+    const crs = this._map.options.crs;
+    const nw = crs.project(tb.getNorthWest());
+    const se = crs.project(tb.getSouthEast());
+    const bbox = `${nw.x},${se.y},${se.x},${nw.y}`;
+    const mk = (layer: string, time: string) =>
+      `${CRW_WMS_BASE}?SERVICE=WMS&REQUEST=GetMap&VERSION=1.3.0&LAYERS=${layer}` +
+      `&STYLES=boxfill/gray&CRS=EPSG:3857&BBOX=${bbox}&WIDTH=${size.x}&HEIGHT=${size.y}` +
+      `&FORMAT=image/png&TRANSPARENT=true&COLORSCALERANGE=${o.csr}&NUMCOLORBANDS=250` +
+      `&BELOWMINCOLOR=extend&ABOVEMAXCOLOR=extend&TIME=${encodeURIComponent(time)}`;
+    const loadGray = (url: string, signal: AbortSignal) => new Promise<Uint8ClampedArray>((resolve, reject) => {
+      const cached = crwGrayCacheGet(url);
+      if (cached !== undefined) { resolve(cached); return; }
+      crwGrayAcquire(signal).then(() => {
+        // Slot acquired but the tile may have scrolled off while we waited.
+        if (signal.aborted) {
+          crwGrayRelease();
+          reject(new DOMException("aborted", "AbortError"));
+          return;
+        }
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        let settled = false;
+        const onAbort = () => {
+          if (settled) return;
+          settled = true;
+          img.src = "";          // abort the in-flight network request
+          crwGrayRelease();
+          reject(new DOMException("aborted", "AbortError"));
+        };
+        signal.addEventListener("abort", onAbort, { once: true });
+        img.onload = () => {
+          if (settled) return;
+          settled = true;
+          signal.removeEventListener("abort", onAbort);
+          crwGrayRelease();
+          try {
+            const c = document.createElement("canvas");
+            c.width = size.x; c.height = size.y;
+            const cc = c.getContext("2d")!;
+            cc.drawImage(img, 0, 0, size.x, size.y);
+            const data = cc.getImageData(0, 0, size.x, size.y).data;
+            crwGrayCacheSet(url, data);
+            resolve(data);
+          } catch (e) {
+            reject(e);
+          }
+        };
+        img.onerror = (e) => {
+          if (settled) return;
+          settled = true;
+          signal.removeEventListener("abort", onAbort);
+          crwGrayRelease();
+          reject(e);
+        };
+        img.src = url;
+      }).catch(reject);   // acquire rejected (aborted while queued); no slot held
+    });
+    const lut = o.lut as [number, number, number][];
+    if (o.mode === "trend") {
+      const key = this._tileCoordsToKey(coords);
+      if (!this._grayAborts) this._grayAborts = {};
+      this._grayAborts[key]?.abort();
+      const controller = new AbortController();
+      this._grayAborts[key] = controller;
+      const signal = controller.signal;
+      const cleanup = () => {
+        if (this._grayAborts[key] === controller) delete this._grayAborts[key];
+      };
+      Promise.all((o.trendTimes as string[]).map((t) => loadGray(mk(o.sourceLayer, t), signal)))
+        .then((grids) => {
+          const n = grids.length;
+          const xb = (n - 1) / 2;
+          let den = 0;
+          for (let k = 0; k < n; k++) den += (k - xb) * (k - xb);
+          const out = ctx.createImageData(size.x, size.y);
+          const od = out.data;
+          const mn = o.csrMin, mx = o.csrMax, dmn = o.dispMin, dmx = o.dispMax;
+          const total = size.x * size.y;
+          const ys = new Array(n);
+          for (let p = 0, i = 0; p < total; p++, i += 4) {
+            let ok = true, yb = 0;
+            for (let k = 0; k < n; k++) {
+              const g = grids[k];
+              if (g[i + 3] === 0) { ok = false; break; }
+              const y = mn + (g[i] / 255) * (mx - mn);
+              ys[k] = y; yb += y;
+            }
+            if (!ok) { od[i + 3] = 0; continue; }
+            yb /= n;
+            let num = 0;
+            for (let k = 0; k < n; k++) num += (k - xb) * (ys[k] - yb);
+            const slope = (num / den) * 7;
+            let frac = (slope - dmn) / (dmx - dmn);
+            frac = frac < 0 ? 0 : frac > 1 ? 1 : frac;
+            const c = lut[Math.round(frac * 255)];
+            od[i] = c[0]; od[i + 1] = c[1]; od[i + 2] = c[2]; od[i + 3] = 255;
+          }
+          ctx.putImageData(out, 0, 0);
+          cleanup();
+          done(null, tile);
+        })
+        .catch((e) => { cleanup(); done(e, tile); });
+    } else {
+      const key = this._tileCoordsToKey(coords);
+      if (!this._grayAborts) this._grayAborts = {};
+      this._grayAborts[key]?.abort();
+      const controller = new AbortController();
+      this._grayAborts[key] = controller;
+      const signal = controller.signal;
+      const cleanup = () => {
+        if (this._grayAborts[key] === controller) delete this._grayAborts[key];
+      };
+      // Reuse the URL-keyed greyscale cache (via loadGray) so re-panning back to
+      // an already-viewed area recolours from cached pixels instead of re-downloading.
+      loadGray(mk(o.layerId, o.time), signal)
+        .then((src) => {
+          const out = ctx.createImageData(size.x, size.y);
+          const d = out.data;
+          for (let i = 0; i < d.length; i += 4) {
+            if (src[i + 3] === 0) { d[i + 3] = 0; continue; }
+            const c = lut[src[i]];
+            d[i] = c[0]; d[i + 1] = c[1]; d[i + 2] = c[2]; d[i + 3] = src[i + 3];
+          }
+          ctx.putImageData(out, 0, 0);
+          cleanup();
+          done(null, tile);
+        })
+        .catch((e) => { cleanup(); done(e, tile); });
+    }
+    return tile;
+  },
+  // Leaflet prunes tiles that scroll off-screen via _removeTile. Abort any
+  // still-queued or in-flight greyscale fetches for that tile so they stop
+  // wasting bandwidth and free download slots for newly-visible tiles.
+  _removeTile(this: any, key: string) {
+    const ctrl = this._grayAborts && this._grayAborts[key];
+    if (ctrl) {
+      ctrl.abort();
+      delete this._grayAborts[key];
+    }
+    return (L as any).GridLayer.prototype._removeTile.call(this, key);
+  },
+});
+function CrwRecolorLayer({ cfg, dateStr, opacity, onLoading }: {
+  cfg: CrwLayer; dateStr: string; opacity: number; onLoading?: (b: boolean) => void;
+}) {
+  const map = useMap();
+  const ref = useRef<any>(null);
+  useEffect(() => {
+    const isTrend = cfg.mode === "trend";
+    const layer = new CrwRecolorGridLayer({
+      lut: buildCrwLut(cfg),
+      mode: isTrend ? "trend" : "single",
+      layerId: cfg.id,
+      sourceLayer: cfg.sourceLayer ?? cfg.id,
+      time: crwIso(dateStr),
+      trendTimes: isTrend ? crwTrendTimes(dateStr, 7) : undefined,
+      csr: cfg.colorscalerange ?? "",
+      csrMin: cfg.csrMin ?? cfg.min ?? 0,
+      csrMax: cfg.csrMax ?? cfg.max ?? 1,
+      dispMin: cfg.min ?? 0,
+      dispMax: cfg.max ?? 1,
+      opacity,
+      tileSize: 256,
+      attribution: '<a href="https://coralreefwatch.noaa.gov" target="_blank" rel="noopener noreferrer">NOAA Coral Reef Watch v3.1</a> - PacIOOS THREDDS ncWMS (recoloured client-side to NOAA palettes)',
+    });
+    if (onLoading) {
+      layer.on("loading", () => onLoading(true));
+      layer.on("load", () => onLoading(false));
+      layer.on("tileerror", () => onLoading(false));
+    }
+    layer.addTo(map);
+    ref.current = layer;
+    return () => { map.removeLayer(layer); ref.current = null; };
+  }, [map, cfg.id, dateStr]);
+  useEffect(() => { if (ref.current) ref.current.setOpacity(opacity); }, [opacity]);
+  return null;
 }
 
 // ─── GCRMN 2026 benthos monitoring sites ─────────────────────────────────────
@@ -335,21 +655,6 @@ function GcrmnSitePopup({ site }: { site: GcrmnSite }) {
   );
 }
 
-// ─── Custom coral-teal member pin ─────────────────────────────────────────────
-function makePin() {
-  return L.divIcon({
-    className: "",
-    iconSize: [22, 22],
-    iconAnchor: [11, 11],
-    popupAnchor: [0, -14],
-    html: `<div style="
-      width:22px;height:22px;border-radius:50%;
-      background:#83eef0;
-      border:2.5px solid #83eef0;
-      box-shadow:0 0 6px #83eef088, 0 2px 6px #00000055;
-    "></div>`,
-  });
-}
 
 // ─── Reef image pin - amber square with camera icon ───────────────────────────
 function makeImagePin() {
@@ -551,91 +856,6 @@ function ReefImagePopup({ img }: { img: ReefImageMarker }) {
   );
 }
 
-// ─── WDPA GetFeatureInfo click handler (wdpar data pipeline in the browser) ──
-// Calls Protected Planet WMS GetFeatureInfo on click to retrieve real WDPA
-// attributes: PA name, IUCN category, marine status, area, designation year.
-// Falls back silently if CORS is not configured on the WMS server.
-function WdparClickHandler({ active }: { active: boolean }) {
-  const map = useMap();
-
-  useMapEvents({
-    click: async (e) => {
-      if (!active) return;
-
-      const bounds  = map.getBounds();
-      const size    = map.getSize();
-      const point   = map.latLngToContainerPoint(e.latlng);
-
-      const bbox = [
-        bounds.getWest(), bounds.getSouth(),
-        bounds.getEast(), bounds.getNorth(),
-      ].join(",");
-
-      const params = new URLSearchParams({
-        SERVICE:      "WMS",
-        VERSION:      "1.1.1",
-        REQUEST:      "GetFeatureInfo",
-        LAYERS:       "wdpa:wdpa_marine_poly",
-        QUERY_LAYERS: "wdpa:wdpa_marine_poly",
-        INFO_FORMAT:  "application/json",
-        FEATURE_COUNT:"1",
-        X:            String(Math.round(point.x)),
-        Y:            String(Math.round(point.y)),
-        WIDTH:        String(size.x),
-        HEIGHT:       String(size.y),
-        BBOX:         bbox,
-        SRS:          "EPSG:4326",
-      });
-
-      try {
-        const res = await fetch(
-          `https://maps.protectedplanet.net/geoserver/wms?${params}`,
-          { signal: AbortSignal.timeout(6000) }
-        );
-        if (!res.ok) return;
-        const data = await res.json();
-        const features = data?.features;
-        if (!features?.length) return;
-
-        const p = features[0].properties ?? {};
-        const marineLabel =
-          p.MARINE === "2" ? "Wholly marine" :
-          p.MARINE === "1" ? "Partially marine" : String(p.MARINE ?? "");
-        const areaFmt = p.REP_AREA
-          ? `${Number(p.REP_AREA).toLocaleString()} km²` : "-";
-        const iucn   = p.IUCN_CAT || "-";
-        const name   = p.NAME || "Marine Protected Area";
-        const desig  = p.DESIG_ENG || p.DESIG || "-";
-        const yr     = p.STATUS_YR || "-";
-        const wdpaid = p.WDPAID || "-";
-
-        const html = `
-          <div style="font-family:Inter,sans-serif;font-size:11.5px;min-width:170px;max-width:240px;color:#d4e9f3">
-            <div style="font-weight:800;color:#00b894;font-size:12.5px;margin-bottom:5px;line-height:1.3">${name}</div>
-            <table style="border-collapse:collapse;width:100%">
-              <tr><td style="color:#888;padding:1px 6px 1px 0;font-size:10px">IUCN category</td><td style="font-weight:700;color:#55efc4">${iucn}</td></tr>
-              <tr><td style="color:#888;padding:1px 6px 1px 0;font-size:10px">Marine status</td><td>${marineLabel}</td></tr>
-              <tr><td style="color:#888;padding:1px 6px 1px 0;font-size:10px">Reported area</td><td>${areaFmt}</td></tr>
-              <tr><td style="color:#888;padding:1px 6px 1px 0;font-size:10px">Designation</td><td style="font-size:10px">${desig}</td></tr>
-              <tr><td style="color:#888;padding:1px 6px 1px 0;font-size:10px">Year</td><td>${yr}</td></tr>
-            </table>
-            <div style="margin-top:5px;font-size:8.5px;color:#666;border-top:1px solid rgba(131,238,240,0.12);padding-top:4px">
-              WDPA ID ${wdpaid} · Source: UNEP-WCMC &amp; IUCN (2026) · Protected Planet
-            </div>
-          </div>`;
-
-        L.popup({ maxWidth: 260, className: "wdpar-popup" })
-          .setLatLng(e.latlng)
-          .setContent(html)
-          .openOn(map);
-      } catch {
-        // CORS or network error - silent fail, WMS tiles continue to render
-      }
-    },
-  });
-
-  return null;
-}
 
 // ─── Corals of the World ecoregion click handler ─────────────────────────────
 // Calls the VLIZ GeoServer WMS GetFeatureInfo on click to name the Marine
@@ -988,13 +1208,6 @@ const DEPTH_LEVELS = [
   -318.127, -380.213, -453.938, -541.089, -643.567,
 ] as const;
 
-function depthLabel(m: number): string {
-  const a = Math.abs(m);
-  if (a < 2) return "Surface";
-  if (a < 10) return `${a.toFixed(1)} m`;
-  if (a < 1000) return `${Math.round(a)} m`;
-  return `${(a / 1000).toFixed(1)} km`;
-}
 
 // Return the first date for the timeline based on product group
 function liveTimelineMin(group: string): string {
@@ -1095,98 +1308,6 @@ function ReefVideoPopup({ vid }: { vid: ReefVideoMarker }) {
   );
 }
 
-// ── Coral Traits drill-in panel ──────────────────────────────────────────────
-// Opened when a Coral Traits map marker is clicked. Surfaces the actual
-// CoralTraits.org measurements recorded at that exact coordinate (species ->
-// trait -> value -> unit -> methodology), mirroring the /coral-traits section,
-// with deep links into it.
-type CtDetail = { lat: number; lon: number; location: string; obs: number; speciesCount: number; traitCount: number };
-type CtMeasRow = {
-  speciesName: string; traitName: string; traitCategory: string;
-  value: string; standardUnit: string; methodologyName: string;
-  valueType: string; locationName: string;
-};
-
-function CoralTraitLocationPanel({ detail, onClose }: { detail: CtDetail; onClose: () => void }) {
-  const { data, isLoading } = useQuery<CtMeasRow[]>({
-    queryKey: ["/api/coraltraits/measurements", { lat: detail.lat, lon: detail.lon }],
-    queryFn: async () => {
-      const r = await fetch(`/api/coraltraits/measurements?lat=${detail.lat}&lon=${detail.lon}&limit=1000`);
-      if (!r.ok) throw new Error("measurements fetch failed");
-      return r.json();
-    },
-    staleTime: 10 * 60 * 1000,
-  });
-
-  const groups = useMemo(() => {
-    const m = new Map<string, CtMeasRow[]>();
-    (data ?? []).forEach(row => {
-      const k = row.speciesName || "Unknown species";
-      const arr = m.get(k);
-      if (arr) arr.push(row); else m.set(k, [row]);
-    });
-    return Array.from(m.entries())
-      .map(([sp, rows]) => [sp, rows.slice().sort((a, b) => (a.traitName || "").localeCompare(b.traitName || ""))] as [string, CtMeasRow[]])
-      .sort((a, b) => a[0].localeCompare(b[0]));
-  }, [data]);
-
-  const capped = (data?.length ?? 0) >= 1000;
-
-  return (
-    <div data-testid="panel-coral-trait-location" style={{
-      position: "absolute", top: 0, right: 0, bottom: 0, width: "min(380px, 92vw)", zIndex: 1200,
-      background: "rgba(0,15,22,0.97)", borderLeft: "1px solid rgba(249,202,36,0.35)",
-      boxShadow: "-8px 0 32px rgba(0,0,0,0.45)", display: "flex", flexDirection: "column",
-      backdropFilter: "blur(6px)", fontFamily: "Inter,sans-serif",
-    }}>
-      <div style={{ padding: "14px 16px", borderBottom: "1px solid rgba(249,202,36,0.18)" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "#f9ca24" }}>🪸 Coral Traits · Location</div>
-            <div data-testid="text-ct-location-name" style={{ fontSize: 14, fontWeight: 700, color: "#fff", marginTop: 3, lineHeight: 1.3 }}>{detail.location}</div>
-            <div style={{ fontSize: 9.5, color: "#d4e9f366", marginTop: 2 }}>{detail.lat.toFixed(4)}, {detail.lon.toFixed(4)}</div>
-          </div>
-          <button data-testid="button-close-ct-panel" onClick={onClose} style={{ background: "rgba(249,202,36,0.1)", border: "1px solid rgba(249,202,36,0.25)", borderRadius: 7, color: "#f9ca24", cursor: "pointer", padding: "4px 7px", fontSize: 12, flexShrink: 0, lineHeight: 1 }}>✕</button>
-        </div>
-        <div style={{ display: "flex", gap: 12, marginTop: 8, flexWrap: "wrap" }}>
-          <span style={{ fontSize: 10.5, color: "#d4e9f3" }}><b style={{ color: "#ffd32a" }}>{detail.obs.toLocaleString()}</b> <span style={{ color: "#d4e9f366", fontSize: 9 }}>observations</span></span>
-          <span style={{ fontSize: 10.5, color: "#d4e9f3" }}><b style={{ color: "#ffd32a" }}>{detail.speciesCount}</b> <span style={{ color: "#d4e9f366", fontSize: 9 }}>species</span></span>
-          <span style={{ fontSize: 10.5, color: "#d4e9f3" }}><b style={{ color: "#ffd32a" }}>{detail.traitCount}</b> <span style={{ color: "#d4e9f366", fontSize: 9 }}>traits</span></span>
-        </div>
-      </div>
-      <div style={{ flex: 1, overflowY: "auto", padding: "8px 12px 16px" }}>
-        {isLoading && <div style={{ color: "#d4e9f366", fontSize: 11, padding: 12, textAlign: "center" }}>Loading measurements...</div>}
-        {!isLoading && groups.length === 0 && <div style={{ color: "#d4e9f366", fontSize: 11, padding: 12, textAlign: "center" }}>No measurements found at this location.</div>}
-        {groups.map(([sp, rows]) => (
-          <div key={sp} data-testid={`group-ct-species-${sp}`} style={{ marginBottom: 12 }}>
-            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8, position: "sticky", top: 0, background: "rgba(0,15,22,0.97)", padding: "4px 0", borderBottom: "1px solid rgba(249,202,36,0.12)" }}>
-              <Link href={`/coral-traits?species=${encodeURIComponent(sp)}`} data-testid={`link-ct-species-${sp}`} style={{ fontStyle: "italic", fontWeight: 700, fontSize: 12, color: "#f9ca24", textDecoration: "none" }}>{sp} ↗</Link>
-              <span style={{ fontSize: 8.5, color: "#d4e9f344", flexShrink: 0 }}>{rows.length} meas.</span>
-            </div>
-            {rows.map((m, i) => (
-              <div key={i} style={{ padding: "5px 0", borderBottom: "1px solid rgba(131,238,240,0.06)" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-                  <span style={{ fontSize: 10.5, color: "#d4e9f3", fontWeight: 600 }}>{m.traitName}</span>
-                  <span style={{ fontSize: 10.5, color: "#ffd32a", fontWeight: 700, textAlign: "right", flexShrink: 0 }}>{m.value}{m.standardUnit ? <span style={{ color: "#d4e9f355", fontWeight: 400, fontSize: 8.5 }}> {m.standardUnit}</span> : null}</span>
-                </div>
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 1 }}>
-                  {m.traitCategory && <span style={{ fontSize: 8, color: "#f9ca2499", border: "1px solid rgba(249,202,36,0.2)", borderRadius: 4, padding: "0 4px" }}>{m.traitCategory}</span>}
-                  {m.valueType && <span style={{ fontSize: 8, color: "#d4e9f344" }}>{m.valueType}</span>}
-                </div>
-                {m.methodologyName && <div style={{ fontSize: 8.5, color: "#d4e9f344", fontStyle: "italic", marginTop: 1, lineHeight: 1.3 }}>{m.methodologyName}</div>}
-              </div>
-            ))}
-          </div>
-        ))}
-        {capped && <div style={{ fontSize: 9, color: "#d4e9f344", textAlign: "center", padding: 8 }}>Showing first 1,000 measurements.</div>}
-        <div style={{ textAlign: "center", marginTop: 10 }}>
-          <Link href="/coral-traits" data-testid="link-ct-full-section" style={{ fontSize: 10, color: "#f9ca24", textDecoration: "none", fontWeight: 600 }}>Open full Coral Traits section ↗</Link>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function ExpandedMapModal({
   markers,
   reefImgs,
@@ -1213,9 +1334,7 @@ function ExpandedMapModal({
   const [showReefCheck,      setShowReefCheck]      = useState(false);
   const [showReefLife,       setShowReefLife]        = useState(false);
   const [showGcrmnMonSites,  setShowGcrmnMonSites]  = useState(false);
-  const [showCoralTraits,    setShowCoralTraits]    = useState(false);
   const [showCotwEcoregions, setShowCotwEcoregions] = useState(false);
-  const [ctDetail,           setCtDetail]           = useState<CtDetail | null>(null);
   const [activeCrwLayer,     setActiveCrwLayer]     = useState<string | null>(null);
   const [crwLoading,         setCrwLoading]         = useState(false);
   const [cdhwWindow,         setCdhwWindow]         = useState<CdhwWindow>("7d");
@@ -1242,7 +1361,7 @@ function ExpandedMapModal({
     const d = new Date(); d.setDate(d.getDate() - 3);
     return d.toISOString().slice(0, 10) + "T00:00:00Z";
   });
-  const [liveDepthIdx,     setLiveDepthIdx]     = useState<number>(0);
+  const [, setLiveDepthIdx] = useState<number>(0);
   const [liveDepthM,       setLiveDepthM]       = useState<number>(0);
   const [liveDragging,     setLiveDragging]     = useState<false | "time" | "depth">(false);
   const [isPlaying,        setIsPlaying]        = useState(false);
@@ -1351,12 +1470,6 @@ function ExpandedMapModal({
     staleTime: 24 * 60 * 60 * 1000,
     enabled: showGcrmnMonSites,
   });
-  const { data: coralTraitsGeoJson } = useQuery<GeoJSON.FeatureCollection>({
-    queryKey: ["/api/coral-traits"],
-    staleTime: 24 * 60 * 60 * 1000,
-    enabled: showCoralTraits,
-  });
-
   const activeCmsLayer = activeCmsVar
     ? CMS_LAYERS.find(l => l.var === activeCmsVar) ?? null
     : null;
@@ -1404,7 +1517,7 @@ function ExpandedMapModal({
     setLiveDepthIdx(Math.round(nearest / 5500 * (DEPTH_LEVELS.length - 1)));
   };
 
-  const activeLayers = (showGcrmn ? 1 : 0) + (showCoralMapping ? 1 : 0) + (showMarineRegions ? 1 : 0) + (showImgs ? 1 : 0) + (showVideos ? 1 : 0) + (showGcrmnSites ? 1 : 0) + (showWcsReefCloud ? 1 : 0) + (showWcsCcSites ? 1 : 0) + (showReefCheck ? 1 : 0) + (showReefLife ? 1 : 0) + (showGcrmnMonSites ? 1 : 0) + (showCoralTraits ? 1 : 0) + (showCotwEcoregions ? 1 : 0) + (activeCrwLayer ? 1 : 0) + (activeCmsVar ? 1 : 0) + (activeLiveVar ? 1 : 0) + 1;
+  const activeLayers = (showGcrmn ? 1 : 0) + (showCoralMapping ? 1 : 0) + (showMarineRegions ? 1 : 0) + (showImgs ? 1 : 0) + (showVideos ? 1 : 0) + (showGcrmnSites ? 1 : 0) + (showWcsReefCloud ? 1 : 0) + (showWcsCcSites ? 1 : 0) + (showReefCheck ? 1 : 0) + (showReefLife ? 1 : 0) + (showGcrmnMonSites ? 1 : 0) + (showCotwEcoregions ? 1 : 0) + (activeCrwLayer ? 1 : 0) + (activeCmsVar ? 1 : 0) + (activeLiveVar ? 1 : 0) + 1;
 
   // Country breakdown for GCRMN legend - derived from live GeoJSON
   const gcrmnCountryStats = useMemo(() => {
@@ -1539,25 +1652,12 @@ function ExpandedMapModal({
             {activeCrwLayer && (() => {
               const cfg = CRW_LAYERS.find(l => l.id === activeCrwLayer);
               return cfg && !cfg.externalUrl ? (
-                <WMSTileLayer
-                  key={`crw-expanded-${activeCrwLayer}-${cdhwWindow}-${crwDate}-${cfg.colorscalerange ?? ""}-${cfg.ncStyle ?? ""}`}
-                  url={CRW_WMS_BASE}
-                  layers={activeCrwLayer}
-                  format="image/png"
-                  transparent={true}
+                <CrwRecolorLayer
+                  key={`crw-expanded-${activeCrwLayer}-${crwDate}`}
+                  cfg={cfg}
+                  dateStr={crwDate}
                   opacity={crwOpacity}
-                  version="1.3.0"
-                  crs={L.CRS.EPSG3857}
-                  styles={cfg.ncStyle ?? ""}
-                  time={getCrwTime(crwDate)}
-                  {...((cfg.colorscalerange ? { colorscalerange: cfg.colorscalerange } : {}) as any)}
-                  {...((cfg.discrete && cfg.ticks ? { numcolorbands: cfg.ticks.length } : {}) as any)}
-                  eventHandlers={{
-                    loading: () => setCrwLoading(true),
-                    load:    () => setCrwLoading(false),
-                    tileerror: () => setCrwLoading(false),
-                  }}
-                  attribution='<a href="https://coralreefwatch.noaa.gov" target="_blank" rel="noopener noreferrer">NOAA Coral Reef Watch v3.1</a> - PacIOOS THREDDS ncWMS'
+                  onLoading={setCrwLoading}
                 />
               ) : null;
             })()}
@@ -1764,62 +1864,6 @@ function ExpandedMapModal({
                 }}
               />
             )}
-            {showCoralTraits && coralTraitsGeoJson && (
-              <GeoJSON
-                key="coral-traits-expanded"
-                data={coralTraitsGeoJson}
-                pointToLayer={(feature, latlng) => {
-                  const p = feature.properties ?? {};
-                  if (p.aggregated) {
-                    const obs = Number(p.obs_count) || 0;
-                    const radius = Math.min(4 + Math.sqrt(obs) * 0.7, 16);
-                    const m = L.circleMarker(latlng, {
-                      radius, color: "#f9ca24", weight: 1.2,
-                      fillColor: "#f9ca24", fillOpacity: 0.5, opacity: 0.92,
-                    });
-                    const locName = p.location ? cotwEsc(p.location) : "Coral trait observations";
-                    m.bindTooltip(
-                      `<div style="font-family:Inter,sans-serif;font-size:10.5px;color:#d4e9f3;max-width:230px">
-                        <div style="font-weight:700;color:#f9ca24;margin-bottom:2px">🪸 ${locName}</div>
-                        <div style="color:#d4e9f399"><b style="color:#ffd32a">${obs.toLocaleString()}</b> obs · <b style="color:#ffd32a">${Number(p.species_count) || 0}</b> spp · <b style="color:#ffd32a">${Number(p.trait_count) || 0}</b> traits</div>
-                        <div style="color:#d4e9f355;font-size:8.5px;margin-top:2px">Click to explore measurements →</div>
-                      </div>`,
-                      { direction: "top", sticky: true, opacity: 1, className: "gcrmn-tooltip" }
-                    );
-                    m.on("click", () => setCtDetail({
-                      lat: latlng.lat, lon: latlng.lng,
-                      location: p.location || "Coral trait observations",
-                      obs, speciesCount: Number(p.species_count) || 0, traitCount: Number(p.trait_count) || 0,
-                    }));
-                    return m;
-                  }
-                  const m = L.circleMarker(latlng, {
-                    radius: 4, color: "#f9ca24", weight: 1.2,
-                    fillColor: "#f9ca24", fillOpacity: 0.72, opacity: 0.92,
-                  });
-                  const isGbif = (p.source || "").startsWith("gbif");
-                  const valueStr = p.value ? (p.unit ? `${cotwEsc(p.value)} <span style="color:#d4e9f344;font-size:8px">${cotwEsc(p.unit)}</span>` : cotwEsc(p.value)) : "";
-                  const doiHref = p.doi ? `https://doi.org/${encodeURIComponent(String(p.doi).replace(/^https?:\/\/doi\.org\//,""))}` : "";
-                  m.bindPopup(
-                    `<div style="font-family:Inter,sans-serif;font-size:11px;min-width:200px;max-width:260px;color:#d4e9f3">
-                      <div style="font-weight:700;color:#f9ca24;font-size:12px;margin-bottom:5px;line-height:1.3">🪸 ${p.species ? `<em style="font-style:italic">${cotwEsc(p.species)}</em>` : "Coral species"}</div>
-                      ${p.trait      ? `<div style="margin-bottom:3px"><span style="color:#d4e9f355;font-size:9px;text-transform:uppercase;letter-spacing:.05em">Trait</span><br/><span style="font-weight:600;color:#ffd32a">${cotwEsc(p.trait)}</span></div>` : ""}
-                      ${valueStr     ? `<div style="margin-bottom:3px"><span style="color:#d4e9f355;font-size:9px;text-transform:uppercase;letter-spacing:.05em">Value</span><br/>${valueStr}</div>` : ""}
-                      ${p.value_type ? `<div style="margin-bottom:3px"><span style="color:#d4e9f355;font-size:9px;text-transform:uppercase;letter-spacing:.05em">Value type</span> <span style="color:#d4e9f377;font-size:9px">${cotwEsc(p.value_type)}</span></div>` : ""}
-                      ${p.location   ? `<div style="margin-bottom:2px"><span style="color:#d4e9f355;font-size:9px;text-transform:uppercase;letter-spacing:.05em">Location</span> <span style="color:#d4e9f388">${cotwEsc(p.location)}${p.country ? ` · ${cotwEsc(p.country)}` : ""}</span></div>` : (p.country ? `<div style="margin-bottom:2px"><span style="color:#d4e9f355;font-size:9px">Country:</span> ${cotwEsc(p.country)}</div>` : "")}
-                      ${p.notes      ? `<div style="margin-bottom:3px;font-size:9px;color:#d4e9f355;font-style:italic">${cotwEsc(p.notes)}</div>` : ""}
-                      ${p.resource && !isGbif ? `<div style="font-size:8.5px;color:#d4e9f344;margin-bottom:3px">${cotwEsc(p.resource)}</div>` : ""}
-                      <div style="border-top:1px solid rgba(249,202,36,0.15);padding-top:5px;margin-top:4px;display:flex;align-items:center;justify-content:space-between">
-                        ${doiHref ? `<a href="${doiHref}" target="_blank" rel="noopener noreferrer" style="color:#d4e9f355;font-size:8px;text-decoration:none">↗ DOI</a>` : `<span></span>`}
-                        <a href="https://coraltraits.org" target="_blank" rel="noopener noreferrer" style="color:#f9ca24;font-size:9px;font-weight:600;text-decoration:none">${isGbif ? "↗ GBIF · Scleractinia" : "↗ CoralTraits.org"}</a>
-                      </div>
-                    </div>`,
-                    { maxWidth: 270 }
-                  );
-                  return m;
-                }}
-              />
-            )}
             {markers.length > 0 && <FitBounds markers={markers} />}
             <GcrmnZoomWatcher enabled={showGcrmnMonSites} />
             <MapBoundsTracker onBoundsChange={setMapBounds} />
@@ -1883,10 +1927,6 @@ function ExpandedMapModal({
               />
             )}
           </MapContainer>
-
-          {ctDetail && (
-            <CoralTraitLocationPanel detail={ctDetail} onClose={() => setCtDetail(null)} />
-          )}
 
           {/* ── Live Layer Timeline + Play Controls ─────────────────────── */}
           {activeLiveVar && activeLiveLayer && (() => {
@@ -2650,12 +2690,12 @@ function ExpandedMapModal({
             <div style={{ display: "flex", gap: 5, marginBottom: 10, paddingBottom: 10, borderBottom: "1px solid rgba(131,238,240,0.08)" }}>
               <button
                 data-testid="expanded-toggle-all-layers"
-                onClick={() => { setShowMarineRegions(true); setShowCoralMapping(true); setShowGcrmn(true); setShowGcrmnSites(true); setShowGcrmnMonSites(true); setShowWcsReefCloud(true); setShowWcsCcSites(true); setShowReefCheck(true); setShowReefLife(true); setShowImgs(true); setShowDaoMembers(true); setShowCoralTraits(true); setShowCotwEcoregions(true); setActiveCmsVar("CHL"); setActiveLiveVar(null); }}
+                onClick={() => { setShowMarineRegions(true); setShowCoralMapping(true); setShowGcrmn(true); setShowGcrmnSites(true); setShowGcrmnMonSites(true); setShowWcsReefCloud(true); setShowWcsCcSites(true); setShowReefCheck(true); setShowReefLife(true); setShowImgs(true); setShowDaoMembers(true); setShowCotwEcoregions(true); setActiveCmsVar("CHL"); setActiveLiveVar(null); }}
                 style={{ flex: 1, fontSize: 9, fontFamily: "Inter,sans-serif", fontWeight: 700, background: "rgba(131,238,240,0.12)", border: "1px solid rgba(131,238,240,0.3)", borderRadius: 6, padding: "4px 0", color: "#83eef0", cursor: "pointer" }}
               >All On</button>
               <button
                 data-testid="expanded-toggle-no-layers"
-                onClick={() => { setShowMarineRegions(false); setShowCoralMapping(false); setShowGcrmn(false); setShowGcrmnSites(false); setShowGcrmnMonSites(false); setShowWcsReefCloud(false); setShowWcsCcSites(false); setShowReefCheck(false); setShowReefLife(false); setShowImgs(false); setShowDaoMembers(false); setShowCoralTraits(false); setShowCotwEcoregions(false); setActiveCmsVar(null); setActiveLiveVar(null); setShowToolbox(null); }}
+                onClick={() => { setShowMarineRegions(false); setShowCoralMapping(false); setShowGcrmn(false); setShowGcrmnSites(false); setShowGcrmnMonSites(false); setShowWcsReefCloud(false); setShowWcsCcSites(false); setShowReefCheck(false); setShowReefLife(false); setShowImgs(false); setShowDaoMembers(false); setShowCotwEcoregions(false); setActiveCmsVar(null); setActiveLiveVar(null); setShowToolbox(null); }}
                 style={{ flex: 1, fontSize: 9, fontFamily: "Inter,sans-serif", fontWeight: 700, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 6, padding: "4px 0", color: "#d4e9f355", cursor: "pointer" }}
               >All Off</button>
             </div>
@@ -2966,13 +3006,6 @@ function ExpandedMapModal({
             <LayerToggle label="WCS Coral Cover"     sublabel="4,766 coral cover transect sites from Wildlife Conservation Society"                     active={showWcsCcSites}    color="#ff6b9d" onClick={() => setShowWcsCcSites(v => !v)}    testId="expanded-toggle-wcs-cc-sites" />
             <LayerToggle label="WCS ReefCloud"       sublabel="14,501 AI-powered underwater photo monitoring stations - WCS Marine global programme"    active={showWcsReefCloud}  color="#e056fd" onClick={() => setShowWcsReefCloud(v => !v)}  testId="expanded-toggle-wcs-reefcloud" />
 
-            {/* ── Species Traits ── */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "10px 0 2px" }}>
-              <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#d4e9f340" }}>Species Traits</span>
-            </div>
-            <div style={{ fontSize: 7.5, color: "#d4e9f328", marginBottom: 5, lineHeight: 1.5 }}>Geolocated coral species trait observations from the CoralTraits.org database - the world's largest open repository of coral biological characteristics.</div>
-            <LayerToggle label="Coral Traits"         sublabel={`166k+ observations across 5,112 species and ${CORAL_TRAITS_TOTAL} traits - coraltraits2 / coraltraits.org`}  active={showCoralTraits}   color="#f9ca24" onClick={() => setShowCoralTraits(v => !v)}   testId="expanded-toggle-coral-traits" />
-
             {/* ── Coral Geography ── */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "10px 0 2px" }}>
               <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#d4e9f340" }}>Coral Geography</span>
@@ -2991,7 +3024,7 @@ function ExpandedMapModal({
               )}
             </div>
             <div style={{ fontSize: 7.5, color: "#d4e9f328", marginBottom: 5, lineHeight: 1.5 }}>
-              NOAA Coral Reef Watch 5km thermal-stress suite - Sea Surface Temperature, SST Anomaly, Coral Bleaching HotSpot, Degree Heating Weeks and the 5-level Bleaching Alert Area. Pick a layer, then a 7-day / Monthly / Yearly window. Colours and nomenclature match the <a href="https://coralreefwatch.noaa.gov/product/5km/index.php" target="_blank" rel="noopener noreferrer" style={{ color: "#FF6600bb", textDecoration: "none" }}>NOAA Coral Reef Watch</a> products.
+              NOAA Coral Reef Watch 5km thermal-stress suite - Sea Surface Temperature, SST Anomaly, Coral Bleaching HotSpot, Degree Heating Weeks, the 5-level Bleaching Alert Area and the 7-day SST Trend. Pick a layer, then a 7-day / Monthly / Yearly window. Colours and nomenclature match the <a href="https://coralreefwatch.noaa.gov/product/5km/index.php" target="_blank" rel="noopener noreferrer" style={{ color: "#FF6600bb", textDecoration: "none" }}>NOAA Coral Reef Watch</a> products.
             </div>
             {CRW_LAYERS.map(layer => (
               <div
@@ -3121,6 +3154,9 @@ function ExpandedMapModal({
                         </div>
                       )}
                       <div style={{ fontSize: 7.5, color: "#d4e9f344", marginTop: 2, textAlign: "center", letterSpacing: "0.03em" }}>{layer.unit}</div>
+                      {layer.note && (
+                        <div data-testid="crw-legend-note" style={{ fontSize: 7.5, color: `${layer.color}bb`, marginTop: 3, textAlign: "center", lineHeight: 1.35, letterSpacing: "0.02em" }}>{layer.note}</div>
+                      )}
                     </div>
                   )}
 
@@ -3133,7 +3169,7 @@ function ExpandedMapModal({
               );
             })()}
             <div style={{ fontSize: 7.5, color: "#d4e9f322", marginTop: 3, marginBottom: 4, lineHeight: 1.4 }}>
-              Data: NOAA Coral Reef Watch v3.1 thermal-stress suite (SST, SST Anomaly, HotSpot, DHW, Bleaching Alert Area) - CoralTemp 5km - ncWMS dataset dhw_5km (PacIOOS) - CRS EPSG:3857 - WMS 1.3.0 - daily refresh ~13:30 ET
+              Data: NOAA Coral Reef Watch v3.1 thermal-stress suite (SST, SST Anomaly, HotSpot, DHW, Bleaching Alert Area, 7-day SST Trend) - CoralTemp 5km - ncWMS dataset dhw_5km (PacIOOS) - CRS EPSG:3857 - recoloured client-side to NOAA palettes - daily refresh ~13:30 ET
             </div>
 
             {/* ── Community ── */}
@@ -3226,12 +3262,6 @@ function ExpandedMapModal({
                 <span style={{ fontSize: 10.5, color: "#d4e9f3bb" }}>{t("reefMap.legendWcsReefCloud")}</span>
               </div>
             )}
-            {showCoralTraits && (
-              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "3px 0" }}>
-                <span style={{ width:9,height:9,borderRadius:"50%",background:"rgba(249,202,36,0.45)",border:"1.5px solid #f9ca24",display:"inline-block",flexShrink:0 }}/>
-                <span style={{ fontSize: 10.5, color: "#d4e9f3bb" }}>{t("reefMap.legendCoralTraitsObs")}</span>
-              </div>
-            )}
             {showCotwEcoregions && (
               <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "3px 0" }}>
                 <span style={{ width: 13, height: 8, borderRadius: 2, background: "rgba(131,238,240,0.18)", border: "1.5px solid #83eef0", display: "inline-block", flexShrink: 0 }}/>
@@ -3247,7 +3277,7 @@ function ExpandedMapModal({
                 </div>
               ) : null;
             })()}
-            {!showMarineRegions && !showCoralMapping && !showGcrmn && !showGcrmnSites && !showDaoMembers && !showImgs && !showGcrmnMonSites && !showReefCheck && !showReefLife && !showWcsCcSites && !showWcsReefCloud && !showCoralTraits && !showCotwEcoregions && !activeCrwLayer && (
+            {!showMarineRegions && !showCoralMapping && !showGcrmn && !showGcrmnSites && !showDaoMembers && !showImgs && !showGcrmnMonSites && !showReefCheck && !showReefLife && !showWcsCcSites && !showWcsReefCloud && !showCotwEcoregions && !activeCrwLayer && (
               <div style={{ fontSize: 9, color: "#d4e9f333", fontStyle: "italic" }}>{t("reefMap.noLayersActive")}</div>
             )}
           </SideSection>
@@ -3846,7 +3876,7 @@ export function ReefMap({
   const [internalExpanded,  setInternalExpanded]  = useState(false);
   const [activeCmsVar,      setActiveCmsVar]      = useState<CmsVar | null>(null);
   const [cmsYYYYMM,         setCmsYYYYMM]         = useState(CMS_MAX_YM);
-  const [showToolbox,       setShowToolbox]       = useState<'cms'|'live'|null>(null);
+  const [, setShowToolbox] = useState<'cms'|'live'|null>(null);
   const [activeLiveVar,     setActiveLiveVar]     = useState<LiveVar|null>(null);
   const [compactLiveDate,   setCompactLiveDate]   = useState<string>(() => {
     const d = new Date(); d.setDate(d.getDate() - 3);
@@ -3858,7 +3888,6 @@ export function ReefMap({
   const [showReefCheckC,    setShowReefCheckC]    = useState(false);
   const [showReefLifeC,     setShowReefLifeC]     = useState(false);
   const [showGcrmnMonC,     setShowGcrmnMonC]     = useState(false);
-  const [showCoralTraitsC,  setShowCoralTraitsC]  = useState(false);
   const [activeCrwLayerC,   setActiveCrwLayerC]   = useState<string | null>(null);
   const [crwLoadingC,       setCrwLoadingC]       = useState(false);
   const [cdhwWindowC,       setCdhwWindowC]       = useState<CdhwWindow>("7d");
@@ -3953,12 +3982,6 @@ export function ReefMap({
     staleTime: 24 * 60 * 60 * 1000,
     enabled: showGcrmnMonC,
   });
-  const { data: compactCoralTraitsGeoJson } = useQuery<GeoJSON.FeatureCollection>({
-    queryKey: ["/api/coral-traits"],
-    staleTime: 24 * 60 * 60 * 1000,
-    enabled: showCoralTraitsC,
-  });
-
   return (
     <>
       <style>{`.gcrmn-tooltip { background: rgba(0,19,28,0.88) !important; border: 1px solid rgba(131,238,240,0.25) !important; color: #d4e9f3 !important; font-family: Inter,sans-serif !important; font-size: 10px !important; padding: 2px 7px !important; border-radius: 6px !important; box-shadow: none !important; }`}</style>
@@ -4030,25 +4053,12 @@ export function ReefMap({
           {activeCrwLayerC && (() => {
             const cfg = CRW_LAYERS.find(l => l.id === activeCrwLayerC);
             return cfg && !cfg.externalUrl ? (
-              <WMSTileLayer
-                key={`crw-compact-${activeCrwLayerC}-${cdhwWindowC}-${crwDateC}-${cfg.colorscalerange ?? ""}-${cfg.ncStyle ?? ""}`}
-                url={CRW_WMS_BASE}
-                layers={activeCrwLayerC}
-                format="image/png"
-                transparent={true}
+              <CrwRecolorLayer
+                key={`crw-compact-${activeCrwLayerC}-${crwDateC}`}
+                cfg={cfg}
+                dateStr={crwDateC}
                 opacity={crwOpacityC}
-                version="1.3.0"
-                crs={L.CRS.EPSG3857}
-                styles={cfg.ncStyle ?? ""}
-                time={getCrwTime(crwDateC)}
-                {...((cfg.colorscalerange ? { colorscalerange: cfg.colorscalerange } : {}) as any)}
-                {...((cfg.discrete && cfg.ticks ? { numcolorbands: cfg.ticks.length } : {}) as any)}
-                eventHandlers={{
-                  loading: () => setCrwLoadingC(true),
-                  load:    () => setCrwLoadingC(false),
-                  tileerror: () => setCrwLoadingC(false),
-                }}
-                attribution='NOAA Coral Reef Watch v3.1 - PacIOOS THREDDS ncWMS'
+                onLoading={setCrwLoadingC}
               />
             ) : null;
           })()}
@@ -4126,47 +4136,6 @@ export function ReefMap({
           {showGcrmnMonC && compactGcrmnMonGeoJson && (
             <GeoJSON key="gcrmn-mon-c" data={compactGcrmnMonGeoJson}
               pointToLayer={(_f, ll) => L.circleMarker(ll, { radius: 2.5, color: "#26de81", weight: 0.7, fillColor: "#26de81", fillOpacity: 0.6, opacity: 0.85 })} />
-          )}
-          {showCoralTraitsC && compactCoralTraitsGeoJson && (
-            <GeoJSON key="coral-traits-c" data={compactCoralTraitsGeoJson}
-              pointToLayer={(feature, ll) => {
-                const p = feature.properties ?? {};
-                if (p.aggregated) {
-                  const obs = Number(p.obs_count) || 0;
-                  const radius = Math.min(3.5 + Math.sqrt(obs) * 0.6, 13);
-                  const m = L.circleMarker(ll, { radius, color: "#f9ca24", weight: 1, fillColor: "#f9ca24", fillOpacity: 0.45, opacity: 0.9 });
-                  const species: string[] = (Array.isArray(p.top_species) ? p.top_species : []).map(cotwEsc);
-                  m.bindPopup(
-                    `<div style="font-family:Inter,sans-serif;font-size:11px;min-width:180px;max-width:240px;color:#d4e9f3">
-                      <div style="font-weight:700;color:#f9ca24;font-size:12px;margin-bottom:4px;line-height:1.3">🪸 ${p.location ? cotwEsc(p.location) : "Coral trait observations"}</div>
-                      <div style="display:flex;gap:8px;margin-bottom:5px;flex-wrap:wrap;font-size:9.5px">
-                        <span><b style="color:#ffd32a">${obs.toLocaleString()}</b> obs</span>
-                        <span><b style="color:#ffd32a">${Number(p.species_count) || 0}</b> spp.</span>
-                        <span><b style="color:#ffd32a">${Number(p.trait_count) || 0}</b> traits</span>
-                      </div>
-                      ${species.length ? `<div style="font-size:9px;margin-bottom:3px;color:#d4e9f399"><em style="font-style:italic">${species.slice(0,4).join("</em>, <em style=\"font-style:italic\">")}</em></div>` : ""}
-                      <a href="https://coraltraits.org" target="_blank" rel="noopener noreferrer" style="color:#f9ca24;font-size:8px;font-weight:600;text-decoration:none">↗ CoralTraits.org</a>
-                    </div>`,
-                    { maxWidth: 250 }
-                  );
-                  return m;
-                }
-                const m = L.circleMarker(ll, { radius: 3.5, color: "#f9ca24", weight: 1, fillColor: "#f9ca24", fillOpacity: 0.65, opacity: 0.9 });
-                const isGbifC = (p.source || "").startsWith("gbif");
-                const valStr = p.value ? (p.unit ? `${cotwEsc(p.value)} ${cotwEsc(p.unit)}` : cotwEsc(p.value)) : "";
-                m.bindPopup(
-                  `<div style="font-family:Inter,sans-serif;font-size:11px;min-width:180px;max-width:240px;color:#d4e9f3">
-                    <div style="font-weight:700;color:#f9ca24;font-size:12px;margin-bottom:4px;line-height:1.3">🪸 ${p.species ? `<em style="font-style:italic">${cotwEsc(p.species)}</em>` : "Coral species"}</div>
-                    ${p.trait      ? `<div style="margin-bottom:3px"><span style="font-size:8px;color:#d4e9f355;text-transform:uppercase">Trait</span><br/><b style="color:#ffd32a">${cotwEsc(p.trait)}</b></div>` : ""}
-                    ${valStr       ? `<div style="font-size:9px;margin-bottom:2px"><span style="color:#d4e9f355">Value:</span> ${valStr}</div>` : ""}
-                    ${p.value_type ? `<div style="font-size:8px;color:#d4e9f344;margin-bottom:2px">${cotwEsc(p.value_type)}</div>` : ""}
-                    ${p.location   ? `<div style="font-size:8.5px;color:#d4e9f366;margin-bottom:3px">📍 ${cotwEsc(p.location)}${p.country ? ` · ${cotwEsc(p.country)}` : ""}</div>` : (p.country ? `<div style="font-size:8.5px;color:#d4e9f366;margin-bottom:3px">📍 ${cotwEsc(p.country)}</div>` : "")}
-                    <a href="https://coraltraits.org" target="_blank" rel="noopener noreferrer" style="color:#f9ca24;font-size:8px;font-weight:600;text-decoration:none">${isGbifC ? "↗ GBIF · Scleractinia" : "↗ CoralTraits.org"}</a>
-                  </div>`,
-                  { maxWidth: 250 }
-                );
-                return m;
-              }} />
           )}
           {showImgs && reefImgs.map((img) => (
             <Marker key={img.id} position={[img.latitude, img.longitude]} icon={makeImagePin()}>
@@ -4423,9 +4392,6 @@ export function ReefMap({
                     { testId: "compact-toggle-wcs-cc",        label: "WCS Coral Cover",     sublabel: "WCS transect survey sites",                   color: "#ff6b9d", active: showWcsCcSitesC,   toggle: () => setShowWcsCcSitesC(v => !v)   },
                     { testId: "compact-toggle-wcs-reefcloud", label: "WCS ReefCloud",       sublabel: "AI-powered underwater photo survey sites",     color: "#e056fd", active: showWcsReefCloudC, toggle: () => setShowWcsReefCloudC(v => !v) },
                   ]},
-                  { group: "Species Traits", icon: "◉", note: "Geolocated coral species trait observations.", layers: [
-                    { testId: "compact-toggle-coral-traits",  label: "Coral Traits",        sublabel: "166k+ obs, 172 traits, 5,112 species - coraltraits2", color: "#f9ca24", active: showCoralTraitsC,  toggle: () => setShowCoralTraitsC(v => !v)  },
-                  ]},
                 ]).map(({ group, icon, note, layers }) => {
                   const ls = layers as unknown as any[];
                   const allActive = ls.every((l: any) => l.active);
@@ -4550,6 +4516,9 @@ export function ReefMap({
                                 <span>{layer.min}</span>
                                 <span>{layer.max}</span>
                               </div>
+                            )}
+                            {layer.note && (
+                              <div data-testid="crw-legend-note-c" style={{ fontSize: 6.5, color: `${layer.color}bb`, marginTop: 2, textAlign: "center", lineHeight: 1.3, letterSpacing: "0.02em" }}>{layer.note}</div>
                             )}
                           </>
                         )}

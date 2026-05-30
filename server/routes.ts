@@ -1,5 +1,5 @@
-import type { Express, Request, Response, NextFunction } from "express";
-import { createServer, type Server } from "http";
+import type { Express, Request, Response } from "express";
+import { type Server } from "http";
 import crypto from "crypto";
 import multer from "multer";
 import { rateLimit } from "express-rate-limit";
@@ -460,13 +460,6 @@ async function loadNeAdmin1(): Promise<NeFeature[]> {
   return _neAdmin1;
 }
 
-/** Return {country, location} for a (lat, lon) pair using Natural Earth polygons. */
-async function reverseGeocode(lat: number, lon: number): Promise<{ country: string; location: string }> {
-  const [countries, admin1] = await Promise.all([loadNeCountries(), loadNeAdmin1()]);
-  const country = countries.find(f => _pointInFeature(lon, lat, f))?.name ?? "";
-  const location = admin1.find(f => _pointInFeature(lon, lat, f))?.name ?? "";
-  return { country, location };
-}
 
 const CORAL_MAPPING_FILES = [
   { name: "Bermuda",                          path: "Bermuda.geojson" },
@@ -1198,7 +1191,7 @@ export async function registerRoutes(
           (req as any).on("end", () => resolve(Buffer.concat(chunks)));
           (req as any).on("error", () => resolve(Buffer.alloc(0)));
         });
-        if (rawBody.length) fetchOptions.body = rawBody;
+        if (rawBody.length) fetchOptions.body = new Uint8Array(rawBody);
       }
 
       const upstream = await fetch(upstreamUrl, fetchOptions);
