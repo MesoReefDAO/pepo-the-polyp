@@ -650,6 +650,15 @@ function CotwEcoregionClickHandler({ active }: { active: boolean }) {
       const size   = map.getSize();
       const point  = map.latLngToContainerPoint(e.latlng);
 
+      // The map renders in Web Mercator (EPSG:3857), so the GetFeatureInfo BBOX
+      // must be in projected meters - GeoServer maps the pixel X/Y linearly onto
+      // the BBOX, and Mercator latitude is non-linear, so a geographic (4326)
+      // BBOX would resolve the click to the wrong latitude and miss the region.
+      // crs.project() returns coordinates in the units WMS expects for this CRS.
+      const crs = map.options.crs ?? L.CRS.EPSG3857;
+      const sw  = crs.project(bounds.getSouthWest());
+      const ne  = crs.project(bounds.getNorthEast());
+
       const params = new URLSearchParams({
         SERVICE:      "WMS",
         VERSION:      "1.1.1",
@@ -662,8 +671,8 @@ function CotwEcoregionClickHandler({ active }: { active: boolean }) {
         Y:            String(Math.round(point.y)),
         WIDTH:        String(size.x),
         HEIGHT:       String(size.y),
-        BBOX:         [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()].join(","),
-        SRS:          "EPSG:4326",
+        BBOX:         [sw.x, sw.y, ne.x, ne.y].join(","),
+        SRS:          "EPSG:3857",
       });
 
       try {
