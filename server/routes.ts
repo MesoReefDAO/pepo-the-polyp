@@ -3243,6 +3243,8 @@ hr, [class*="divider"], [class*="separator"] {
         const speciesName = req.query.species_name ? String(req.query.species_name) : null;
         const traitId = req.query.trait_id ? String(req.query.trait_id) : null;
         const locationId = req.query.location_id ? String(req.query.location_id) : null;
+        const lat = req.query.lat != null ? Number(req.query.lat) : null;
+        const lon = req.query.lon != null ? Number(req.query.lon) : null;
         const filters: any[] = [];
         // Measurements link to the species catalog by NAME (the catalog uses the
         // coraltraits.org numeric IDs, the measurements use coraltraits2 IDs).
@@ -3250,6 +3252,12 @@ hr, [class*="divider"], [class*="separator"] {
         if (speciesId) filters.push(eq(ctMeasurements.speciesId, speciesId));
         if (traitId) filters.push(eq(ctMeasurements.traitId, traitId));
         if (locationId) filters.push(eq(ctMeasurements.locationId, locationId));
+        // Reef-map drill-in: match the exact sampling coordinate (the map
+        // aggregates one feature per distinct lat/lon). A tiny epsilon absorbs
+        // real->float8 round-trip without merging genuinely distinct sites.
+        if (lat != null && !Number.isNaN(lat) && lon != null && !Number.isNaN(lon)) {
+          filters.push(dsql`abs(${ctMeasurements.latitude}::float8 - ${lat}) < 1e-6 and abs(${ctMeasurements.longitude}::float8 - ${lon}) < 1e-6`);
+        }
         const where = filters.length ? and(...filters) : undefined;
         const rows = await db.select().from(ctMeasurements).where(where as any)
           .orderBy(ctMeasurements.traitName, ctMeasurements.locationName, ctMeasurements.value)

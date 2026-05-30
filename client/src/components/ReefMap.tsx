@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
 import { MapContainer, TileLayer, WMSTileLayer, Marker, Popup, GeoJSON, CircleMarker, Polyline, Polygon, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -1077,6 +1078,98 @@ function ReefVideoPopup({ vid }: { vid: ReefVideoMarker }) {
   );
 }
 
+// ── Coral Traits drill-in panel ──────────────────────────────────────────────
+// Opened when a Coral Traits map marker is clicked. Surfaces the actual
+// CoralTraits.org measurements recorded at that exact coordinate (species ->
+// trait -> value -> unit -> methodology), mirroring the /coral-traits section,
+// with deep links into it.
+type CtDetail = { lat: number; lon: number; location: string; obs: number; speciesCount: number; traitCount: number };
+type CtMeasRow = {
+  speciesName: string; traitName: string; traitCategory: string;
+  value: string; standardUnit: string; methodologyName: string;
+  valueType: string; locationName: string;
+};
+
+function CoralTraitLocationPanel({ detail, onClose }: { detail: CtDetail; onClose: () => void }) {
+  const { data, isLoading } = useQuery<CtMeasRow[]>({
+    queryKey: ["/api/coraltraits/measurements", { lat: detail.lat, lon: detail.lon }],
+    queryFn: async () => {
+      const r = await fetch(`/api/coraltraits/measurements?lat=${detail.lat}&lon=${detail.lon}&limit=1000`);
+      if (!r.ok) throw new Error("measurements fetch failed");
+      return r.json();
+    },
+    staleTime: 10 * 60 * 1000,
+  });
+
+  const groups = useMemo(() => {
+    const m = new Map<string, CtMeasRow[]>();
+    (data ?? []).forEach(row => {
+      const k = row.speciesName || "Unknown species";
+      const arr = m.get(k);
+      if (arr) arr.push(row); else m.set(k, [row]);
+    });
+    return Array.from(m.entries())
+      .map(([sp, rows]) => [sp, rows.slice().sort((a, b) => (a.traitName || "").localeCompare(b.traitName || ""))] as [string, CtMeasRow[]])
+      .sort((a, b) => a[0].localeCompare(b[0]));
+  }, [data]);
+
+  const capped = (data?.length ?? 0) >= 1000;
+
+  return (
+    <div data-testid="panel-coral-trait-location" style={{
+      position: "absolute", top: 0, right: 0, bottom: 0, width: "min(380px, 92vw)", zIndex: 1200,
+      background: "rgba(0,15,22,0.97)", borderLeft: "1px solid rgba(249,202,36,0.35)",
+      boxShadow: "-8px 0 32px rgba(0,0,0,0.45)", display: "flex", flexDirection: "column",
+      backdropFilter: "blur(6px)", fontFamily: "Inter,sans-serif",
+    }}>
+      <div style={{ padding: "14px 16px", borderBottom: "1px solid rgba(249,202,36,0.18)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "#f9ca24" }}>🪸 Coral Traits · Location</div>
+            <div data-testid="text-ct-location-name" style={{ fontSize: 14, fontWeight: 700, color: "#fff", marginTop: 3, lineHeight: 1.3 }}>{detail.location}</div>
+            <div style={{ fontSize: 9.5, color: "#d4e9f366", marginTop: 2 }}>{detail.lat.toFixed(4)}, {detail.lon.toFixed(4)}</div>
+          </div>
+          <button data-testid="button-close-ct-panel" onClick={onClose} style={{ background: "rgba(249,202,36,0.1)", border: "1px solid rgba(249,202,36,0.25)", borderRadius: 7, color: "#f9ca24", cursor: "pointer", padding: "4px 7px", fontSize: 12, flexShrink: 0, lineHeight: 1 }}>✕</button>
+        </div>
+        <div style={{ display: "flex", gap: 12, marginTop: 8, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 10.5, color: "#d4e9f3" }}><b style={{ color: "#ffd32a" }}>{detail.obs.toLocaleString()}</b> <span style={{ color: "#d4e9f366", fontSize: 9 }}>observations</span></span>
+          <span style={{ fontSize: 10.5, color: "#d4e9f3" }}><b style={{ color: "#ffd32a" }}>{detail.speciesCount}</b> <span style={{ color: "#d4e9f366", fontSize: 9 }}>species</span></span>
+          <span style={{ fontSize: 10.5, color: "#d4e9f3" }}><b style={{ color: "#ffd32a" }}>{detail.traitCount}</b> <span style={{ color: "#d4e9f366", fontSize: 9 }}>traits</span></span>
+        </div>
+      </div>
+      <div style={{ flex: 1, overflowY: "auto", padding: "8px 12px 16px" }}>
+        {isLoading && <div style={{ color: "#d4e9f366", fontSize: 11, padding: 12, textAlign: "center" }}>Loading measurements...</div>}
+        {!isLoading && groups.length === 0 && <div style={{ color: "#d4e9f366", fontSize: 11, padding: 12, textAlign: "center" }}>No measurements found at this location.</div>}
+        {groups.map(([sp, rows]) => (
+          <div key={sp} data-testid={`group-ct-species-${sp}`} style={{ marginBottom: 12 }}>
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8, position: "sticky", top: 0, background: "rgba(0,15,22,0.97)", padding: "4px 0", borderBottom: "1px solid rgba(249,202,36,0.12)" }}>
+              <Link href={`/coral-traits?species=${encodeURIComponent(sp)}`} data-testid={`link-ct-species-${sp}`} style={{ fontStyle: "italic", fontWeight: 700, fontSize: 12, color: "#f9ca24", textDecoration: "none" }}>{sp} ↗</Link>
+              <span style={{ fontSize: 8.5, color: "#d4e9f344", flexShrink: 0 }}>{rows.length} meas.</span>
+            </div>
+            {rows.map((m, i) => (
+              <div key={i} style={{ padding: "5px 0", borderBottom: "1px solid rgba(131,238,240,0.06)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                  <span style={{ fontSize: 10.5, color: "#d4e9f3", fontWeight: 600 }}>{m.traitName}</span>
+                  <span style={{ fontSize: 10.5, color: "#ffd32a", fontWeight: 700, textAlign: "right", flexShrink: 0 }}>{m.value}{m.standardUnit ? <span style={{ color: "#d4e9f355", fontWeight: 400, fontSize: 8.5 }}> {m.standardUnit}</span> : null}</span>
+                </div>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 1 }}>
+                  {m.traitCategory && <span style={{ fontSize: 8, color: "#f9ca2499", border: "1px solid rgba(249,202,36,0.2)", borderRadius: 4, padding: "0 4px" }}>{m.traitCategory}</span>}
+                  {m.valueType && <span style={{ fontSize: 8, color: "#d4e9f344" }}>{m.valueType}</span>}
+                </div>
+                {m.methodologyName && <div style={{ fontSize: 8.5, color: "#d4e9f344", fontStyle: "italic", marginTop: 1, lineHeight: 1.3 }}>{m.methodologyName}</div>}
+              </div>
+            ))}
+          </div>
+        ))}
+        {capped && <div style={{ fontSize: 9, color: "#d4e9f344", textAlign: "center", padding: 8 }}>Showing first 1,000 measurements.</div>}
+        <div style={{ textAlign: "center", marginTop: 10 }}>
+          <Link href="/coral-traits" data-testid="link-ct-full-section" style={{ fontSize: 10, color: "#f9ca24", textDecoration: "none", fontWeight: 600 }}>Open full Coral Traits section ↗</Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ExpandedMapModal({
   markers,
   reefImgs,
@@ -1105,6 +1198,7 @@ function ExpandedMapModal({
   const [showGcrmnMonSites,  setShowGcrmnMonSites]  = useState(false);
   const [showCoralTraits,    setShowCoralTraits]    = useState(false);
   const [showCotwEcoregions, setShowCotwEcoregions] = useState(false);
+  const [ctDetail,           setCtDetail]           = useState<CtDetail | null>(null);
   const [activeCrwLayer,     setActiveCrwLayer]     = useState<string | null>(null);
   const [crwLoading,         setCrwLoading]         = useState(false);
   const [cdhwWindow,         setCdhwWindow]         = useState<CdhwWindow>("7d");
@@ -1666,24 +1760,20 @@ function ExpandedMapModal({
                       radius, color: "#f9ca24", weight: 1.2,
                       fillColor: "#f9ca24", fillOpacity: 0.5, opacity: 0.92,
                     });
-                    const species: string[] = (Array.isArray(p.top_species) ? p.top_species : []).map(cotwEsc);
-                    const cats: string[] = (Array.isArray(p.categories) ? p.categories : []).map(cotwEsc);
-                    m.bindPopup(
-                      `<div style="font-family:Inter,sans-serif;font-size:11px;min-width:210px;max-width:270px;color:#d4e9f3">
-                        <div style="font-weight:700;color:#f9ca24;font-size:12px;margin-bottom:5px;line-height:1.3">🪸 ${p.location ? cotwEsc(p.location) : "Coral trait observations"}</div>
-                        <div style="display:flex;gap:10px;margin-bottom:6px;flex-wrap:wrap">
-                          <span><b style="color:#ffd32a">${obs.toLocaleString()}</b> <span style="color:#d4e9f366;font-size:9px">observations</span></span>
-                          <span><b style="color:#ffd32a">${Number(p.species_count) || 0}</b> <span style="color:#d4e9f366;font-size:9px">species</span></span>
-                          <span><b style="color:#ffd32a">${Number(p.trait_count) || 0}</b> <span style="color:#d4e9f366;font-size:9px">traits</span></span>
-                        </div>
-                        ${species.length ? `<div style="margin-bottom:4px"><span style="color:#d4e9f355;font-size:9px;text-transform:uppercase;letter-spacing:.05em">Species</span><br/><span style="font-size:10px"><em style="font-style:italic">${species.join("</em>, <em style=\"font-style:italic\">")}</em></span></div>` : ""}
-                        ${cats.length ? `<div style="margin-bottom:3px"><span style="color:#d4e9f355;font-size:9px;text-transform:uppercase;letter-spacing:.05em">Trait categories</span><br/><span style="font-size:9.5px;color:#d4e9f399">${cats.join(" · ")}</span></div>` : ""}
-                        <div style="border-top:1px solid rgba(249,202,36,0.15);padding-top:5px;margin-top:4px;text-align:right">
-                          <a href="https://coraltraits.org" target="_blank" rel="noopener noreferrer" style="color:#f9ca24;font-size:9px;font-weight:600;text-decoration:none">↗ CoralTraits.org</a>
-                        </div>
+                    const locName = p.location ? cotwEsc(p.location) : "Coral trait observations";
+                    m.bindTooltip(
+                      `<div style="font-family:Inter,sans-serif;font-size:10.5px;color:#d4e9f3;max-width:230px">
+                        <div style="font-weight:700;color:#f9ca24;margin-bottom:2px">🪸 ${locName}</div>
+                        <div style="color:#d4e9f399"><b style="color:#ffd32a">${obs.toLocaleString()}</b> obs · <b style="color:#ffd32a">${Number(p.species_count) || 0}</b> spp · <b style="color:#ffd32a">${Number(p.trait_count) || 0}</b> traits</div>
+                        <div style="color:#d4e9f355;font-size:8.5px;margin-top:2px">Click to explore measurements →</div>
                       </div>`,
-                      { maxWidth: 280 }
+                      { direction: "top", sticky: true, opacity: 1, className: "gcrmn-tooltip" }
                     );
+                    m.on("click", () => setCtDetail({
+                      lat: latlng.lat, lon: latlng.lng,
+                      location: p.location || "Coral trait observations",
+                      obs, speciesCount: Number(p.species_count) || 0, traitCount: Number(p.trait_count) || 0,
+                    }));
                     return m;
                   }
                   const m = L.circleMarker(latlng, {
@@ -1776,6 +1866,10 @@ function ExpandedMapModal({
               />
             )}
           </MapContainer>
+
+          {ctDetail && (
+            <CoralTraitLocationPanel detail={ctDetail} onClose={() => setCtDetail(null)} />
+          )}
 
           {/* ── Live Layer Timeline + Play Controls ─────────────────────── */}
           {activeLiveVar && activeLiveLayer && (() => {

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
@@ -23,6 +23,15 @@ export function CoralTraitsPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [traitFilter, setTraitFilter] = useState<string>("");
   const [openMobile, setOpenMobile] = useState(false);
+
+  // Deep link from the reef-map Coral Traits drill-in: ?species=<name>
+  // prefills the search so the species list scopes to it; the ref lets the
+  // auto-select effect pick the EXACT species rather than the first fuzzy match.
+  const deepLinkSpeciesRef = useRef<string | null>(null);
+  useEffect(() => {
+    const sp = new URLSearchParams(window.location.search).get("species");
+    if (sp) { deepLinkSpeciesRef.current = sp; setSearch(sp); }
+  }, []);
 
   const { data: summary } = useQuery<Summary>({
     queryKey: ["/api/coraltraits/summary"],
@@ -95,9 +104,22 @@ export function CoralTraitsPage() {
     [species, selectedId]
   );
 
-  // Auto-select first species once the list arrives / changes
+  // Auto-select species once the list arrives / changes. A pending deep link
+  // (?species=) takes priority and resolves to the EXACT species by name.
   useEffect(() => {
     if (filteredSpecies.length === 0) return;
+    const wanted = deepLinkSpeciesRef.current;
+    if (wanted) {
+      const exact = filteredSpecies.find(
+        s => (s.masterSpecies || "").toLowerCase() === wanted.toLowerCase()
+      );
+      if (exact) {
+        deepLinkSpeciesRef.current = null;
+        setSelectedId(exact.id);
+        setTraitFilter("");
+        return;
+      }
+    }
     if (selectedId == null || !filteredSpecies.some(s => s.id === selectedId)) {
       setSelectedId(filteredSpecies[0].id);
       setTraitFilter("");
