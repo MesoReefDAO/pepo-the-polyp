@@ -23,6 +23,7 @@ import { RegenReefIndexPage } from "@/pages/RegenReefIndexPage";
 import { CoralTraitsPage } from "@/pages/CoralTraitsPage";
 import { CoralFactSheetsPage } from "@/pages/CoralFactSheetsPage";
 import { PRIVY_ENABLED, PRIVY_APP_ID } from "@/lib/privy";
+import { RequireVerification } from "@/components/RequireVerification";
 import { useProfileSync } from "@/hooks/use-profile-sync";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { useOrcidAuth } from "@/hooks/use-orcid-auth";
@@ -32,9 +33,10 @@ import { TelegramChatWidget } from "@/components/TelegramChatWidget";
 import { OnboardingWizard, useOnboarding } from "@/components/OnboardingWizard";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { CookieBanner } from "@/components/CookieBanner";
+import { OrcidIcon } from "@/components/icons";
 import { useTranslation } from "react-i18next";
 import { LANGUAGES } from "@/i18n";
-import coralBg from "@assets/coral_reefs_1777179421866.jpg";
+const coralBg = "/figmaAssets/login-reef-bg.jpg";
 
 function useSplash() {
   const seen = sessionStorage.getItem("pepo_splash_seen");
@@ -54,7 +56,11 @@ function Router() {
       <Route path="/" component={Body} />
       <Route path="/profile" component={UserProfileDashboard} />
       <Route path="/community" component={CommunityLeaderboard} />
-      <Route path="/governance" component={Governance} />
+      <Route path="/governance">
+        <RequireVerification feature="Governance">
+          <Governance />
+        </RequireVerification>
+      </Route>
       <Route path="/members/:id" component={PublicProfile} />
       <Route path="/map" component={MobileMapPage} />
       <Route path="/reef-map" component={ReefMapPage} />
@@ -104,7 +110,7 @@ function LoginGate() {
       <div className="absolute inset-0" style={{ background: "linear-gradient(160deg,rgba(0,8,12,0.82) 0%,rgba(0,26,34,0.75) 60%,rgba(0,8,12,0.88) 100%)" }} />
       <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 60% 40% at 50% 40%, rgba(131,238,240,0.08) 0%, transparent 70%)" }} />
 
-      <div className="relative z-10 flex flex-col items-center w-full max-w-xs">
+      <div className="relative z-10 flex flex-col items-center w-full max-w-sm">
         <img src="/figmaAssets/mesoreef-dao-logo-new.png" alt="MesoReef DAO" className="h-16 w-auto object-contain mb-8 opacity-90" />
         <h1 className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-bold text-[#d4e9f3] text-2xl md:text-3xl text-center mb-3 leading-tight">
           {t("auth.pepoThePolyp")}
@@ -128,6 +134,32 @@ function LoginGate() {
             </span>
           </button>
         )}
+
+        {/* Divider (only when a second option sits above) */}
+        {PRIVY_ENABLED && (
+          <div className="flex items-center gap-3 w-full my-4">
+            <div className="flex-1 h-px bg-[#ffffff14]" />
+            <span className="[font-family:'Inter',Helvetica] text-[#d4e9f344] text-xs uppercase tracking-widest">{t("auth.or")}</span>
+            <div className="flex-1 h-px bg-[#ffffff14]" />
+          </div>
+        )}
+
+        {/* ORCID sign-in (always available) */}
+        <button
+          onClick={() => { window.location.href = "/api/auth/orcid"; }}
+          data-testid="button-gate-orcid"
+          className="inline-flex items-center justify-center gap-2.5 px-8 py-3.5 rounded-full bg-[#A6CE39] hover:bg-[#95bc2e] active:bg-[#84a829] shadow-[0_4px_24px_rgba(166,206,57,0.28)] hover:shadow-[0_6px_32px_rgba(166,206,57,0.45)] transition-all w-full"
+        >
+          <OrcidIcon size={20} color="#ffffff" />
+          <span className="[font-family:'Inter',Helvetica] font-bold text-white text-base leading-none">
+            {t("auth.signInWithOrcid")}
+          </span>
+        </button>
+
+        {/* Curation hint ties ORCID sign-in to the curator role */}
+        <p className="[font-family:'Inter',Helvetica] text-[#d4e9f355] text-xs text-center mt-5 leading-relaxed">
+          {t("auth.orcidCurateNote")}
+        </p>
 
       </div>
     </div>
@@ -160,7 +192,7 @@ function AppInner() {
       {!stillLoading && isAuthed && showOnboarding && !visible && (
         <OnboardingWizard onComplete={dismissOnboarding} />
       )}
-      {!stillLoading && <TelegramChatWidget />}
+      {!stillLoading && isAuthed && <TelegramChatWidget />}
       <LanguageSwitcher />
       <CookieBanner />
     </>

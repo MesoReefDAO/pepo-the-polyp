@@ -6,10 +6,12 @@ import { queryClient } from "@/lib/queryClient";
 import { ipfsPublicUrl } from "@/lib/ipfs";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { useOrcidAuth } from "@/hooks/use-orcid-auth";
+import { useVerification } from "@/hooks/use-verification";
 import { OrcidLoginButton } from "@/components/OrcidLoginButton";
 import { IPFSImageUpload } from "@/components/IPFSImageUpload";
 import { ipfsImageUrl } from "@/lib/ipfs";
 import { JourneySection } from "@/components/JourneySection";
+import { PublicProfileView } from "@/components/PublicProfileView";
 import { MetaMaskIcon } from "@/components/icons";
 import coralCover from "@assets/coral_polmicro_1780089271795.jpg";
 
@@ -183,6 +185,12 @@ function GuestView({ onLogin, error }: { onLogin: () => void; error?: string | n
   );
 }
 
+// Only persist real http(s) avatar URLs (never large base64 data URLs, which
+// would bloat the profile JSON blob and trip the IPFS upload body-size limit).
+function httpUrlOrEmpty(url: string | null | undefined): string {
+  return url && /^https?:\/\//i.test(url) ? url : "";
+}
+
 // ─── Avatar IPFS upload (unified circle + CID badge) ─────────────────────────
 function AvatarIPFSUpload({
   profileImage, avatarCid, onUpload,
@@ -340,6 +348,82 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
 
 const inputCls = "w-full bg-[#00000050] border border-[#83eef020] rounded-2xl px-4 py-3 text-[#d4e9f3] [font-family:'Inter',Helvetica] text-sm placeholder:text-[#d4e9f330] outline-none focus:border-[#83eef066] transition-colors";
 
+// ─── Verification status banner ───────────────────────────────────────────────
+function VerificationStatusBanner() {
+  const { isVerified, hasOrcid, hasVerifiedEmail, hasVerifiedSocial } = useVerification();
+  const { linkEmail } = usePrivy();
+  const onVerifyEmail = () => { try { linkEmail(); } catch { /* ignore */ } };
+
+  const proofs: string[] = [];
+  if (hasOrcid) proofs.push("ORCID iD");
+  if (hasVerifiedEmail) proofs.push("Email");
+  if (hasVerifiedSocial) proofs.push("Social login");
+
+  if (isVerified) {
+    return (
+      <div
+        data-testid="status-verification"
+        className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-[#83eef00d] border border-[#83eef033]"
+      >
+        <div className="w-9 h-9 rounded-full bg-[#83eef015] border border-[#83eef040] flex items-center justify-center flex-shrink-0 text-[#83eef0]">
+          <ShieldIcon />
+        </div>
+        <div className="flex flex-col flex-1 min-w-0">
+          <span className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-semibold text-[#83eef0] text-sm">
+            Identity verified
+          </span>
+          <span className="[font-family:'Inter',Helvetica] text-[#d4e9f380] text-[11px] truncate">
+            Verified via {proofs.join(" · ")} — full access unlocked.
+          </span>
+        </div>
+        <span className="flex-shrink-0 px-2.5 py-1 rounded-full bg-[#83eef020] text-[#83eef0] text-[10px] font-semibold [font-family:'Inter',Helvetica]">
+          Verified
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      data-testid="status-verification"
+      className="flex flex-col gap-3 px-4 py-3 rounded-2xl bg-[#f5a62308] border border-[#f5a62333]"
+    >
+      <div className="flex items-center gap-3">
+        <div className="w-9 h-9 rounded-full bg-[#f5a62315] border border-[#f5a62340] flex items-center justify-center flex-shrink-0 text-[#f5a623]">
+          <ShieldIcon />
+        </div>
+        <div className="flex flex-col flex-1 min-w-0">
+          <span className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-semibold text-[#f5a623] text-sm">
+            Identity not verified
+          </span>
+          <span className="[font-family:'Inter',Helvetica] text-[#d4e9f380] text-[11px]">
+            A wallet alone isn&apos;t enough. Verify an email or ORCID iD to unlock Governance.
+          </span>
+        </div>
+        <span className="flex-shrink-0 px-2.5 py-1 rounded-full bg-[#f5a62320] text-[#f5a623] text-[10px] font-semibold [font-family:'Inter',Helvetica]">
+          Unverified
+        </span>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <button
+          onClick={onVerifyEmail}
+          data-testid="button-verify-email-profile"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#83eef015] border border-[#83eef033] text-[#83eef0] hover:bg-[#83eef022] transition-colors text-[11px] [font-family:'Inter',Helvetica] font-medium"
+        >
+          Verify with email
+        </button>
+        <a
+          href="/api/auth/orcid"
+          data-testid="link-verify-orcid-profile"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#a6ce3915] border border-[#a6ce3933] text-[#a6ce39] hover:bg-[#a6ce3922] transition-colors text-[11px] [font-family:'Inter',Helvetica] font-medium no-underline"
+        >
+          Verify with ORCID iD
+        </a>
+      </div>
+    </div>
+  );
+}
+
 // ─── Connected Accounts mini-panel ────────────────────────────────────────────
 function LinkedAccountsRow({ user }: { user: any }) {
   const { linkGoogle, linkTwitter, linkLinkedIn, linkEmail, linkWallet,
@@ -404,7 +488,16 @@ function LinkedAccountsRow({ user }: { user: any }) {
             >
               {a.icon}
               <span className="[font-family:'Inter',Helvetica] text-[10px]">{a.label}</span>
-              <CheckIcon />
+              {a.type === "wallet" ? (
+                <span className="ml-0.5 px-1.5 py-0.5 rounded-full bg-[#ffffff10] text-[#d4e9f380] text-[8px] font-semibold uppercase tracking-wide [font-family:'Inter',Helvetica]">
+                  Connected
+                </span>
+              ) : (
+                <span className="ml-0.5 flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-[#83eef020] text-[#83eef0] text-[8px] font-semibold uppercase tracking-wide [font-family:'Inter',Helvetica]">
+                  <svg width="8" height="8" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  Verified
+                </span>
+              )}
               {canUnlink && a.type !== "wallet" && (
                 <button
                   onClick={() => handleUnlink(a.type)}
@@ -648,6 +741,7 @@ export function UserProfileDashboard() {
     queryKey: ["/api/profiles", activeProfileId],
     enabled: !!activeProfileId,
   });
+  const [showPreview, setShowPreview] = useState(true);
 
   // Hydrate ALL profile fields from DB - DB is the source of truth once a profile exists
   useEffect(() => {
@@ -845,7 +939,7 @@ export function UserProfileDashboard() {
             location,
             website,
             tags: selectedTags,
-            avatarUrl: avatarCid ? ipfsPublicUrl(avatarCid) : profileImage || "",
+            avatarUrl: avatarCid ? ipfsPublicUrl(avatarCid) : httpUrlOrEmpty(profileImage),
             avatarCid: avatarCid || "",
             ipfsImages,
             isPublic: true,
@@ -875,7 +969,7 @@ export function UserProfileDashboard() {
               location,
               website,
               tags: selectedTags,
-              avatarUrl: avatarCid ? ipfsPublicUrl(avatarCid) : profileImage || "",
+              avatarUrl: avatarCid ? ipfsPublicUrl(avatarCid) : httpUrlOrEmpty(profileImage),
               avatarCid: avatarCid || "",
               ipfsImages,
               isPublic: true,
@@ -920,7 +1014,7 @@ export function UserProfileDashboard() {
           orcidId: orcidId || "",
           orcidName: orcidName || "",
           avatarCid: avatarCid || "",
-          avatarUrl: avatarCid ? ipfsPublicUrl(avatarCid) : profileImage || "",
+          avatarUrl: avatarCid ? ipfsPublicUrl(avatarCid) : httpUrlOrEmpty(profileImage),
           twitterHandle,
           linkedinUrl,
           githubHandle,
@@ -992,6 +1086,68 @@ export function UserProfileDashboard() {
                 <p className="[font-family:'Inter',Helvetica] text-[#d4e9f366] text-sm">
                   Your MesoReef DAO identity visible to the reef community.
                 </p>
+              </div>
+
+              {/* Public profile preview - exactly how others see you at /members/:id */}
+              <div className="flex flex-col rounded-[20px] border border-[#83eef01a] bg-[#0b1519] overflow-hidden" data-testid="panel-public-preview">
+                <div className="flex items-center gap-3 px-5 py-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowPreview((v) => !v)}
+                    data-testid="button-toggle-public-preview"
+                    className="flex items-center gap-3 flex-1 min-w-0 text-left"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-[#83eef015] border border-[#83eef030] flex items-center justify-center flex-shrink-0">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="#83eef0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <circle cx="12" cy="12" r="3" stroke="#83eef0" strokeWidth="2"/>
+                      </svg>
+                    </div>
+                    <div className="flex flex-col flex-1 min-w-0">
+                      <span className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-semibold text-[#d4e9f3] text-sm">
+                        Public profile preview
+                      </span>
+                      <span className="[font-family:'Inter',Helvetica] text-[#d4e9f366] text-xs">
+                        Exactly how the reef community sees you
+                      </span>
+                    </div>
+                    <svg
+                      width="16" height="16" viewBox="0 0 24 24" fill="none"
+                      className={`flex-shrink-0 text-[#83eef080] transition-transform ${showPreview ? "rotate-180" : ""}`}
+                    >
+                      <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </button>
+                  {savedProfile?.profile && activeProfileId && (
+                    <a
+                      href={`/members/${encodeURIComponent(activeProfileId)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      data-testid="link-open-public-profile"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#83eef010] border border-[#83eef030] text-[#83eef0] [font-family:'Inter',Helvetica] text-xs font-medium no-underline hover:bg-[#83eef01a] transition-colors flex-shrink-0"
+                    >
+                      Open
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    </a>
+                  )}
+                </div>
+                {showPreview && (
+                  <div className="px-4 md:px-6 pb-6 pt-2 border-t border-[#ffffff0d]">
+                    {savedProfile?.profile ? (
+                      <PublicProfileView
+                        profile={savedProfile.profile}
+                        contributions={savedProfile.contributions ?? []}
+                        embedded
+                      />
+                    ) : (
+                      <div className="flex flex-col items-center gap-2 py-10 text-center">
+                        <span className="[font-family:'Inter',Helvetica] text-[#d4e9f355] text-sm">
+                          Save your profile to generate your public reef community page.
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Regen Reef Journey */}
@@ -1288,6 +1444,7 @@ export function UserProfileDashboard() {
                       <ShieldIcon />
                       <span className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-semibold text-sm">Identity & Accounts</span>
                     </div>
+                    <VerificationStatusBanner />
                     <LinkedAccountsRow user={user} />
                     <WalletsRow wallets={wallets} />
 
