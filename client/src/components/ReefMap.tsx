@@ -88,8 +88,10 @@ const PAL_SSTANOM = ["#28000a","#57004d","#730069","#8a0080","#3714a0","#553cb4"
 const PAL_HOTSPOT = ["#c8fafa","#7d5fff","#9b7dff","#edff00","#f3e700","#fbb500","#ff8700","#f97800","#f15500","#ff3200","#eb1e00","#d20a00","#a52000","#961400","#780800","#3c0000"];
 // Degree Heating Weeks, 0..20 degC-weeks, hard-binned per integer (21 NOAA bands).
 const PAL_DHW = ["#c8fafa","#463278","#645096","#826eb4","#a08cd2","#ffff00","#ffdc00","#ffb900","#ff9600","#ff0000","#d20000","#a00000","#6e0000","#e67d46","#b45a28","#7d3c1e","#552d14","#f000f0","#c800c8","#a000a0","#780078"];
-// Bleaching Alert Area, 5 CRW alert levels (No Stress -> Watch -> Warning -> Alert 1 -> Alert 2).
-const PAL_BAA = ["#c8fafa","#fff000","#faaa0a","#f00000","#960000"];
+// Bleaching Alert Area (7-day max), 8 NOAA CRW alert levels:
+// No Stress -> Watch -> Warning -> Alert Level 1 -> AL2 -> AL3 -> AL4 -> AL5.
+// Colours sampled from NOAA's official baa-max-7d colour bar.
+const PAL_BAA = ["#c1f9f9","#ffee00","#faa00c","#ee0000","#8b0000","#964620","#ee08ee","#630363"];
 // SST Trend (7-day), -3..+3 degC/week diverging, green at zero (index 6).
 const PAL_TREND = ["#640064","#6400fa","#0050ff","#0078ff","#00beff","#00ffff","#0ba062","#ffff00","#ffbe00","#ff5000","#dc0000","#960000","#640000"];
 
@@ -123,11 +125,11 @@ const CRW_LAYERS: CrwLayer[] = [
   },
   {
     id: "CRW_BAA", label: "Bleaching Alert Area", short: "Alert Area",
-    unit: "alert level", color: "#ff0000",
-    colorscalerange: "0,4", min: 0, max: 4, palette: PAL_BAA, kind: "baa", mode: "single", discrete: true,
-    ticks: ["No Stress", "Watch", "Warning", "Alert 1", "Alert 2"],
-    note: "Watch: HotSpot >0  \u00b7  Warning: DHW <4  \u00b7  Alert 1: DHW \u22654  \u00b7  Alert 2: DHW \u22658",
-    desc: "NOAA Coral Reef Watch Bleaching Alert Area - the headline 5-level thermal-stress nomenclature: No Stress, Bleaching Watch, Bleaching Warning, Alert Level 1 (significant bleaching likely) and Alert Level 2 (severe bleaching and mortality likely). Levels combine HotSpot and DHW thresholds into a single reef-management alert.",
+    unit: "alert level", color: "#ee0000", sourceLayer: "CRW_BAA_7D_MAX",
+    colorscalerange: "0,7", min: 0, max: 7, palette: PAL_BAA, kind: "baa", mode: "single", discrete: true,
+    ticks: ["No Stress", "Watch", "Warning", "Alert Level 1", "AL2", "AL3", "AL4", "AL5"],
+    note: "Watch: HotSpot >0  \u00b7  Warning: DHW <4  \u00b7  AL1: \u22654  \u00b7  AL2: \u22658  \u00b7  AL3: \u226512  \u00b7  AL4: \u226516  \u00b7  AL5: \u226520",
+    desc: "NOAA Coral Reef Watch Bleaching Alert Area (7-day maximum composite) - the headline thermal-stress nomenclature across eight levels: No Stress, Watch, Warning, Alert Level 1 (significant bleaching likely) and Alert Levels 2-5 (escalating widespread bleaching and mortality risk; AL5 = DHW \u226520, near-total mortality). Levels combine HotSpot and DHW thresholds into a single reef-management alert.",
   },
   {
     id: "CRW_SSTTREND", label: "SST Trend (7-day)", short: "SST Trend",
@@ -410,7 +412,7 @@ const CrwRecolorGridLayer = (L as any).GridLayer.extend({
       };
       // Reuse the URL-keyed greyscale cache (via loadGray) so re-panning back to
       // an already-viewed area recolours from cached pixels instead of re-downloading.
-      loadGray(mk(o.layerId, o.time), signal)
+      loadGray(mk(o.sourceLayer, o.time), signal)
         .then((src) => {
           const out = ctx.createImageData(size.x, size.y);
           const d = out.data;
@@ -449,7 +451,6 @@ function CrwRecolorLayer({ cfg, dateStr, opacity, onLoading }: {
     const layer = new CrwRecolorGridLayer({
       lut: buildCrwLut(cfg),
       mode: isTrend ? "trend" : "single",
-      layerId: cfg.id,
       sourceLayer: cfg.sourceLayer ?? cfg.id,
       time: crwIso(dateStr),
       trendTimes: isTrend ? crwTrendTimes(dateStr, 7) : undefined,
@@ -3024,7 +3025,7 @@ function ExpandedMapModal({
               )}
             </div>
             <div style={{ fontSize: 7.5, color: "#d4e9f328", marginBottom: 5, lineHeight: 1.5 }}>
-              NOAA Coral Reef Watch 5km thermal-stress suite - Sea Surface Temperature, SST Anomaly, Coral Bleaching HotSpot, Degree Heating Weeks, the 5-level Bleaching Alert Area and the 7-day SST Trend. Pick a layer, then a 7-day / Monthly / Yearly window. Colours and nomenclature match the <a href="https://coralreefwatch.noaa.gov/product/5km/index.php" target="_blank" rel="noopener noreferrer" style={{ color: "#FF6600bb", textDecoration: "none" }}>NOAA Coral Reef Watch</a> products.
+              NOAA Coral Reef Watch 5km thermal-stress suite - Sea Surface Temperature, SST Anomaly, Coral Bleaching HotSpot, Degree Heating Weeks, the 8-level Bleaching Alert Area (7-day max) and the 7-day SST Trend. Pick a layer, then a 7-day / Monthly / Yearly window. Colours and nomenclature match the <a href="https://coralreefwatch.noaa.gov/product/5km/index.php" target="_blank" rel="noopener noreferrer" style={{ color: "#FF6600bb", textDecoration: "none" }}>NOAA Coral Reef Watch</a> products.
             </div>
             {CRW_LAYERS.map(layer => (
               <div
@@ -3501,15 +3502,17 @@ function ExpandedMapModal({
 
             {/* CRW layer legend */}
             <div style={{ marginBottom: 10 }}>
-              <div style={{ fontSize: 8, fontWeight: 700, color: "#e8404088", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 5 }}>Bleaching Alert Levels (BAA)</div>
+              <div style={{ fontSize: 8, fontWeight: 700, color: "#e8404088", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 5 }}>Bleaching Alert Levels (7-day max BAA)</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                 {[
-                  { level: "Level 0", label: "No Stress", color: "#99CCFF" },
-                  { level: "Level 1", label: "Bleaching Watch", color: "#FFFF00" },
-                  { level: "Level 2", label: "Bleaching Warning", color: "#FFAA00" },
-                  { level: "Level 3", label: "Bleaching Alert 1", color: "#FF0000" },
-                  { level: "Level 4", label: "Bleaching Alert 2", color: "#800000" },
-                  { level: "Level 5", label: "Bleaching Alert 3+", color: "#990099" },
+                  { level: "No Stress", label: "no accumulated heat stress", color: "#c1f9f9" },
+                  { level: "Watch", label: "HotSpot > 0", color: "#ffee00" },
+                  { level: "Warning", label: "DHW < 4", color: "#faa00c" },
+                  { level: "Alert Level 1", label: "DHW \u2265 4 - significant bleaching likely", color: "#ee0000" },
+                  { level: "AL2", label: "DHW \u2265 8 - widespread bleaching + mortality", color: "#8b0000" },
+                  { level: "AL3", label: "DHW \u2265 12 - multi-species mortality", color: "#964620" },
+                  { level: "AL4", label: "DHW \u2265 16 - severe, >50% mortality", color: "#ee08ee" },
+                  { level: "AL5", label: "DHW \u2265 20 - catastrophic, >80% mortality", color: "#630363" },
                 ].map(({ level, label, color }) => (
                   <div key={level} style={{ display: "flex", alignItems: "center", gap: 6 }}>
                     <span style={{ width: 11, height: 8, borderRadius: 2, background: `${color}44`, border: `1.5px solid ${color}`, display: "inline-block", flexShrink: 0 }}/>

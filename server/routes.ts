@@ -5,7 +5,7 @@ import multer from "multer";
 import { rateLimit } from "express-rate-limit";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { storage } from "./storage";
-import { uploadToIPFS, getPinata, gatewayUrls, primaryGatewayUrl } from "./ipfs";
+import { uploadToIPFS, computeCid, gatewayUrls, primaryGatewayUrl, publicGatewayUrl } from "./ipfs";
 
 // ─── GCRMN regions GeoJSON cache (fetched once from GitHub, valid 24h) ─────────
 let _gcrmnCache: { geojson: object; expiresAt: number } | null = null;
@@ -217,7 +217,6 @@ async function persistCoralTraitsToDb(features: any[]): Promise<void> {
       .filter(Boolean) as any[];
     await storage.bulkInsertCoralTraitSamples(samples);
     await storage.recomputeCoralSampleCounts();
-    console.log(`[coralTraits] DB hydrate: ${taxaMap.size} taxa seen, ${samples.length} samples processed (dupes skipped)`);
   } catch (e) {
     console.warn("[coralTraits] DB persist failed:", (e as Error).message);
   }
@@ -250,7 +249,6 @@ async function fetchCoralTraitsData(): Promise<object> {
       }));
       const geojson = { type: "FeatureCollection", features };
       _coralTraitsCache = { geojson, expiresAt: now + 24 * 60 * 60 * 1000 };
-      console.log(`[coralTraits] Mapping ${features.length} geolocated locations from ct_measurements`);
       return geojson;
     }
   } catch (e) {
@@ -297,7 +295,6 @@ async function fetchCoralTraitsData(): Promise<object> {
       const csv = await resp.text();
       const features = ctCsvToFeatures(csv, "coraltraits-release");
       if (features.length > 10) {
-        console.log(`[coralTraits] Loaded ${features.length} geolocated obs from official release CSV`);
         const geojson = { type: "FeatureCollection", features };
         _coralTraitsCache = { geojson, expiresAt: now + 24 * 60 * 60 * 1000 };
         persistCoralTraitsToDb(features).catch(() => undefined);
@@ -336,7 +333,6 @@ async function fetchCoralTraitsData(): Promise<object> {
       const combined = headerRow + "\n" + dataRows.join("\n");
       const features = ctCsvToFeatures(combined, "coraltraits");
       if (features.length > 5) {
-        console.log(`[coralTraits] Loaded ${features.length} geolocated obs from observations endpoint`);
         const geojson = { type: "FeatureCollection", features };
         _coralTraitsCache = { geojson, expiresAt: now + 24 * 60 * 60 * 1000 };
         persistCoralTraitsToDb(features).catch(() => undefined);
@@ -348,7 +344,6 @@ async function fetchCoralTraitsData(): Promise<object> {
   }
 
   // Strategy 3: GBIF occurrence search for Scleractinia (order key 1416 - stony corals)
-  console.log("[coralTraits] Using GBIF Scleractinia fallback");
   const gbifUrl = "https://api.gbif.org/v1/occurrence/search?orderKey=1416&hasCoordinate=true&limit=300&basisOfRecord=HUMAN_OBSERVATION";
   const gbifResp = await fetch(gbifUrl, { signal: AbortSignal.timeout(15000) });
   if (!gbifResp.ok) throw new Error(`GBIF fetch failed: ${gbifResp.status}`);
@@ -671,7 +666,6 @@ async function fetchGcrmnMonitoringSites(): Promise<object> {
     }));
     const geojson = { type: "FeatureCollection", features };
     _gcrmnMonSitesCache = { geojson, expiresAt: now + 24 * 60 * 60 * 1000 };
-    console.log(`[gcrmnMonSites] served ${rows.length} sites from database`);
     return geojson;
   }
 
@@ -731,8 +725,6 @@ async function fetchGcrmnMonitoringSites(): Promise<object> {
     });
   }
 
-  console.log(`[gcrmnMonSites] ${features.length} sites, ${cellCache.size} cells geocoded via Natural Earth`);
-
   // Persist geocoded results to DB so future restarts skip geocoding entirely
   try {
     const rows = features.map((f: any) => ({
@@ -743,7 +735,6 @@ async function fetchGcrmnMonitoringSites(): Promise<object> {
       country:  (f.properties.country  ?? "") as string,
     }));
     await storage.bulkInsertGcrmnSites(rows);
-    console.log(`[gcrmnMonSites] persisted ${rows.length} sites to database`);
   } catch (err) {
     console.error("[gcrmnMonSites] DB persist failed (non-fatal):", err);
   }
@@ -918,7 +909,8 @@ function getPrivyJWKS() {
 
 interface PrivyVerifyResult {
   valid: boolean;
-  userId?: string;
+  userId?: string; // canonical profile id (DID resolved through the identities table)
+  did?: string;    // raw Privy DID from the token
   appId?: string;
   error?: string;
 }
@@ -932,9 +924,64 @@ async function verifyPrivyToken(token: string): Promise<PrivyVerifyResult> {
       issuer: "privy.io",
       audience: PRIVY_APP_ID,
     });
-    return { valid: true, userId: payload.sub as string, appId: PRIVY_APP_ID };
+    const did = payload.sub as string;
+    // Resolve to the canonical profile so multiple login methods map to ONE account.
+    const userId = await storage.resolveProfileId(did);
+    return { valid: true, userId, did, appId: PRIVY_APP_ID };
   } catch (err: any) {
     return { valid: false, error: err?.message || "Token verification failed" };
+  }
+}
+
+interface PrivyIdentity {
+  email: string;
+  wallets: string[];
+  backup: Array<Record<string, unknown>>;
+}
+
+// Fetch a user's verified linked accounts from Privy's API (server-side, trusted).
+// We never trust client-supplied identity for dedup/merge — only this.
+async function fetchPrivyIdentity(did: string): Promise<PrivyIdentity | null> {
+  if (!PRIVY_APP_ID || !PRIVY_APP_SECRET) return null;
+  try {
+    const auth = Buffer.from(`${PRIVY_APP_ID}:${PRIVY_APP_SECRET}`).toString("base64");
+    const resp = await fetch(`https://auth.privy.io/api/v1/users/${encodeURIComponent(did)}`, {
+      headers: { Authorization: `Basic ${auth}`, "privy-app-id": PRIVY_APP_ID },
+    });
+    if (!resp.ok) {
+      console.warn("[privy] identity fetch failed:", resp.status);
+      return null;
+    }
+    const data: any = await resp.json();
+    const accounts: any[] = Array.isArray(data?.linked_accounts) ? data.linked_accounts : [];
+    let email = "";
+    const wallets: string[] = [];
+    const backup: Array<Record<string, unknown>> = [];
+    for (const a of accounts) {
+      switch (a?.type) {
+        case "email":
+          if (!email && a.address) email = String(a.address).toLowerCase();
+          break;
+        case "google_oauth":
+          if (a.email && !email) email = String(a.email).toLowerCase();
+          break;
+        case "wallet":
+          if (a.address) wallets.push(String(a.address).toLowerCase());
+          break;
+      }
+      backup.push({
+        type: a?.type,
+        address: a?.address,
+        username: a?.username,
+        email: a?.email,
+        subject: a?.subject,
+        walletClientType: a?.wallet_client_type,
+      });
+    }
+    return { email, wallets, backup };
+  } catch (err) {
+    console.warn("[privy] identity fetch error:", err);
+    return null;
   }
 }
 
@@ -955,11 +1002,7 @@ export async function pinProfileAsync(profile: Record<string, unknown>, profileI
       pinnedAt: Date.now(),
     });
     const buf = Buffer.from(jsonStr, "utf-8");
-    const filename = `pepo-profile-${profileId}-${Date.now()}.json`;
-    const pinata = getPinata();
-    const file = new File([buf], filename, { type: "application/json" });
-    const result = await pinata.upload.public.file(file);
-    const cid = result.cid;
+    const cid = await computeCid(new Uint8Array(buf));
     await storage.saveIpfsBlock(cid, buf.toString("base64"), "application/json");
     await storage.saveIpfsCid(profileId, cid);
     // Award one-time points on first IPFS sync
@@ -967,11 +1010,10 @@ export async function pinProfileAsync(profile: Record<string, unknown>, profileI
       await storage.addContribution({
         profileId,
         type: "resource",
-        description: "Synced profile to IPFS via Pinata",
+        description: "Synced profile to IPFS",
         points: 30,
       });
     }
-    console.log(`[IPFS] Profile pinned for ${profileId}: ${cid}`);
   } catch (err) {
     console.error("[IPFS] pinProfileAsync failed:", err);
   }
@@ -986,7 +1028,7 @@ export async function registerRoutes(
   // Apply general rate limiting to all /api routes
   app.use("/api", generalLimiter);
 
-  // ─── IPFS routes (Pinata - https://github.com/PinataCloud) ───────────────
+  // ─── IPFS routes (self-hosted; CIDs computed locally, bytes in Postgres) ──
   const ipfsUpload = multer({
     storage: multer.memoryStorage(),
     limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB max
@@ -996,7 +1038,7 @@ export async function registerRoutes(
     },
   });
 
-  // POST /api/ipfs/upload - pin an image to Pinata; returns CID + gateway URLs
+  // POST /api/ipfs/upload - store an image (self-hosted IPFS); returns CID + gateway URLs
   app.post(
     "/api/ipfs/upload",
     ipfsUpload.single("file"),
@@ -1004,7 +1046,7 @@ export async function registerRoutes(
       try {
         if (!req.file) return res.status(400).json({ error: "No file provided" });
         const cid = await uploadToIPFS(req.file.buffer, req.file.originalname);
-        // Cache bytes locally so /cat can serve without a Pinata round-trip
+        // Persist bytes locally so /cat serves them straight from Postgres
         const b64 = req.file.buffer.toString("base64");
         await storage.saveIpfsBlock(cid, b64, req.file.mimetype);
         return res.json({
@@ -1023,11 +1065,11 @@ export async function registerRoutes(
     }
   );
 
-  // GET /api/ipfs/cat/:cid - serve a file (local DB cache → Pinata gateway redirect)
+  // GET /api/ipfs/cat/:cid - serve a file (local DB cache → public gateway fallback)
   app.get("/api/ipfs/cat/:cid", async (req: Request, res: Response) => {
     const cidStr = String(req.params.cid);
     try {
-      // 1. Try local DB cache (fast; avoids Pinata round-trip)
+      // 1. Try local DB cache (self-hosted bytes live here)
       const block = await storage.getIpfsBlock(cidStr);
       if (block) {
         const buf = Buffer.from(block.data, "base64");
@@ -1035,11 +1077,12 @@ export async function registerRoutes(
         res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
         return res.send(buf);
       }
-      // 2. Not cached - redirect to dedicated Pinata gateway (file lives on IPFS)
-      return res.redirect(302, primaryGatewayUrl(cidStr));
+      // 2. Not cached locally - best-effort redirect to a public gateway for
+      //    legacy/networked content. Self-hosted CIDs always hit the cache above.
+      return res.redirect(302, publicGatewayUrl(cidStr));
     } catch (err: any) {
       console.error("[IPFS] cat error:", err);
-      return res.redirect(302, primaryGatewayUrl(cidStr));
+      return res.redirect(302, publicGatewayUrl(cidStr));
     }
   });
 
@@ -1047,13 +1090,13 @@ export async function registerRoutes(
   app.get("/api/ipfs/info", (_req: Request, res: Response) => {
     return res.json({
       status: "ok",
-      mode: "pinata",
-      gateway: process.env.PINATA_GATEWAY || "gateway.pinata.cloud",
-      repo: "https://github.com/PinataCloud",
+      mode: "self-hosted",
+      gateway: "/api/ipfs/cat",
+      repo: "https://github.com/ipfs/js-ipfs-unixfs",
     });
   });
 
-  // POST /api/ipfs/profile - pin a profile JSON blob to Pinata; requires Privy auth
+  // POST /api/ipfs/profile - store a profile JSON blob (self-hosted IPFS); requires Privy auth
   app.post("/api/ipfs/profile", async (req: Request, res: Response) => {
     const token = (req.headers["x-privy-token"] as string) || "";
     if (!token) return res.status(401).json({ error: "Authentication required" });
@@ -1069,18 +1112,11 @@ export async function registerRoutes(
       const jsonStr = JSON.stringify({ ...profileData, pinnedAt: Date.now() });
       const buf = Buffer.from(jsonStr, "utf-8");
 
-      // Upload to Pinata
-      const pinata = getPinata();
-      const filename = `pepo-profile-${verify.userId}-${Date.now()}.json`;
-      const file = new File([buf], filename, { type: "application/json" });
-      const result = await pinata.upload.public.file(file);
-      const cid = result.cid;
-
-      // Cache in DB so /api/ipfs/cat can serve it without a Pinata round-trip
+      // Compute the CID locally and persist the bytes in our DB (self-hosted IPFS)
+      const cid = await computeCid(new Uint8Array(buf));
       await storage.saveIpfsBlock(cid, buf.toString("base64"), "application/json");
 
-      const gatewayBase = process.env.PINATA_GATEWAY || "gateway.pinata.cloud";
-      const url = `https://${gatewayBase}/ipfs/${cid}`;
+      const url = primaryGatewayUrl(cid);
 
       // Persist CID + award one-time points
       const existing = await storage.getProfile(verify.userId!);
@@ -1089,7 +1125,7 @@ export async function registerRoutes(
         await storage.addContribution({
           profileId: verify.userId!,
           type: "resource",
-          description: "Synced profile to IPFS via Pinata",
+          description: "Synced profile to IPFS",
           points: 30,
         });
       }
@@ -1768,7 +1804,7 @@ hr, [class*="divider"], [class*="separator"] {
       });
 
       if (!response.ok) {
-        console.log("[Pepo API] graph/query failed:", response.status);
+        console.error("[Pepo API] graph/query failed:", response.status);
         const pointsAwarded = await awardQuestionPoints();
         return res.json({ response: generatePepoResponse(message), source: "local", pointsAwarded });
       }
@@ -1812,7 +1848,7 @@ hr, [class*="divider"], [class*="separator"] {
       const pointsAwarded = await awardQuestionPoints();
       return res.json({ response: fallbackReply, source: "enriched-local", pointsAwarded });
     } catch (err) {
-      console.log("[Pepo API] error:", err);
+      console.error("[Pepo API] error:", err);
       return res.json({ response: generatePepoResponse(message), source: "local", pointsAwarded: 0 });
     }
   });
@@ -1951,12 +1987,53 @@ hr, [class*="divider"], [class*="separator"] {
     const verify = await verifyPrivyToken(token);
     if (!verify.valid) return res.status(401).json({ error: "Unauthorized" });
 
+    const did = verify.did || verify.userId!;
     try {
-      const existing = await storage.getProfile(verify.userId!);
-      if (!existing) {
-        // First login - create profile + award bonus points
-        const profile = await storage.upsertProfile({
-          id: verify.userId!,
+      // Pull the VERIFIED identity from Privy server-side (never trust the client).
+      // null on API failure / missing secret → degrade gracefully without wiping backup.
+      const identity = await fetchPrivyIdentity(did);
+      const email = identity?.email || "";
+      const wallets = identity?.wallets || [];
+      const walletAddress = wallets[0] || "";
+      const backup = identity ? identity.backup : undefined;
+
+      // Is this DID already bound to a canonical account?
+      const aliased = await storage.findProfileIdByIdentifier(`did:${did}`);
+      let canonicalId = aliased || did;
+      let merged = false;
+
+      if (!aliased) {
+        // New DID: attach to an existing account that already owns this verified
+        // email or wallet (identity table first, then legacy profile fields).
+        let matched: string | undefined;
+        if (email) matched = await storage.findProfileIdByIdentifier(`email:${email}`);
+        if (!matched) {
+          for (const w of wallets) {
+            matched = await storage.findProfileIdByIdentifier(`wallet:${w}`);
+            if (matched) break;
+          }
+        }
+        if (!matched) matched = await storage.findProfileIdByEmail(email);
+        if (!matched) {
+          for (const w of wallets) {
+            matched = await storage.findProfileIdByWallet(w);
+            if (matched) break;
+          }
+        }
+        const selfProfile = await storage.getProfile(did); // legacy profile keyed by this DID
+        if (matched && matched !== did) {
+          canonicalId = matched;
+          merged = true;
+          // If this DID had accrued its own profile, fold it into the canonical one.
+          if (selfProfile) await storage.mergeProfiles(did, canonicalId);
+        }
+      }
+
+      let canonical = await storage.getProfile(canonicalId);
+      const isNewUser = !canonical;
+      if (!canonical) {
+        canonical = await storage.upsertProfile({
+          id: canonicalId,
           displayName: req.body?.displayName || "Explorer",
           bio: "",
           location: "",
@@ -1965,21 +2042,30 @@ hr, [class*="divider"], [class*="separator"] {
           tags: [],
           points: 0,
           isPublic: true,
+          email,
+          walletAddress,
+          linkedAccounts: backup ?? [],
         });
-        // Award first-login bonus
         await storage.addContribution({
-          profileId: verify.userId!,
+          profileId: canonicalId,
           type: "login",
           description: "First time joining the Reef network",
           points: 50,
         });
-        // Pin new profile to IPFS in background (awards 30 pts on first pin)
-        void pinProfileAsync(profile as Record<string, unknown>, verify.userId!);
-        return res.json({ profile, newUser: true });
+      } else {
+        // Returning/merged account: refresh the DB-only identity backup so newly
+        // linked emails/socials/wallets are captured on every login.
+        await storage.saveIdentityBackup(canonicalId, { email, linkedAccounts: backup, walletAddress });
+        canonical = (await storage.getProfile(canonicalId)) || canonical;
       }
-      // Returning user - pin updated profile to IPFS in background on every login
-      void pinProfileAsync(existing as Record<string, unknown>, verify.userId!);
-      return res.json({ profile: existing, newUser: false });
+
+      // Map every identifier we saw to the canonical profile for future logins.
+      await storage.linkIdentity(`did:${did}`, "did", canonicalId);
+      if (email) await storage.linkIdentity(`email:${email}`, "email", canonicalId);
+      for (const w of wallets) await storage.linkIdentity(`wallet:${w}`, "wallet", canonicalId);
+
+      void pinProfileAsync(canonical as Record<string, unknown>, canonicalId);
+      return res.json({ profile: canonical, newUser: isNewUser, merged });
     } catch (err) {
       console.error("[syncProfile]", err);
       return res.status(500).json({ error: "Failed to sync profile" });
@@ -2057,7 +2143,7 @@ hr, [class*="divider"], [class*="separator"] {
     }
   });
 
-  // POST /api/profiles/ipfs - save Pinata IPFS CID to profile
+  // POST /api/profiles/ipfs - save IPFS CID to profile
   app.post("/api/profiles/ipfs", async (req: Request, res: Response) => {
     const token = (req.headers["x-privy-token"] as string) || "";
     const verify = await verifyPrivyToken(token);
@@ -2075,7 +2161,7 @@ hr, [class*="divider"], [class*="separator"] {
         await storage.addContribution({
           profileId: verify.userId!,
           type: "resource",
-          description: "Synced profile to IPFS via Pinata",
+          description: "Synced profile to IPFS",
           points: 30,
         });
       }

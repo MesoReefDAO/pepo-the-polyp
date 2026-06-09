@@ -23,6 +23,7 @@ const ms = {
     accessNetwork: "Log masuk untuk mengakses Rangkaian Pengetahuan Terumbu MesoReef DAO",
     pepoThePolyp: "Pepo si Polip",
     account: "Akaun",
+    orcidCurateNote: "Penyelidik log masuk dengan ORCID iD untuk mengurasi imej dan video terumbu.",
   },
   wallet: {
     wallet: "Dompet",

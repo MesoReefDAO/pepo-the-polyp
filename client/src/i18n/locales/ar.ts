@@ -23,6 +23,7 @@ const ar = {
     accessNetwork: "سجّل دخولك للوصول إلى شبكة معرفة الشعاب المرجانية",
     pepoThePolyp: "Pepo قنديل البحر",
     account: "الحساب",
+    orcidCurateNote: "يسجّل الباحثون الدخول بـ ORCID iD لتنظيم صور ومقاطع فيديو الشعاب المرجانية.",
   },
   wallet: {
     wallet: "المحفظة",

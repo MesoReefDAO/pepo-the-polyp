@@ -2,7 +2,7 @@ import { eq, desc, sql } from "drizzle-orm";
 import { db } from "./db";
 import {
   users, profiles, contributions, reefImages, reefVideos, ipfsBlocks, gcrmnSites,
-  coralTaxa, coralTraits, coralTraitSamples, cotwSpecies,
+  coralTaxa, coralTraits, coralTraitSamples, cotwSpecies, userIdentities,
   type User, type InsertUser,
   type Profile, type InsertProfile,
   type Contribution, type InsertContribution,
@@ -44,6 +44,15 @@ export interface IStorage {
   upsertProfile(profile: InsertProfile): Promise<Profile>;
   getAllProfiles(): Promise<Profile[]>;
 
+  // identity resolution / dedup
+  resolveProfileId(did: string): Promise<string>;
+  findProfileIdByIdentifier(identifier: string): Promise<string | undefined>;
+  findProfileIdByEmail(email: string): Promise<string | undefined>;
+  findProfileIdByWallet(wallet: string): Promise<string | undefined>;
+  linkIdentity(identifier: string, type: string, profileId: string): Promise<void>;
+  saveIdentityBackup(profileId: string, backup: { email?: string; linkedAccounts?: unknown; walletAddress?: string }): Promise<void>;
+  mergeProfiles(sourceId: string, targetId: string): Promise<void>;
+
   // contributions
   getContributions(profileId: string): Promise<Contribution[]>;
   addContribution(contribution: InsertContribution): Promise<Contribution>;
@@ -58,7 +67,7 @@ export interface IStorage {
   saveOrcid(profileId: string, orcidId: string, orcidName: string): Promise<Profile>;
   clearOrcid(profileId: string): Promise<Profile>;
 
-  // IPFS / Pinata
+  // IPFS
   saveIpfsCid(profileId: string, ipfsCid: string): Promise<Profile>;
   saveWalletAddress(profileId: string, walletAddress: string): Promise<Profile>;
   getAllProfilesRaw(): Promise<Profile[]>;
@@ -164,6 +173,92 @@ export class DbStorage implements IStorage {
     return row;
   }
 
+  // ── Identity resolution / dedup ─────────────────────────────────────────────
+  // Resolve a Privy DID to its canonical profile id. Returns the DID itself when
+  // no alias exists yet (brand-new or pre-feature login).
+  async resolveProfileId(did: string): Promise<string> {
+    const [row] = await db
+      .select({ pid: userIdentities.profileId })
+      .from(userIdentities)
+      .where(eq(userIdentities.identifier, `did:${did}`));
+    return row?.pid ?? did;
+  }
+
+  async findProfileIdByIdentifier(identifier: string): Promise<string | undefined> {
+    const [row] = await db
+      .select({ pid: userIdentities.profileId })
+      .from(userIdentities)
+      .where(eq(userIdentities.identifier, identifier));
+    return row?.pid;
+  }
+
+  // Legacy fallback: match an existing (non-merged) profile by its stored email or
+  // wallet, even if it predates the identities table. Oldest profile wins, so the
+  // canonical account is deterministic.
+  async findProfileIdByEmail(email: string): Promise<string | undefined> {
+    if (!email) return undefined;
+    const [row] = await db
+      .select({ id: profiles.id })
+      .from(profiles)
+      .where(sql`lower(${profiles.email}) = ${email.toLowerCase()} AND ${profiles.email} <> '' AND ${profiles.mergedInto} = ''`)
+      .orderBy(profiles.createdAt)
+      .limit(1);
+    return row?.id;
+  }
+
+  async findProfileIdByWallet(wallet: string): Promise<string | undefined> {
+    if (!wallet) return undefined;
+    const [row] = await db
+      .select({ id: profiles.id })
+      .from(profiles)
+      .where(sql`lower(${profiles.walletAddress}) = ${wallet.toLowerCase()} AND ${profiles.walletAddress} <> '' AND ${profiles.mergedInto} = ''`)
+      .orderBy(profiles.createdAt)
+      .limit(1);
+    return row?.id;
+  }
+
+  // Record identifier → canonical profile. First claimant wins (onConflictDoNothing),
+  // so a verified email/wallet stays bound to the account that first registered it.
+  async linkIdentity(identifier: string, type: string, profileId: string): Promise<void> {
+    const now = Math.floor(Date.now() / 1000);
+    await db
+      .insert(userIdentities)
+      .values({ identifier, type, profileId, createdAt: now })
+      .onConflictDoNothing();
+  }
+
+  async saveIdentityBackup(
+    profileId: string,
+    backup: { email?: string; linkedAccounts?: unknown; walletAddress?: string },
+  ): Promise<void> {
+    const now = Math.floor(Date.now() / 1000);
+    const set: Record<string, unknown> = { updatedAt: now };
+    if (backup.email) set.email = backup.email;
+    if (backup.linkedAccounts !== undefined) set.linkedAccounts = backup.linkedAccounts;
+    if (backup.walletAddress) set.walletAddress = backup.walletAddress;
+    await db.update(profiles).set(set).where(eq(profiles.id, profileId));
+  }
+
+  // Fold a duplicate profile into a canonical one: move its contributions, add its
+  // points, then mark it merged + private so it disappears from all listings.
+  async mergeProfiles(sourceId: string, targetId: string): Promise<void> {
+    if (sourceId === targetId) return;
+    const source = await this.getProfile(sourceId);
+    if (!source || source.mergedInto) return;
+    const now = Math.floor(Date.now() / 1000);
+    await db.update(contributions).set({ profileId: targetId }).where(eq(contributions.profileId, sourceId));
+    if (source.points) {
+      await db
+        .update(profiles)
+        .set({ points: sql`${profiles.points} + ${source.points}`, updatedAt: now })
+        .where(eq(profiles.id, targetId));
+    }
+    await db
+      .update(profiles)
+      .set({ mergedInto: targetId, points: 0, isPublic: false, updatedAt: now })
+      .where(eq(profiles.id, sourceId));
+  }
+
   async getAllProfiles(): Promise<Profile[]> {
     const rows = await db.select().from(profiles).where(eq(profiles.isPublic, true)).orderBy(desc(profiles.points));
     // Deduplicate: if a privy profile and an orcid-prefixed profile share the same
@@ -243,7 +338,7 @@ export class DbStorage implements IStorage {
     return row;
   }
 
-  // ── IPFS / Pinata ─────────────────────────────────────────────────────────
+  // ── IPFS ──────────────────────────────────────────────────────────────────
   async saveIpfsCid(profileId: string, ipfsCid: string): Promise<Profile> {
     const now = Math.floor(Date.now() / 1000);
     const existing = await this.getProfile(profileId);

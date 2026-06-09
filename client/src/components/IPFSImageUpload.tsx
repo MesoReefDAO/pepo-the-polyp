@@ -615,9 +615,9 @@ export function IPFSImageUpload({ onUpload, currentCid, label, compact, showMapP
 
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
             {[
-              { label: "pinata", href: `https://teal-advisory-zebra-284.mypinata.cloud/ipfs/${activeCid}` },
+              { label: "this app", href: `/api/ipfs/cat/${activeCid}` },
               { label: "ipfs.io", href: `https://ipfs.io/ipfs/${activeCid}` },
-              { label: "cloudflare", href: `https://cloudflare-ipfs.com/ipfs/${activeCid}` },
+              { label: "dweb.link", href: `https://dweb.link/ipfs/${activeCid}` },
             ].map(({ label, href }) => (
               <a
                 key={label}

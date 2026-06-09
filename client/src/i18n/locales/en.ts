@@ -22,8 +22,8 @@ const en = {
     researcher: "Researcher",
     accessNetwork: "Sign in to access the MesoReef DAO Reef Knowledge Network",
     pepoThePolyp: "Pepo the Polyp",
-    orcidCurateNote: "Researchers sign in with an ORCID iD to curate reef images and videos.",
     account: "Account",
+    orcidCurateNote: "Researchers sign in with an ORCID iD to curate reef images and videos.",
   },
   wallet: {
     wallet: "Wallet",

@@ -23,6 +23,7 @@ const es = {
     accessNetwork: "Inicia sesión para acceder a la Red de Conocimiento del Arrecife",
     pepoThePolyp: "Pepo el Pólipo",
     account: "Cuenta",
+    orcidCurateNote: "Los investigadores inician sesión con un ORCID iD para curar imágenes y videos del arrecife.",
   },
   wallet: {
     wallet: "Billetera",

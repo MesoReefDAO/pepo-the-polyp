@@ -23,6 +23,7 @@ const zh = {
     accessNetwork: "登录以访问 MesoReef DAO 珊瑚礁知识网络",
     pepoThePolyp: "珊瑚虫 Pepo",
     account: "账户",
+    orcidCurateNote: "研究人员使用 ORCID iD 登录以策展珊瑚礁的图片和视频。",
   },
   wallet: {
     wallet: "钱包",

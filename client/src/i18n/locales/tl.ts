@@ -23,6 +23,7 @@ const tl = {
     accessNetwork: "Mag-sign in para ma-access ang MesoReef DAO Reef Knowledge Network",
     pepoThePolyp: "Si Pepo ang Polyp",
     account: "Account",
+    orcidCurateNote: "Nag-sa-sign in ang mga mananaliksik gamit ang ORCID iD para mag-curate ng mga larawan at video ng reef.",
   },
   wallet: {
     wallet: "Wallet",

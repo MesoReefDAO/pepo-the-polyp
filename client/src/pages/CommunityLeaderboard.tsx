@@ -449,11 +449,15 @@ export function CommunityLeaderboard() {
           Every question asked earns points. The most curious explorers rise to the top of the Reef Knowledge Network.
         </p>
         {!isAuthenticated && (
-          <div className="mt-2 px-4 py-2 rounded-full bg-[#83eef010] border border-[#83eef033]">
+          <Link
+            href="/"
+            data-testid="link-join-leaderboard"
+            className="mt-2 px-4 py-2 rounded-full bg-[#83eef010] border border-[#83eef033] hover:bg-[#83eef01a] transition-colors no-underline"
+          >
             <span className="[font-family:'Inter',Helvetica] text-[#83eef0] text-xs">
               Log in and ask Pepo a question to join the leaderboard
             </span>
-          </div>
+          </Link>
         )}
       </div>
 

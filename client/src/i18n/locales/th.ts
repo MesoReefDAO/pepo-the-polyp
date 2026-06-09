@@ -23,6 +23,7 @@ const th = {
     accessNetwork: "เข้าสู่ระบบเพื่อเข้าถึงเครือข่ายความรู้แนวปะการัง MesoReef DAO",
     pepoThePolyp: "เปโป โพลิป",
     account: "บัญชี",
+    orcidCurateNote: "นักวิจัยเข้าสู่ระบบด้วย ORCID iD เพื่อคัดสรรภาพและวิดีโอแนวปะการัง",
   },
   wallet: {
     wallet: "กระเป๋าเงิน",

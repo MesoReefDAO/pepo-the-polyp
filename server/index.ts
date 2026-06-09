@@ -104,24 +104,38 @@ app.use(
 );
 
 // ─── Body parsing ─────────────────────────────────────────────────────────────
-app.use(
-  express.json({
-    limit: "100kb", // cap body size to prevent large-payload attacks
-    verify: (req, _res, buf) => {
-      req.rawBody = buf;
-    },
-  }),
-);
+// Most routes stay tightly capped to limit large-payload attacks. Profile/IPFS
+// write routes carry larger JSON blobs (bios, tag lists, IPFS image CID arrays,
+// and legacy data-URL avatars), so they get a higher limit. Image file uploads
+// are multipart and handled by multer separately, so they are unaffected here.
+const captureRawBody = (req: Request, _res: Response, buf: Buffer) => {
+  req.rawBody = buf;
+};
+const standardJson = express.json({ limit: "100kb", verify: captureRawBody });
+const largeJson = express.json({ limit: "5mb", verify: captureRawBody });
+app.use((req, res, next) => {
+  const usesLargeLimit =
+    req.path === "/api/ipfs/profile" || req.path.startsWith("/api/profiles");
+  return (usesLargeLimit ? largeJson : standardJson)(req, res, next);
+});
 app.use(express.urlencoded({ extended: false, limit: "100kb" }));
 
 // ─── Sessions (used for ORCID auth) ───────────────────────────────────────────
 // Use PostgreSQL-backed session store so sessions survive server restarts.
+// NOTE: We create the session table ourselves rather than relying on
+// connect-pg-simple's `createTableIfMissing`. That option reads the library's
+// `table.sql` from a path relative to the bundled module, which resolves to a
+// non-existent `dist/table.sql` in production builds and makes every
+// session.save() throw ENOENT (breaking ORCID sign-in). Creating the table via
+// explicit SQL avoids any filesystem dependency.
+// The orcid_sessions table is created in the startup IIFE below (awaited before
+// the server accepts traffic) so the first session write never races it.
 const PgSession = connectPgSimple(session);
 app.use(session({
   store: new PgSession({
     pool,
     tableName: "orcid_sessions",
-    createTableIfMissing: true,
+    createTableIfMissing: false,
   }),
   secret: process.env.SESSION_SECRET || "mesoreefdao-orcid-session-secret-dev",
   resave: false,
@@ -176,6 +190,20 @@ app.use((req, res, next) => {
   await pool.query(
     `ALTER TABLE profiles ADD COLUMN IF NOT EXISTS wallet_address text NOT NULL DEFAULT '';`
   ).catch(err => console.error("[migration] wallet_address:", err));
+
+  // Ensure the connect-pg-simple session table exists (we create it ourselves
+  // instead of using createTableIfMissing, which reads a bundled table.sql that
+  // is absent in the production build). Awaited so it is ready before any
+  // session write. Schema mirrors connect-pg-simple's table.sql.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS "orcid_sessions" (
+      "sid" varchar NOT NULL COLLATE "default",
+      "sess" json NOT NULL,
+      "expire" timestamp(6) NOT NULL,
+      CONSTRAINT "orcid_sessions_pkey" PRIMARY KEY ("sid")
+    );
+    CREATE INDEX IF NOT EXISTS "IDX_orcid_sessions_expire" ON "orcid_sessions" ("expire");
+  `).catch(err => console.error("[migration] orcid_sessions:", err));
 
   await registerRoutes(httpServer, app);
 

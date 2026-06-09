@@ -23,6 +23,7 @@ const pt = {
     accessNetwork: "Entre para acessar a Rede de Conhecimento do Recife",
     pepoThePolyp: "Pepo o Pólipo",
     account: "Conta",
+    orcidCurateNote: "Pesquisadores entram com um ORCID iD para curar imagens e vídeos do recife.",
   },
   wallet: {
     wallet: "Carteira",

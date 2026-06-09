@@ -23,6 +23,7 @@ const fr = {
     accessNetwork: "Connectez-vous pour accéder au Réseau de Connaissances des Récifs",
     pepoThePolyp: "Pepo le Polype",
     account: "Compte",
+    orcidCurateNote: "Les chercheurs se connectent avec un ORCID iD pour curer les images et vidéos du récif.",
   },
   wallet: {
     wallet: "Portefeuille",

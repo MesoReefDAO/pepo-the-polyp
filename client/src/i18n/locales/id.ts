@@ -23,6 +23,7 @@ const id = {
     accessNetwork: "Masuk untuk mengakses Jaringan Pengetahuan Terumbu MesoReef DAO",
     pepoThePolyp: "Pepo si Polip",
     account: "Akun",
+    orcidCurateNote: "Peneliti masuk dengan ORCID iD untuk mengurasi gambar dan video terumbu.",
   },
   wallet: {
     wallet: "Dompet",

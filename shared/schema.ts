@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, boolean, real, serial } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, boolean, real, serial, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -37,6 +37,11 @@ export const profiles = pgTable("profiles", {
   instagramHandle: text("instagram_handle").notNull().default(""),
   // Wallet / Web3 identity
   walletAddress: text("wallet_address").notNull().default(""),
+  // Identity backup (DB-only): verified email + every linked account (socials/wallets),
+  // plus a pointer used when a duplicate identity is merged into this one.
+  email: text("email").notNull().default(""),
+  linkedAccounts: jsonb("linked_accounts").notNull().default(sql`'[]'::jsonb`),
+  mergedInto: text("merged_into").notNull().default(""),
   // IPFS / Pinata decentralised storage — CID of the pinned profile JSON
   ipfsCid: text("ipfs_cid").default(""),
   // IPFS
@@ -54,6 +59,23 @@ export const insertProfileSchema = createInsertSchema(profiles).omit({
 });
 export type InsertProfile = z.infer<typeof insertProfileSchema>;
 export type Profile = typeof profiles.$inferSelect;
+
+// ─── User identities ──────────────────────────────────────────────────────────
+// Maps every login identifier (Privy DID, verified email, wallet address) to a
+// single canonical profile, so one person who signs in with multiple methods
+// resolves to ONE account instead of creating duplicate identities.
+export const userIdentities = pgTable("user_identities", {
+  identifier: varchar("identifier").primaryKey(), // e.g. "did:privy:...", "email:a@b.com", "wallet:0x..."
+  type: text("type").notNull(),                   // 'did' | 'email' | 'wallet'
+  profileId: varchar("profile_id").notNull().references(() => profiles.id),
+  createdAt: integer("created_at").notNull().default(sql`extract(epoch from now())::int`),
+});
+
+export const insertUserIdentitySchema = createInsertSchema(userIdentities).omit({
+  createdAt: true,
+});
+export type InsertUserIdentity = z.infer<typeof insertUserIdentitySchema>;
+export type UserIdentity = typeof userIdentities.$inferSelect;
 
 // ─── Contributions ────────────────────────────────────────────────────────────
 export const contributions = pgTable("contributions", {

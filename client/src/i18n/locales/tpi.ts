@@ -23,6 +23,7 @@ const tpi = {
     accessNetwork: "Sainin bilong go insait long MesoReef DAO Rif Netwok",
     pepoThePolyp: "Pepo Poliep",
     account: "Akown",
+    orcidCurateNote: "Ol saveman i sainin wantaim ORCID iD bilong stretim ol piksa na vidio bilong rif.",
   },
   wallet: {
     wallet: "Wallet",

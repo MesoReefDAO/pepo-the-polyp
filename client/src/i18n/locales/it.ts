@@ -23,6 +23,7 @@ const it = {
     accessNetwork: "Accedi per entrare nella Rete di Conoscenza della Barriera Corallina di MesoReef DAO",
     pepoThePolyp: "Pepo il Polipo",
     account: "Account",
+    orcidCurateNote: "I ricercatori accedono con un ORCID iD per curare immagini e video della barriera corallina.",
   },
   wallet: {
     wallet: "Portafoglio",
